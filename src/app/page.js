@@ -38,6 +38,7 @@ function ChurchMembershipSystem() {
   const [showMemberForm, setShowMemberForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showCellForm, setShowCellForm] = useState(false);
+  const [editingCellId, setEditingCellId] = useState(null);
   const [showSectorForm, setShowSectorForm] = useState(false);
   const [showReportForm, setShowReportForm] = useState(false);
 
@@ -171,11 +172,22 @@ function ChurchMembershipSystem() {
 
   const addCell = async () => {
     if (!cellForm.name || !cellForm.sector_id) return;
-    const { data } = await supabase.from('cells').insert([cellForm]).select();
-    if (data) {
-      setCells([...cells, data[0]]);
-      setCellForm({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30' });
-      setShowCellForm(false);
+    
+    if (editingCellId) {
+      const { data, error } = await supabase.from('cells').update(cellForm).eq('id', editingCellId).select();
+      if (data) {
+        setCells(cells.map(c => c.id === editingCellId ? data[0] : c));
+        setEditingCellId(null);
+        setCellForm({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30' });
+        setShowCellForm(false);
+      }
+    } else {
+      const { data } = await supabase.from('cells').insert([cellForm]).select();
+      if (data) {
+        setCells([...cells, data[0]]);
+        setCellForm({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30' });
+        setShowCellForm(false);
+      }
     }
   };
 
@@ -440,7 +452,8 @@ function ChurchMembershipSystem() {
           {activeTab === 'cells' && (
             <div className="space-y-6">
                <header className="flex justify-between items-center"><h2 className="text-2xl font-black italic uppercase tracking-tighter">Células</h2><button onClick={() => setShowCellForm(true)} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVA CÉLULA</button></header>
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">{cells.map(cell => (<div key={cell.id} className={`${t.card} border rounded-2xl p-6 flex flex-col group`}><div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-500 mb-4 group-hover:bg-blue-600 group-hover:text-white transition-all"><Home size={20}/></div><h3 className="text-lg font-black uppercase italic mb-1">{cell.name}</h3><p className="text-blue-500 text-[9px] font-black uppercase mb-2">{cell.leader}</p><div className="flex flex-col gap-1.5 mb-4 border-y border-white/5 py-3"><div className="flex items-center gap-2 text-[9px] font-black uppercase text-slate-500"><Calendar size={12} className="text-blue-500"/> {cell.day_of_week || 'Não definido'}</div><div className="flex items-center gap-2 text-[9px] font-black uppercase text-slate-500"><Clock size={12} className="text-blue-500"/> {cell.meeting_time || 'Não definido'}</div></div><div className="flex gap-2"><button onClick={() => { const link = `${window.location.origin}${window.location.pathname}?cellId=${cell.id}`; navigator.clipboard.writeText(link); setCopiedId(cell.id); setTimeout(() => setCopiedId(null), 2000); }} className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 font-black text-[8px] uppercase tracking-widest transition-all ${copiedId === cell.id ? 'bg-emerald-600 text-white' : 'bg-blue-600/10 text-blue-500'}`}>{copiedId === cell.id ? 'Copiado!' : 'Link Líder'}</button><button onClick={() => { setActiveCell(cell); setIsLeaderMode(true); setActiveTab('leader-members'); }} className="p-2.5 rounded-lg border border-white/10 text-white/50 hover:bg-white/5"><Eye size={12}/></button><button onClick={() => deleteItem('cells', cell.id)} className="p-2.5 rounded-lg text-red-500/30 hover:text-red-500"><Trash2 size={12}/></button></div></div>))}</div>
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">{cells.map(cell => (<div key={cell.id} className={`${t.card} border rounded-2xl p-6 flex flex-col group`}><div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-500 mb-4 group-hover:bg-blue-600 group-hover:text-white transition-all"><Home size={20}/></div><h3 className="text-lg font-black uppercase italic mb-1">{cell.name}</h3><p className="text-blue-500 text-[9px] font-black uppercase mb-2">{cell.leader}</p><div className="flex flex-col gap-1.5 mb-4 border-y border-white/5 py-3"><div className="flex items-center gap-2 text-[9px] font-black uppercase text-slate-500"><Calendar size={12} className="text-blue-500"/> {cell.day_of_week || 'Não definido'}</div><div className="flex items-center gap-2 text-[9px] font-black uppercase text-slate-500"><Clock size={12} className="text-blue-500"/> {cell.meeting_time || 'Não definido'}</div></div><div className="flex gap-2"><button onClick={() => { const link = `${window.location.origin}${window.location.pathname}?cellId=${cell.id}`; navigator.clipboard.writeText(link); setCopiedId(cell.id); setTimeout(() => setCopiedId(null), 2000); }} className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 font-black text-[8px] uppercase tracking-widest transition-all ${copiedId === cell.id ? 'bg-emerald-600 text-white' : 'bg-blue-600/10 text-blue-500'}`}>{copiedId === cell.id ? 'Copiado!' : 'Link Líder'}</button><button onClick={() => { setEditingCellId(cell.id); setCellForm(cell); setShowCellForm(true); }} className="p-2.5 rounded-lg border border-white/10 text-white/50 hover:bg-white/5 hover:text-blue-400"><Edit2 size={12}/></button>
+<button onClick={() => { setActiveCell(cell); setIsLeaderMode(true); setActiveTab('leader-members'); }} className="p-2.5 rounded-lg border border-white/10 text-white/50 hover:bg-white/5"><Eye size={12}/></button><button onClick={() => deleteItem('cells', cell.id)} className="p-2.5 rounded-lg text-red-500/30 hover:text-red-500"><Trash2 size={12}/></button></div></div>))}</div>
             </div>
           )}
 
@@ -493,8 +506,8 @@ function ChurchMembershipSystem() {
       {showCellForm && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-xl rounded-2xl p-8 border ${t.border} shadow-2xl relative`}>
-            <button onClick={() => setShowCellForm(false)} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24}/></button>
-            <h2 className="text-3xl font-black mb-8 italic uppercase tracking-tighter text-left">Nova Célula</h2>
+            <button onClick={() => { setShowCellForm(false); setEditingCellId(null); setCellForm({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30' }); }} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24}/></button>
+            <h2 className="text-3xl font-black mb-8 italic uppercase tracking-tighter text-left">{editingCellId ? 'Editar' : 'Nova'} Célula</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
               <InputCompact label="NOME DA CÉLULA" value={cellForm.name} onChange={val => setCellForm({...cellForm, name: val})} dark={darkMode} />
               <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}><p className="text-[8px] font-black text-slate-500 uppercase mb-2">SETOR</p><select value={cellForm.sector_id} onChange={e => setCellForm({...cellForm, sector_id: e.target.value})} className="w-full bg-transparent font-black text-sm outline-none"><option value="">Selecionar...</option>{sectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
