@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Plus, Trash2, Users, Menu, X, Activity, LayoutDashboard, Map, Home, ClipboardList, Star, Calendar, Clock, Copy, Check, MapPin, Loader2, Sun, Moon, ShieldCheck, UserMinus, Eye, Download, Upload, Power, LineChart as LineIcon, PieChart as PieIcon } from 'lucide-react';
+import { Plus, Trash2, Users, Menu, X, Activity, LayoutDashboard, Map, Home, ClipboardList, Star, Calendar, Clock, Copy, Check, MapPin, Loader2, Sun, Moon, ShieldCheck, UserMinus, Eye, Download, Upload, Power, Edit2, LineChart as LineIcon, PieChart as PieIcon } from 'lucide-react';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { supabase } from '../lib/supabase';
 
@@ -35,6 +35,7 @@ function ChurchMembershipSystem() {
   const [timeFilter, setTimeFilter] = useState('Tudo');
 
   const [showMemberForm, setShowMemberForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [showCellForm, setShowCellForm] = useState(false);
   const [showSectorForm, setShowSectorForm] = useState(false);
   const [showReportForm, setShowReportForm] = useState(false);
@@ -113,11 +114,22 @@ function ChurchMembershipSystem() {
   const addMember = async () => {
     const cId = isLeaderMode ? activeCell?.id : memberForm.cell_id;
     if (!memberForm.name || !cId) return;
-    const { data } = await supabase.from('members').insert([{ ...memberForm, cell_id: Number(cId) }]).select();
-    if (data) {
-      setMembers([...members, data[0]]);
-      setMemberForm({ name: '', email: '', phone: '', cell_id: '', status: 'active', cep: '', address: '', number: '', neighborhood: '', city: '', pl: false, ecc: false, bat: false, con: false, maturidade: false, ctl: false, ministerios: false, integracao: false, outros: false, attended_cell: false, attended_cult: false });
-      setShowMemberForm(false);
+    
+    if (editingId) {
+      const { data } = await supabase.from('members').update({ ...memberForm, cell_id: Number(cId) }).eq('id', editingId).select();
+      if (data) {
+        setMembers(members.map(m => m.id === editingId ? data[0] : m));
+        setEditingId(null);
+        setMemberForm({ name: '', email: '', phone: '', cell_id: '', status: 'active', cep: '', address: '', number: '', neighborhood: '', city: '', pl: false, ecc: false, bat: false, con: false, maturidade: false, ctl: false, ministerios: false, integracao: false, outros: false, attended_cell: false, attended_cult: false });
+        setShowMemberForm(false);
+      }
+    } else {
+      const { data } = await supabase.from('members').insert([{ ...memberForm, cell_id: Number(cId) }]).select();
+      if (data) {
+        setMembers([...members, data[0]]);
+        setMemberForm({ name: '', email: '', phone: '', cell_id: '', status: 'active', cep: '', address: '', number: '', neighborhood: '', city: '', pl: false, ecc: false, bat: false, con: false, maturidade: false, ctl: false, ministerios: false, integracao: false, outros: false, attended_cell: false, attended_cult: false });
+        setShowMemberForm(false);
+      }
     }
   };
 
@@ -317,7 +329,7 @@ function ChurchMembershipSystem() {
           {(activeTab === 'members' || activeTab === 'leader-members') && (
             <div className="space-y-6">
                <header className="flex justify-between items-center"><h2 className="text-2xl font-black italic uppercase tracking-tighter">Membros</h2><button onClick={() => setShowMemberForm(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVO MEMBRO</button></header>
-               <div className={`${t.card} border rounded-2xl overflow-x-auto`}><table className="w-full text-left min-w-[600px]"><thead className={`${t.tableHead} border-b ${t.border}`}><tr><th className="px-6 py-4 text-[9px] font-black uppercase">Membro</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase">Célula</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase">Culto</th><th className="px-6 py-4 text-right text-[9px] font-black uppercase">Ações</th></tr></thead><tbody className={`divide-y ${t.border}`}>{filteredMembers.map(m => (<tr key={m.id} className={t.hover}><td className="px-6 py-4 text-sm font-black italic">{m.name}</td><td className="px-6 py-4 text-center"><button onClick={() => toggleAttendance(m.id, 'attended_cell')} className={`p-3 rounded-xl border ${m.attended_cell ? 'bg-orange-500 text-white' : 'bg-white/5 text-slate-500'}`}>{m.attended_cell ? <Check size={16}/> : <Home size={16}/>}</button></td><td className="px-6 py-4 text-center"><button onClick={() => toggleAttendance(m.id, 'attended_cult')} className={`p-3 rounded-xl border ${m.attended_cult ? 'bg-blue-600 text-white' : 'bg-white/5 text-slate-500'}`}>{m.attended_cult ? <Check size={16}/> : <Users size={16}/>}</button></td><td className="px-6 py-4 text-right"><button onClick={() => deleteItem('members', m.id)} className="text-red-500/30 hover:text-red-500 p-2"><Trash2 size={16}/></button></td></tr>))}</tbody></table></div>
+               <div className={`${t.card} border rounded-2xl overflow-x-auto`}><table className="w-full text-left min-w-[600px]"><thead className={`${t.tableHead} border-b ${t.border}`}><tr><th className="px-6 py-4 text-[9px] font-black uppercase">Membro</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase">Célula</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase">Culto</th><th className="px-6 py-4 text-right text-[9px] font-black uppercase">Ações</th></tr></thead><tbody className={`divide-y ${t.border}`}>{filteredMembers.map(m => (<tr key={m.id} className={t.hover}><td className="px-6 py-4 text-sm font-black italic">{m.name}</td><td className="px-6 py-4 text-center"><button onClick={() => toggleAttendance(m.id, 'attended_cell')} className={`p-3 rounded-xl border ${m.attended_cell ? 'bg-orange-500 text-white' : 'bg-white/5 text-slate-500'}`}>{m.attended_cell ? <Check size={16}/> : <Home size={16}/>}</button></td><td className="px-6 py-4 text-center"><button onClick={() => toggleAttendance(m.id, 'attended_cult')} className={`p-3 rounded-xl border ${m.attended_cult ? 'bg-blue-600 text-white' : 'bg-white/5 text-slate-500'}`}>{m.attended_cult ? <Check size={16}/> : <Users size={16}/>}</button></td><td className="px-6 py-4 text-right"><div className="flex justify-end gap-2"><button onClick={() => { setEditingId(m.id); setMemberForm(m); setShowMemberForm(true); }} className="text-blue-500/30 hover:text-blue-500 p-2"><Edit2 size={16}/></button><button onClick={() => deleteItem('members', m.id)} className="text-red-500/30 hover:text-red-500 p-2"><Trash2 size={16}/></button></div></td></tr>))}</tbody></table></div>
             </div>
           )}
 
@@ -348,8 +360,8 @@ function ChurchMembershipSystem() {
       {showMemberForm && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-auto">
           <div className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-2xl rounded-2xl p-8 border ${t.border} shadow-2xl my-auto text-left relative`}>
-            <button onClick={() => setShowMemberForm(false)} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white hover:bg-white/5 rounded-full transition-all"><X size={24}/></button>
-            <h2 className="text-3xl font-black italic uppercase mb-8 pr-12">NOVO ; {activeCell?.name || 'MEMBRO'}</h2>
+            <button onClick={() => { setShowMemberForm(false); setEditingId(null); setMemberForm({ name: '', email: '', phone: '', cell_id: '', status: 'active', cep: '', address: '', number: '', neighborhood: '', city: '', pl: false, ecc: false, bat: false, con: false, maturidade: false, ctl: false, ministerios: false, integracao: false, outros: false, attended_cell: false, attended_cult: false }); }} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white hover:bg-white/5 rounded-full transition-all"><X size={24}/></button>
+            <h2 className="text-3xl font-black italic uppercase mb-8 pr-12">{editingId ? 'EDITAR' : 'NOVO'} ; {activeCell?.name || 'MEMBRO'}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <InputCompact label="NOME COMPLETO" value={memberForm.name} onChange={val => setMemberForm({...memberForm, name: val})} dark={darkMode} />
