@@ -32,9 +32,15 @@ function ChurchMembershipSystem() {
     const datesList = [];
     const today = new Date();
     let current = new Date(today);
+    
+    // Ajustar para o dia da semana alvo mais recente (ou hoje)
     while (current.getDay() !== targetDay) current.setDate(current.getDate() - 1);
+    
     for (let i = 0; i < 12; i++) {
-      datesList.unshift(new Date(current).toISOString().split('T')[0]);
+      const year = current.getFullYear();
+      const month = String(current.getMonth() + 1).padStart(2, '0');
+      const day = String(current.getDate()).padStart(2, '0');
+      datesList.unshift(`${year}-${month}-${day}`);
       current.setDate(current.getDate() - 7);
     }
     return datesList;
