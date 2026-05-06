@@ -98,21 +98,20 @@ function ChurchMembershipSystem() {
   });
 
   const [cellForm, setCellForm] = useState({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30' });
-  const [visitorForm, setVisitorForm] = useState({ name: '', phone: '', cep: '', neighborhood: '', suggested_cell: null });
+  const [visitorForm, setVisitorForm] = useState({ 
+    name: '', phone: '', email: '', cep: '', address: '', number: '', neighborhood: '', city: '', 
+    ministerios: '', suggested_cell: null 
+  });
   const [showVisitorModal, setShowVisitorModal] = useState(false);
 
   const findClosestCell = (cep, neighborhood) => {
     if (!cells.length) return null;
-    // Tenta primeiro por bairro exato
     const byNeighborhood = cells.filter(c => c.neighborhood?.toLowerCase() === neighborhood?.toLowerCase());
     if (byNeighborhood.length) return byNeighborhood[0];
-    
-    // Se não achar bairro, tenta pelo prefixo do CEP (primeiros 5 dígitos)
     const cepPrefix = cep.substring(0, 5);
     const byCep = cells.filter(c => c.cep?.startsWith(cepPrefix));
     if (byCep.length) return byCep[0];
-
-    return cells[0]; // Fallback para a primeira célula se nada bater
+    return cells[0];
   };
 
   const handleVisitorCep = async (cep) => {
@@ -125,7 +124,9 @@ function ChurchMembershipSystem() {
           setVisitorForm({
             ...visitorForm, 
             cep,
+            address: data.logradouro,
             neighborhood: data.bairro,
+            city: data.localidade,
             suggested_cell: suggested
           });
         }
@@ -338,8 +339,13 @@ function ChurchMembershipSystem() {
     const payload = {
       name: visitorForm.name,
       phone: visitorForm.phone,
+      email: visitorForm.email,
       cep: visitorForm.cep,
+      address: visitorForm.address,
+      number: visitorForm.number,
       neighborhood: visitorForm.neighborhood,
+      city: visitorForm.city,
+      ministerios: visitorForm.ministerios,
       cell_id: visitorForm.suggested_cell?.id || null,
       status: 'active',
       attended_cult: true 
@@ -1227,53 +1233,73 @@ function ChurchMembershipSystem() {
 
       {showVisitorModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <form onSubmit={addVisitor} className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-md rounded-2xl p-8 border ${t.border} shadow-2xl relative text-left`}>
+          <form onSubmit={addVisitor} className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-2xl rounded-2xl p-8 border ${t.border} shadow-2xl relative text-left overflow-y-auto max-h-[90vh]`}>
             <button type="button" onClick={() => setShowVisitorModal(false)} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24}/></button>
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-3 mb-8">
               <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg"><Star size={24}/></div>
-              <h2 className="text-3xl font-black italic uppercase tracking-tighter">Novo Visitante</h2>
+              <h2 className="text-3xl font-black italic uppercase tracking-tighter">Ficha de Visitante</h2>
             </div>
             
-            <div className="space-y-4">
-              <InputCompact label="NOME DO VISITANTE" value={visitorForm.name} onChange={val => setVisitorForm({...visitorForm, name: val})} dark={darkMode} />
-              <InputCompact label="TELEFONE" value={visitorForm.phone} onChange={val => setVisitorForm({...visitorForm, phone: val})} dark={darkMode} />
-              
-              <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}>
-                <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">CEP PARA LOCALIZAÇÃO</p>
-                <input 
-                  type="text" 
-                  maxLength={8}
-                  placeholder="Apenas números"
-                  value={visitorForm.cep}
-                  onChange={e => {
-                    const val = e.target.value.replace(/\D/g, '');
-                    setVisitorForm({...visitorForm, cep: val});
-                    if (val.length === 8) handleVisitorCep(val);
-                  }}
-                  className={`w-full bg-transparent ${darkMode ? 'text-white' : 'text-slate-900'} font-black text-sm outline-none`}
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <p className="text-[10px] font-black uppercase text-blue-500 tracking-[0.2em] mb-2">Dados Pessoais</p>
+                <InputCompact label="NOME COMPLETO" value={visitorForm.name} onChange={val => setVisitorForm({...visitorForm, name: val})} dark={darkMode} />
+                <div className="grid grid-cols-2 gap-3">
+                  <InputCompact label="TELEFONE" value={visitorForm.phone} onChange={val => setVisitorForm({...visitorForm, phone: val})} dark={darkMode} />
+                  <InputCompact label="E-MAIL" value={visitorForm.email} onChange={val => setVisitorForm({...visitorForm, email: val})} dark={darkMode} />
+                </div>
+                <InputCompact label="DISCIPULADOR (SE TIVER)" value={visitorForm.ministerios} onChange={val => setVisitorForm({...visitorForm, ministerios: val})} dark={darkMode} />
               </div>
 
-              {visitorForm.neighborhood && (
-                <div className="p-4 bg-blue-600/10 border border-blue-500/20 rounded-xl animate-in zoom-in-95 duration-300">
-                  <p className="text-[8px] font-black uppercase text-blue-500 mb-1 tracking-widest">Bairro Identificado</p>
-                  <p className="text-sm font-black italic uppercase">{visitorForm.neighborhood}</p>
+              <div className="space-y-4">
+                <p className="text-[10px] font-black uppercase text-blue-500 tracking-[0.2em] mb-2">Localização e Célula</p>
+                <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}>
+                  <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">CEP (AUTO-PREENCHE)</p>
+                  <input 
+                    type="text" 
+                    maxLength={8}
+                    placeholder="Apenas números"
+                    value={visitorForm.cep}
+                    onChange={e => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      setVisitorForm({...visitorForm, cep: val});
+                      if (val.length === 8) handleVisitorCep(val);
+                    }}
+                    className={`w-full bg-transparent ${darkMode ? 'text-white' : 'text-slate-900'} font-black text-sm outline-none`}
+                  />
                 </div>
-              )}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-2"><InputCompact label="ENDEREÇO" value={visitorForm.address} onChange={val => setVisitorForm({...visitorForm, address: val})} dark={darkMode} /></div>
+                  <InputCompact label="Nº" value={visitorForm.number} onChange={val => setVisitorForm({...visitorForm, number: val})} dark={darkMode} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <InputCompact label="BAIRRO" value={visitorForm.neighborhood} onChange={val => setVisitorForm({...visitorForm, neighborhood: val})} dark={darkMode} />
+                  <InputCompact label="CIDADE" value={visitorForm.city} onChange={val => setVisitorForm({...visitorForm, city: val})} dark={darkMode} />
+                </div>
 
-              {visitorForm.suggested_cell && (
-                <div className="p-4 bg-emerald-600/10 border border-emerald-500/20 rounded-xl animate-in slide-in-from-bottom-2 duration-500">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                    <p className="text-[8px] font-black uppercase text-emerald-500 tracking-widest">Célula Recomendada</p>
+                {visitorForm.suggested_cell && (
+                  <div className="p-4 bg-emerald-600/10 border border-emerald-500/20 rounded-xl animate-in slide-in-from-right-4 duration-500">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                      <p className="text-[8px] font-black uppercase text-emerald-500 tracking-widest">Célula Recomendada</p>
+                    </div>
+                    <p className="text-base font-black italic uppercase text-white leading-tight">{visitorForm.suggested_cell.name}</p>
+                    <select 
+                      value={visitorForm.suggested_cell.id} 
+                      onChange={e => {
+                        const cell = cells.find(c => c.id === e.target.value);
+                        setVisitorForm({...visitorForm, suggested_cell: cell});
+                      }}
+                      className="w-full bg-transparent text-[9px] font-black uppercase text-slate-400 mt-2 outline-none cursor-pointer"
+                    >
+                      {cells.map(c => <option key={c.id} value={c.id} className="bg-slate-900">{c.name} (Líder: {c.leader})</option>)}
+                    </select>
                   </div>
-                  <p className="text-lg font-black italic uppercase text-white leading-tight">{visitorForm.suggested_cell.name}</p>
-                  <p className="text-[9px] font-black text-slate-400 uppercase mt-1">Líder: {visitorForm.suggested_cell.leader}</p>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
-            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-black text-xs uppercase mt-8 transition-all shadow-xl shadow-blue-900/20">Registrar e Vincular</button>
+            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-2xl font-black text-sm uppercase mt-8 transition-all shadow-xl shadow-blue-900/20 active:scale-95">Salvar e Conectar Visitante</button>
           </form>
         </div>
       )}
