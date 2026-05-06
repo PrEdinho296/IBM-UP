@@ -49,8 +49,6 @@ function ChurchMembershipSystem() {
   };
 
   const formatDate = (dateString) => {
-
-  const formatDate = (dateString) => {
     if (!dateString || !dateString.includes('-')) return dateString;
     const [year, month, day] = dateString.split("-");
     return `${day}/${month}/${year}`;
