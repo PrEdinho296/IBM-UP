@@ -373,9 +373,11 @@ function ChurchMembershipSystem() {
       alert('Erro ao registrar visitante');
     } else if (data) {
       setMembers([...members, data[0]]);
-      setShowVisitorModal(false);
-      setVisitorForm({ name: '', phone: '', cep: '', neighborhood: '', suggested_cell: null });
-      alert('Visitante registrado e vinculado com sucesso!');
+      setVisitorForm({ 
+        name: '', phone: '', email: '', cep: '', address: '', number: '', neighborhood: '', city: '', 
+        ministerios: '', suggested_cell: null 
+      });
+      alert('Visitante registrado com sucesso! O formulário foi limpo para o próximo.');
     }
   };
 
