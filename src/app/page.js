@@ -53,8 +53,15 @@ function ChurchMembershipSystem() {
 
   useEffect(() => {
     const initFetch = async () => {
-      await fetchData();
-      if (cellIdParam) { setIsLeaderMode(true); setActiveTab('leader-members'); }
+      const data = await fetchData();
+      if (cellIdParam && data?.cells) {
+        const cell = data.cells.find(c => Number(c.id) === Number(cellIdParam));
+        if (cell) {
+          setActiveCell(cell);
+          setIsLeaderMode(true);
+          setActiveTab('leader-members');
+        }
+      }
     };
     initFetch();
   }, [cellIdParam]);
@@ -71,8 +78,14 @@ function ChurchMembershipSystem() {
       if (c) setCells(c);
       if (m) setMembers(m);
       if (r) setReports(r);
-    } catch (error) { console.error('Erro ao buscar dados:', error); }
-    setLoading(false);
+      
+      return { sectors: s, cells: c, members: m, reports: r };
+    } catch (error) { 
+      console.error('Erro ao buscar dados:', error);
+      return null;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCepSearch = async (cep, type) => {
@@ -336,7 +349,7 @@ function ChurchMembershipSystem() {
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-auto">
           <div className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-2xl rounded-2xl p-8 border ${t.border} shadow-2xl my-auto text-left relative`}>
             <button onClick={() => setShowMemberForm(false)} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white hover:bg-white/5 rounded-full transition-all"><X size={24}/></button>
-            <h2 className="text-3xl font-black italic uppercase mb-8 pr-12">Novo Membro</h2>
+            <h2 className="text-3xl font-black italic uppercase mb-8 pr-12">NOVO ; {activeCell?.name || 'MEMBRO'}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <InputCompact label="NOME COMPLETO" value={memberForm.name} onChange={val => setMemberForm({...memberForm, name: val})} dark={darkMode} />
@@ -361,7 +374,7 @@ function ChurchMembershipSystem() {
                 </div>
               </div>
             </div>
-            <div className="flex gap-4 mt-8"><button onClick={() => setShowMemberForm(false)} className="flex-1 py-3 text-slate-500 font-black uppercase text-[10px]">Cancelar</button><button onClick={addMember} className="flex-[2] bg-blue-600 text-white py-4 rounded-xl font-black text-sm uppercase">Salvar Membro</button></div>
+            <div className="flex gap-4 mt-8"><button onClick={() => setShowMemberForm(false)} className="flex-1 py-3 text-slate-500 font-black uppercase text-[10px]">Cancelar</button><button onClick={addMember} className="flex-[2] bg-blue-600 text-white py-4 rounded-xl font-black text-sm uppercase">Salvar {activeCell?.id || ''}</button></div>
           </div>
         </div>
       )}
