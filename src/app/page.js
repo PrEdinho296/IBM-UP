@@ -311,6 +311,7 @@ function ChurchMembershipSystem() {
             <>
               <MenuBtn icon={<Users size={18}/>} label="Membros" active={activeTab === 'leader-members'} onClick={() => setActiveTab('leader-members')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Calendar size={18}/>} label="Frequência" active={activeTab === 'leader-attendance'} onClick={() => setActiveTab('leader-attendance')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<Sun size={18}/>} label="Cultos" active={activeTab === 'leader-culto'} onClick={() => setActiveTab('leader-culto')} open={sidebarOpen} dark={darkMode} />
             </>
           ) : (
             <>
@@ -318,6 +319,7 @@ function ChurchMembershipSystem() {
               <MenuBtn icon={<ClipboardList size={18}/>} label="Relatórios" active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Users size={18}/>} label="Membros" active={activeTab === 'members'} onClick={() => { setActiveTab('members'); setFilterCellId(null); setSearchTerm(''); }} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Home size={18}/>} label="Células" active={activeTab === 'cells'} onClick={() => setActiveTab('cells')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<Sun size={18}/>} label="Cultos" active={activeTab === 'culto-geral'} onClick={() => setActiveTab('culto-geral')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Map size={18}/>} label="Setores" active={activeTab === 'sectors'} onClick={() => setActiveTab('sectors')} open={sidebarOpen} dark={darkMode} />
             </>
           )}
@@ -515,6 +517,102 @@ function ChurchMembershipSystem() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {(activeTab === 'culto-geral' || activeTab === 'leader-culto') && (
+            <div className="space-y-8">
+              <header className="flex flex-col gap-1">
+                <h2 className="text-2xl font-black italic uppercase tracking-tighter">Frequência nos Cultos</h2>
+                <p className="text-blue-500 text-[10px] font-black uppercase tracking-widest">Monitoramento do Domingo</p>
+              </header>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className={`${t.card} p-6 border rounded-2xl`}>
+                  <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2">Total no Culto</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-4xl font-black italic text-blue-500">{members.filter(m => m.attended_cult && (isLeaderMode ? m.cell_id === activeCell.id : true)).length}</p>
+                    <p className="text-slate-500 text-xs font-black uppercase italic">Pessoas</p>
+                  </div>
+                </div>
+                <div className={`${t.card} p-6 border rounded-2xl`}>
+                  <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2">Não Foram</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-4xl font-black italic text-red-500">{members.filter(m => !m.attended_cult && (isLeaderMode ? m.cell_id === activeCell.id : true)).length}</p>
+                    <p className="text-slate-500 text-xs font-black uppercase italic">Pessoas</p>
+                  </div>
+                </div>
+                <div className={`${t.card} p-6 border rounded-2xl`}>
+                  <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2">% de Engajamento</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-4xl font-black italic text-emerald-500">
+                      {Math.round((members.filter(m => m.attended_cult && (isLeaderMode ? m.cell_id === activeCell.id : true)).length / (members.filter(m => isLeaderMode ? m.cell_id === activeCell.id : true).length || 1)) * 100)}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className={`${t.card} border rounded-2xl overflow-hidden`}>
+                <div className="p-4 border-b border-white/5 bg-white/5 flex justify-between items-center">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest italic text-slate-400">Lista de Chamada do Culto</h3>
+                  <div className="flex gap-2">
+                    <button onClick={() => {
+                      if(confirm('Marcar TODOS como presentes no culto?')) {
+                        members.forEach(m => {
+                          if (isLeaderMode ? m.cell_id === activeCell.id : true) {
+                            if (!m.attended_cult) toggleAttendance(m.id, 'attended_cult');
+                          }
+                        });
+                      }
+                    }} className="text-[8px] font-black uppercase bg-blue-600/10 text-blue-500 px-3 py-1.5 rounded-lg border border-blue-500/20">Marcar Todos</button>
+                    <button onClick={() => {
+                      if(confirm('Limpar TODA a frequência de culto?')) {
+                        members.forEach(m => {
+                          if (isLeaderMode ? m.cell_id === activeCell.id : true) {
+                            if (m.attended_cult) toggleAttendance(m.id, 'attended_cult');
+                          }
+                        });
+                      }
+                    }} className="text-[8px] font-black uppercase bg-red-600/10 text-red-500 px-3 py-1.5 rounded-lg border border-red-500/20">Limpar Tudo</button>
+                  </div>
+                </div>
+                <div className="max-h-[500px] overflow-y-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-slate-900/50 sticky top-0 z-10 border-b border-white/5">
+                      <tr>
+                        <th className="px-6 py-4 text-[9px] font-black uppercase">Membro</th>
+                        {!isLeaderMode && <th className="px-6 py-4 text-[9px] font-black uppercase">Célula</th>}
+                        <th className="px-6 py-4 text-center text-[9px] font-black uppercase">Status Culto</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {members
+                        .filter(m => isLeaderMode ? m.cell_id === activeCell.id : true)
+                        .sort((a,b) => a.name.localeCompare(b.name))
+                        .map(m => (
+                        <tr key={m.id} className="hover:bg-white/5 transition-all">
+                          <td className="px-6 py-4">
+                            <p className="text-sm font-black italic uppercase tracking-tighter">{m.name}</p>
+                          </td>
+                          {!isLeaderMode && (
+                            <td className="px-6 py-4">
+                              <span className="text-[10px] font-black uppercase text-slate-500 bg-white/5 px-2 py-1 rounded-md">{cells.find(c => c.id === m.cell_id)?.name || 'Sem Célula'}</span>
+                            </td>
+                          )}
+                          <td className="px-6 py-4 text-center">
+                            <button 
+                              onClick={() => toggleAttendance(m.id, 'attended_cult')}
+                              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${m.attended_cult ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500'}`}
+                            >
+                              {m.attended_cult ? 'No Culto' : 'Faltou'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
