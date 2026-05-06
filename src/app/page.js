@@ -25,6 +25,7 @@ function ChurchMembershipSystem() {
   const [reports, setReports] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterSectorId, setFilterSectorId] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
   const [isLeaderMode, setIsLeaderMode] = useState(false);
@@ -464,8 +465,19 @@ function ChurchMembershipSystem() {
 
           {activeTab === 'cells' && (
             <div className="space-y-6">
-               <header className="flex justify-between items-center"><h2 className="text-2xl font-black italic uppercase tracking-tighter">Células</h2><button onClick={() => setShowCellForm(true)} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVA CÉLULA</button></header>
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">{cells.map(cell => (<div key={cell.id} className={`${t.card} border rounded-2xl p-6 flex flex-col group`}><div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-500 mb-4 group-hover:bg-blue-600 group-hover:text-white transition-all"><Home size={20}/></div><h3 className="text-lg font-black uppercase italic mb-1">{cell.name}</h3><p className="text-blue-500 text-[9px] font-black uppercase mb-2">{cell.leader}</p>                    <div className="grid grid-cols-2 gap-2 mb-4 border-y border-white/5 py-4">
+               <header className="flex justify-between items-center">
+                 <div className="flex flex-col">
+                   <h2 className="text-2xl font-black italic uppercase tracking-tighter">Células</h2>
+                   {filterSectorId && (
+                     <button onClick={() => setFilterSectorId(null)} className="text-[9px] font-black uppercase text-blue-500 hover:text-blue-400 flex items-center gap-1 mt-1">
+                       Setor: {sectors.find(s => s.id === filterSectorId)?.name} (Limpar ×)
+                     </button>
+                   )}
+                 </div>
+                 <button onClick={() => setShowCellForm(true)} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVA CÉLULA</button>
+               </header>
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                 {cells.filter(cell => !filterSectorId || Number(cell.sector_id) === filterSectorId).map(cell => (<div key={cell.id} className={`${t.card} border rounded-2xl p-6 flex flex-col group`}><div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-500 mb-4 group-hover:bg-blue-600 group-hover:text-white transition-all"><Home size={20}/></div><h3 className="text-lg font-black uppercase italic mb-1">{cell.name}</h3><p className="text-blue-500 text-[9px] font-black uppercase mb-2">{cell.leader}</p>                    <div className="grid grid-cols-2 gap-2 mb-4 border-y border-white/5 py-4">
                       <div className="flex items-center justify-center gap-2 text-[11px] font-black uppercase text-blue-400 italic notranslate" translate="no">
                         <Calendar size={14}/> {cell.day_of_week || '---'}
                       </div>
@@ -480,7 +492,14 @@ function ChurchMembershipSystem() {
           {activeTab === 'sectors' && (
             <div className="space-y-6">
                <header className="flex justify-between items-center"><h2 className="text-2xl font-black italic uppercase tracking-tighter">Setores</h2><button onClick={() => setShowSectorForm(true)} className="bg-slate-700 text-white px-6 py-3 rounded-xl font-black text-xs">+ NOVO SETOR</button></header>
-               <div className={`${t.card} border rounded-2xl overflow-hidden`}><table className="w-full text-left"><thead className={`${t.tableHead} border-b ${t.border}`}><tr><th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest">Nome do Setor</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase tracking-widest">Células</th><th className="px-6 py-4 text-right text-[9px] font-black uppercase tracking-widest">Ação</th></tr></thead><tbody className={`divide-y ${t.border}`}>{sectors.map(s => (<tr key={s.id} className={t.hover}><td className="px-6 py-4 text-lg font-black italic">{s.name}</td><td className="px-6 py-4 text-center"><span className="bg-blue-600/10 text-blue-500 px-4 py-1 rounded-full text-[9px] font-black uppercase italic">{cells.filter(c => Number(c.sector_id) === s.id).length} Células</span></td><td className="px-6 py-4 text-right"><button onClick={() => deleteItem('sectors', s.id)} className="text-red-500/20 hover:text-red-500 p-1"><Trash2 size={16}/></button></td></tr>))}</tbody></table></div>
+               <div className={`${t.card} border rounded-2xl overflow-hidden`}><table className="w-full text-left"><thead className={`${t.tableHead} border-b ${t.border}`}><tr><th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest">Nome do Setor</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase tracking-widest">Células</th><th className="px-6 py-4 text-right text-[9px] font-black uppercase tracking-widest">Ação</th></tr></thead><tbody className={`divide-y ${t.border}`}>{sectors.map(s => (<tr key={s.id} className={t.hover}><td className="px-6 py-4 text-lg font-black italic">{s.name}</td><td className="px-6 py-4 text-center">
+  <button 
+    onClick={() => { setFilterSectorId(s.id); setActiveTab('cells'); }}
+    className="bg-blue-600/10 text-blue-500 hover:bg-blue-600 hover:text-white px-4 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all cursor-pointer border border-blue-600/20 shadow-lg shadow-blue-600/5"
+  >
+    {cells.filter(c => Number(c.sector_id) === s.id).length} Células
+  </button>
+</td><td className="px-6 py-4 text-right"><button onClick={() => deleteItem('sectors', s.id)} className="text-red-500/20 hover:text-red-500 p-1"><Trash2 size={16}/></button></td></tr>))}</tbody></table></div>
             </div>
           )}
         </div>
