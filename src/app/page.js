@@ -25,6 +25,20 @@ function ChurchMembershipSystem() {
   const [reports, setReports] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  const getMeetingDates = (dayOfWeek) => {
+    const daysMap = { 'domingo': 0, 'segunda': 1, 'terça': 2, 'quarta': 3, 'quinta': 4, 'sexta': 5, 'sábado': 6 };
+    const targetDay = daysMap[dayOfWeek?.toLowerCase()] ?? 3;
+    const datesList = [];
+    const today = new Date();
+    let current = new Date(today);
+    while (current.getDay() !== targetDay) current.setDate(current.getDate() - 1);
+    for (let i = 0; i < 5; i++) {
+      datesList.unshift(new Date(current).toISOString().split('T')[0]);
+      current.setDate(current.getDate() - 7);
+    }
+    return datesList;
+  };
   const [filterSectorId, setFilterSectorId] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
@@ -424,10 +438,10 @@ function ChurchMembershipSystem() {
                   <thead className={`${t.tableHead} border-b ${t.border}`}>
                     <tr>
                       <th className="px-6 py-4 text-[9px] font-black uppercase sticky left-0 z-10 bg-inherit border-r border-white/5">Nome do Membro</th>
-                      {['2026-04-15', '2026-04-22', '2026-04-29', '2026-05-06', '2026-05-13'].map(date => (
+                      {getMeetingDates(activeCell?.day_of_week).map(date => (
                         <th key={date} className="px-2 py-3 text-center text-[8px] font-black uppercase text-slate-500 border-x border-white/5 italic">
-                          <div className="text-blue-500 mb-0.5">{new Date(date).toLocaleDateString('pt-BR', {weekday: 'short'})}</div>
-                          {new Date(date).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'})}
+                          <div className="text-blue-500 mb-0.5">{new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', {weekday: 'short'})}</div>
+                          {new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'})}
                         </th>
                       ))}
                     </tr>
@@ -436,7 +450,7 @@ function ChurchMembershipSystem() {
                     {filteredMembers.map(m => (
                       <tr key={m.id} className={t.hover}>
                         <td className="px-6 py-4 text-sm font-black italic sticky left-0 z-10 bg-inherit border-r border-white/5">{m.name}</td>
-                        {['2026-04-15', '2026-04-22', '2026-04-29', '2026-05-06', '2026-05-13'].map(d => {
+                        {getMeetingDates(activeCell?.day_of_week).map(d => {
                           const att = attendance.find(a => a.member_id === m.id && a.date === d);
                           return (
                             <td key={d} className="px-4 py-4 text-center">
