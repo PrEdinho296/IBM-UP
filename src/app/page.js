@@ -106,12 +106,28 @@ function ChurchMembershipSystem() {
 
   const findClosestCell = (cep, neighborhood) => {
     if (!cells.length) return null;
+    
+    // 1. Tentar por bairro exato (Maior Precisão)
     const byNeighborhood = cells.filter(c => c.neighborhood?.toLowerCase() === neighborhood?.toLowerCase());
-    if (byNeighborhood.length) return byNeighborhood[0];
-    const cepPrefix = cep.substring(0, 5);
-    const byCep = cells.filter(c => c.cep?.startsWith(cepPrefix));
-    if (byCep.length) return byCep[0];
-    return cells[0];
+    if (byNeighborhood.length > 0) return byNeighborhood[0];
+    
+    // 2. Tentar por distância numérica de CEP (Menor diferença absoluta)
+    const visitorCepNum = parseInt(cep.replace(/\D/g, ''));
+    let closest = cells[0];
+    let minDiff = Infinity;
+
+    cells.forEach(cell => {
+      const cellCepNum = parseInt((cell.cep || '').replace(/\D/g, ''));
+      if (!isNaN(cellCepNum)) {
+        const diff = Math.abs(visitorCepNum - cellCepNum);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closest = cell;
+        }
+      }
+    });
+
+    return closest;
   };
 
   const handleVisitorCep = async (cep) => {
