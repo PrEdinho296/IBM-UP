@@ -47,10 +47,15 @@ function ChurchMembershipSystem() {
   };
 
   const getMemberEngagement = (m) => {
-    const cell = cells.find(c => c.id === m.cell_id);
-    const latestDate = getMeetingDates(cell?.day_of_week)[0];
-    const isPresentCell = attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
+    // Pegar todas as presenças deste membro
+    const memberAtt = attendance.filter(a => a.member_id === m.id);
+    // Ordenar por data (mais recente primeiro)
+    const sortedAtt = [...memberAtt].sort((a, b) => b.date.localeCompare(a.date));
+    
+    // Consideramos presente na célula se o registro mais recente for 'P'
+    const isPresentCell = sortedAtt.length > 0 && sortedAtt[0].status === 'P';
     const isPresentCult = m.attended_cult;
+    
     return { isPresentCell, isPresentCult };
   };
 
