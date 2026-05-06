@@ -411,6 +411,54 @@ function ChurchMembershipSystem() {
                  <h2 className="text-2xl font-black italic uppercase tracking-tighter">Membros</h2>
                  {isLeaderMode && <button onClick={() => setShowMemberForm(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVO MEMBRO</button>}
                </header>
+
+               {isLeaderMode && activeCell && (
+                 <div className={`${t.card} p-6 border rounded-2xl flex flex-col items-center mb-6`}>
+                   <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest self-start">Engajamento (Célula vs Culto)</h3>
+                   <div className="w-full h-[180px]">
+                     <ResponsiveContainer width="100%" height="100%">
+                       <PieChart>
+                         <Pie
+                           data={[
+                             { name: 'Ambos', value: members.filter(m => m.cell_id === activeCell.id && m.attended_cell && m.attended_cult).length },
+                             { name: 'Só Célula', value: members.filter(m => m.cell_id === activeCell.id && m.attended_cell && !m.attended_cult).length },
+                             { name: 'Só Culto', value: members.filter(m => m.cell_id === activeCell.id && !m.attended_cell && m.attended_cult).length },
+                             { name: 'Nenhum', value: members.filter(m => m.cell_id === activeCell.id && !m.attended_cell && !m.attended_cult).length },
+                           ].filter(d => d.value > 0)}
+                           cx="50%"
+                           cy="50%"
+                           innerRadius={50}
+                           outerRadius={70}
+                           paddingAngle={5}
+                           dataKey="value"
+                         >
+                           <Cell fill="#3b82f6" stroke="none" />
+                           <Cell fill="#10b981" stroke="none" />
+                           <Cell fill="#f59e0b" stroke="none" />
+                           <Cell fill="#475569" stroke="none" />
+                         </Pie>
+                         <Tooltip 
+                           contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                           itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}
+                         />
+                       </PieChart>
+                     </ResponsiveContainer>
+                   </div>
+                   <div className="flex flex-wrap justify-center gap-4 mt-4">
+                     {[
+                       { label: 'Ambos', color: 'bg-blue-500' },
+                       { label: 'Só Célula', color: 'bg-emerald-500' },
+                       { label: 'Só Culto', color: 'bg-amber-500' },
+                       { label: 'Nenhum', color: 'bg-slate-600' }
+                     ].map(item => (
+                       <div key={item.label} className="flex items-center gap-1.5">
+                         <div className={`w-2 h-2 rounded-full ${item.color}`}></div>
+                         <span className="text-[8px] font-black uppercase text-slate-400">{item.label}</span>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               )}
                {!isLeaderMode && (
                  <div className="flex flex-wrap gap-4 mb-6">
                     <div className={`${t.card} border rounded-xl flex items-center px-4 py-2 gap-3 min-w-[200px]`}>
@@ -536,7 +584,22 @@ function ChurchMembershipSystem() {
                 <InputCompact label="CIDADE" value={memberForm.city} onChange={val => setMemberForm({...memberForm, city: val})} dark={darkMode} />
               </div>
               <div className="space-y-6">
-                {!isLeaderMode && (<div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}><p className="text-[8px] font-black text-slate-500 uppercase mb-2">CÉLULA</p><select value={memberForm.cell_id} onChange={e => setMemberForm({...memberForm, cell_id: e.target.value})} className="w-full bg-transparent font-black text-sm outline-none"><option value="">Selecionar...</option>{cells.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>)}
+                 {/* Frequência Rápida */}
+                 <div className="bg-blue-600/5 p-4 rounded-xl border border-blue-500/10 space-y-3">
+                    <p className="text-[8px] font-black text-blue-500 uppercase tracking-widest">Frequência desta Semana</p>
+                    <div className="grid grid-cols-2 gap-4">
+                       <label className="flex items-center gap-3 p-3 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition-all">
+                          <input type="checkbox" checked={memberForm.attended_cell} onChange={e => setMemberForm({...memberForm, attended_cell: e.target.checked})} className="w-5 h-5 rounded border-white/10 bg-slate-800 text-blue-500" />
+                          <span className="text-[10px] font-black uppercase italic">Célula</span>
+                       </label>
+                       <label className="flex items-center gap-3 p-3 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition-all">
+                          <input type="checkbox" checked={memberForm.attended_cult} onChange={e => setMemberForm({...memberForm, attended_cult: e.target.checked})} className="w-5 h-5 rounded border-white/10 bg-slate-800 text-blue-500" />
+                          <span className="text-[10px] font-black uppercase italic">Culto</span>
+                       </label>
+                    </div>
+                 </div>
+
+                 {!isLeaderMode && (<div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}><p className="text-[8px] font-black text-slate-500 uppercase mb-2">CÉLULA</p><select value={memberForm.cell_id} onChange={e => setMemberForm({...memberForm, cell_id: e.target.value})} className="w-full bg-transparent font-black text-sm outline-none"><option value="">Selecionar...</option>{cells.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>)}
                 <div className="space-y-2">
                    <p className="text-[8px] font-black text-slate-500 uppercase">Cursos</p>
                    <div className="grid grid-cols-1 gap-2 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar-fine">
