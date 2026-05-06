@@ -272,6 +272,7 @@ function ChurchMembershipSystem() {
   };
 
   const stats = members.reduce((acc, m) => {
+    if (isLeaderMode && activeCell && m.cell_id !== activeCell.id) return acc;
     const { isPresentCell, isPresentCult } = getMemberEngagement(m);
     acc.total++;
     if (isPresentCell && isPresentCult) acc.both++;
@@ -293,9 +294,10 @@ function ChurchMembershipSystem() {
   ];
 
   const filteredMembers = members.filter(m => {
-    if (filterCellId) return Number(m.cell_id) === Number(filterCellId);
-    if (isLeaderMode && activeCell) return Number(m.cell_id) === Number(activeCell.id);
-    return m.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = m.name.toLowerCase().includes(searchTerm.toLowerCase());
+    if (isLeaderMode && activeCell) return Number(m.cell_id) === Number(activeCell.id) && matchesSearch;
+    if (filterCellId) return Number(m.cell_id) === Number(filterCellId) && matchesSearch;
+    return matchesSearch;
   });
 
   const chartData = [...reports].reverse().map(r => {
@@ -523,9 +525,7 @@ function ChurchMembershipSystem() {
                      </tr>
                    </thead>
                    <tbody className={`divide-y ${t.border}`}>
-                     {members
-                       .filter(m => (!filterCellId || m.cell_id === filterCellId) && m.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                       .map(m => (
+                     {filteredMembers.map(m => (
                          <tr key={m.id} className={t.hover}>
                            <td className="px-6 py-4">
                              <p className="text-sm font-black italic uppercase tracking-tighter">{m.name}</p>
@@ -752,6 +752,7 @@ function ChurchMembershipSystem() {
                       <tbody className="divide-y divide-white/5">
                         {members
                           .filter(m => {
+                            if (isLeaderMode && activeCell && m.cell_id !== activeCell.id) return false;
                             const { isPresentCell, isPresentCult } = getMemberEngagement(m);
 
                             if (analyticsFilter === 'all') return true;
