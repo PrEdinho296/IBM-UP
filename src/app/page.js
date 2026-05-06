@@ -154,8 +154,6 @@ function ChurchMembershipSystem() {
       }
     }
   };
-  const [session, setSession] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
   const [authForm, setAuthForm] = useState({ email: '', password: '', newPassword: '' });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
