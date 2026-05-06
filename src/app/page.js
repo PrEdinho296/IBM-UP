@@ -277,20 +277,22 @@ function ChurchMembershipSystem() {
     }
   };
 
-  const stats = members.reduce((acc, m) => {
-    if (isLeaderMode && activeCell && m.cell_id !== activeCell.id) return acc;
-    const { isPresentCell, isPresentCult } = getMemberEngagement(m);
-    acc.total++;
-    if (isPresentCell && isPresentCult) acc.both++;
-    else if (isPresentCell && !isPresentCult) acc.onlyCell++;
-    else if (!isPresentCell && isPresentCult) acc.onlyCult++;
-    else acc.none++;
-    
-    if (!isPresentCult) acc.absentCult++;
-    if (!isPresentCell) acc.absentCell++;
-    
-    return acc;
-  }, { total: 0, both: 0, onlyCell: 0, onlyCult: 0, none: 0, absentCult: 0, absentCell: 0 });
+  const stats = React.useMemo(() => {
+    return members.reduce((acc, m) => {
+      if (isLeaderMode && activeCell && m.cell_id !== activeCell.id) return acc;
+      const { isPresentCell, isPresentCult } = getMemberEngagement(m);
+      acc.total++;
+      if (isPresentCell && isPresentCult) acc.both++;
+      else if (isPresentCell && !isPresentCult) acc.onlyCell++;
+      else if (!isPresentCell && isPresentCult) acc.onlyCult++;
+      else acc.none++;
+      
+      if (!isPresentCult) acc.absentCult++;
+      if (!isPresentCell) acc.absentCell++;
+      
+      return acc;
+    }, { total: 0, both: 0, onlyCell: 0, onlyCult: 0, none: 0, absentCult: 0, absentCell: 0 });
+  }, [members, attendance, isLeaderMode, activeCell, cells]);
 
   const loyaltyData = [
     { name: 'Só Célula', value: stats.onlyCell, color: '#f59e0b' },
