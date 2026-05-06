@@ -1039,9 +1039,25 @@ function ChurchMembershipSystem() {
               <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border} transition-all`}>
                 <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">DATA (DD/MM/AAAA)</p>
                 <input 
-                  type="date"
-                  value={reportForm.date} 
-                  onChange={e => setReportForm({...reportForm, date: e.target.value})} 
+                  type="text"
+                  placeholder="00/00/0000"
+                  value={reportForm.date.split('-').reverse().join('/')} 
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val.length === 10) {
+                      const parts = val.split('/');
+                      if (parts.length === 3) {
+                        setReportForm({...reportForm, date: `${parts[2]}-${parts[1]}-${parts[0]}`});
+                      }
+                    } else {
+                      // Permite digitar livremente mas só salva se estiver completo
+                      // Para facilitar, vamos apenas inverter o que for digitado se houver barras
+                      const parts = val.split('/');
+                      if (parts.length === 3 && parts[2].length === 4) {
+                         setReportForm({...reportForm, date: `${parts[2]}-${parts[1]}-${parts[0]}`});
+                      }
+                    }
+                  }} 
                   className={`w-full bg-transparent ${darkMode ? 'text-white' : 'text-slate-900'} font-black text-sm outline-none italic uppercase`}
                 />
               </div>
