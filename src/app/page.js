@@ -422,10 +422,10 @@ function ChurchMembershipSystem() {
                        <PieChart>
                          <Pie
                            data={[
-                             { name: 'Ambos', value: members.filter(m => m.cell_id === activeCell.id && m.attended_cell && m.attended_cult).length },
-                             { name: 'Só Célula', value: members.filter(m => m.cell_id === activeCell.id && m.attended_cell && !m.attended_cult).length },
-                             { name: 'Só Culto', value: members.filter(m => m.cell_id === activeCell.id && !m.attended_cell && m.attended_cult).length },
-                             { name: 'Nenhum', value: members.filter(m => m.cell_id === activeCell.id && !m.attended_cell && !m.attended_cult).length },
+                             { name: 'Ambos', value: members.filter(m => m.cell_id === activeCell.id && m.attended_cell && !m.attended_cult).length },
+                             { name: 'Só Célula', value: members.filter(m => m.cell_id === activeCell.id && m.attended_cell && m.attended_cult).length },
+                             { name: 'Só Culto', value: members.filter(m => m.cell_id === activeCell.id && !m.attended_cell && !m.attended_cult).length },
+                             { name: 'Nenhum', value: members.filter(m => m.cell_id === activeCell.id && !m.attended_cell && m.attended_cult).length },
                            ].filter(d => d.value > 0)}
                            cx="50%"
                            cy="50%"
@@ -476,7 +476,7 @@ function ChurchMembershipSystem() {
                     </div>
                  </div>
                )}
-               <div className={`${t.card} border rounded-2xl overflow-x-auto`}><table className="w-full text-left min-w-[600px]"><thead className={`${t.tableHead} border-b ${t.border}`}><tr><th className="px-6 py-4 text-[9px] font-black uppercase">Membro</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase">Célula</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase">Culto</th><th className="px-6 py-4 text-right text-[9px] font-black uppercase">Ações</th></tr></thead><tbody className={`divide-y ${t.border}`}>{filteredMembers.map(m => (<tr key={m.id} className={t.hover}><td className="px-6 py-4 text-sm font-black italic">{m.name}</td><td className="px-6 py-4 text-center"><button onClick={() => toggleAttendance(m.id, 'attended_cell')} className={`p-3 rounded-xl border ${m.attended_cell ? 'bg-orange-500 text-white' : 'bg-white/5 text-slate-500'}`}>{m.attended_cell ? <Check size={16}/> : <Home size={16}/>}</button></td><td className="px-6 py-4 text-center"><button onClick={() => toggleAttendance(m.id, 'attended_cult')} className={`p-3 rounded-xl border ${m.attended_cult ? 'bg-blue-600 text-white' : 'bg-white/5 text-slate-500'}`}>{m.attended_cult ? <Check size={16}/> : <Users size={16}/>}</button></td><td className="px-6 py-4 text-right"><div className="flex justify-end gap-2"><button onClick={() => { setEditingId(m.id); setMemberForm(m); setShowMemberForm(true); }} className="text-blue-500/30 hover:text-blue-500 p-2"><Edit2 size={16}/></button><button onClick={() => deleteItem('members', m.id)} className="text-red-500/30 hover:text-red-500 p-2"><Trash2 size={16}/></button></div></td></tr>))}</tbody></table></div>
+               <div className={`${t.card} border rounded-2xl overflow-x-auto`}><table className="w-full text-left min-w-[600px]"><thead className={`${t.tableHead} border-b ${t.border}`}><tr><th className="px-6 py-4 text-[9px] font-black uppercase">Membro</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase">Célula</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase">Culto</th><th className="px-6 py-4 text-right text-[9px] font-black uppercase">Ações</th></tr></thead><tbody className={`divide-y ${t.border}`}>{filteredMembers.map(m => (<tr key={m.id} className={t.hover}><td className="px-6 py-4 text-sm font-black italic">{m.name}</td><td className="px-6 py-4 text-center"><button onClick={() => toggleAttendance(m.id, 'attended_cell')} className={`p-3 rounded-xl border ${m.attended_cell ? 'bg-orange-500 text-white' : 'bg-white/5 text-slate-500'}`}>{m.attended_cell ? <Check size={16}/> : <Home size={16}/>}</button></td><td className="px-6 py-4 text-center"><button onClick={() => toggleAttendance(m.id, 'attended_cult')} className={`p-3 rounded-xl border ${!m.attended_cult ? 'bg-blue-600 text-white' : 'bg-white/5 text-slate-500'}`}>{!m.attended_cult ? <Check size={16}/> : <Users size={16}/>}</button></td><td className="px-6 py-4 text-right"><div className="flex justify-end gap-2"><button onClick={() => { setEditingId(m.id); setMemberForm(m); setShowMemberForm(true); }} className="text-blue-500/30 hover:text-blue-500 p-2"><Edit2 size={16}/></button><button onClick={() => deleteItem('members', m.id)} className="text-red-500/30 hover:text-red-500 p-2"><Trash2 size={16}/></button></div></td></tr>))}</tbody></table></div>
             </div>
           )}
 
@@ -532,14 +532,14 @@ function ChurchMembershipSystem() {
                 <div className={`${t.card} p-6 border rounded-2xl`}>
                   <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2">Total no Culto</p>
                   <div className="flex items-baseline gap-2">
-                    <p className="text-4xl font-black italic text-blue-500">{members.filter(m => m.attended_cult && (isLeaderMode ? m.cell_id === activeCell.id : true)).length}</p>
+                    <p className="text-4xl font-black italic text-blue-500">{members.filter(m => !m.attended_cult && (isLeaderMode ? m.cell_id === activeCell.id : true)).length}</p>
                     <p className="text-slate-500 text-xs font-black uppercase italic">Pessoas</p>
                   </div>
                 </div>
                 <div className={`${t.card} p-6 border rounded-2xl`}>
-                  <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2">Não Foram</p>
+                  <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2">Faltaram</p>
                   <div className="flex items-baseline gap-2">
-                    <p className="text-4xl font-black italic text-red-500">{members.filter(m => !m.attended_cult && (isLeaderMode ? m.cell_id === activeCell.id : true)).length}</p>
+                    <p className="text-4xl font-black italic text-red-500">{members.filter(m => m.attended_cult && (isLeaderMode ? m.cell_id === activeCell.id : true)).length}</p>
                     <p className="text-slate-500 text-xs font-black uppercase italic">Pessoas</p>
                   </div>
                 </div>
@@ -547,7 +547,7 @@ function ChurchMembershipSystem() {
                   <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2">% de Engajamento</p>
                   <div className="flex items-baseline gap-2">
                     <p className="text-4xl font-black italic text-emerald-500">
-                      {Math.round((members.filter(m => m.attended_cult && (isLeaderMode ? m.cell_id === activeCell.id : true)).length / (members.filter(m => isLeaderMode ? m.cell_id === activeCell.id : true).length || 1)) * 100)}%
+                      {Math.round((members.filter(m => !m.attended_cult && (isLeaderMode ? m.cell_id === activeCell.id : true)).length / (members.filter(m => isLeaderMode ? m.cell_id === activeCell.id : true).length || 1)) * 100)}%
                     </p>
                   </div>
                 </div>
@@ -561,7 +561,7 @@ function ChurchMembershipSystem() {
                       if(confirm('Marcar TODOS como presentes no culto?')) {
                         members.forEach(m => {
                           if (isLeaderMode ? m.cell_id === activeCell.id : true) {
-                            if (!m.attended_cult) toggleAttendance(m.id, 'attended_cult');
+                            if (m.attended_cult) toggleAttendance(m.id, 'attended_cult');
                           }
                         });
                       }
@@ -570,7 +570,7 @@ function ChurchMembershipSystem() {
                       if(confirm('Limpar TODA a frequência de culto?')) {
                         members.forEach(m => {
                           if (isLeaderMode ? m.cell_id === activeCell.id : true) {
-                            if (m.attended_cult) toggleAttendance(m.id, 'attended_cult');
+                            if (!m.attended_cult) toggleAttendance(m.id, 'attended_cult');
                           }
                         });
                       }
@@ -583,7 +583,7 @@ function ChurchMembershipSystem() {
                       <tr>
                         <th className="px-6 py-4 text-[9px] font-black uppercase">Membro</th>
                         {!isLeaderMode && <th className="px-6 py-4 text-[9px] font-black uppercase">Célula</th>}
-                        <th className="px-6 py-4 text-center text-[9px] font-black uppercase">Status Culto</th>
+                        <th className="px-6 py-4 text-center text-[9px] font-black uppercase">Faltou no Culto?</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -600,12 +600,12 @@ function ChurchMembershipSystem() {
                               <span className="text-[10px] font-black uppercase text-slate-500 bg-white/5 px-2 py-1 rounded-md">{cells.find(c => c.id === m.cell_id)?.name || 'Sem Célula'}</span>
                             </td>
                           )}
-                          <td className="px-6 py-4 text-center">
+                          <td className="px-4 py-3 text-center">
                             <button 
                               onClick={() => toggleAttendance(m.id, 'attended_cult')}
-                              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${m.attended_cult ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500'}`}
+                              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${m.attended_cult ? 'bg-red-600 text-white shadow-lg shadow-red-600/20' : 'bg-slate-800 text-slate-600'}`}
                             >
-                              {m.attended_cult ? 'No Culto' : 'Faltou'}
+                              {m.attended_cult ? 'Faltou' : 'Presente'}
                             </button>
                           </td>
                         </tr>
@@ -627,7 +627,6 @@ function ChurchMembershipSystem() {
                 <button onClick={() => setShowReportForm(true)} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg shadow-emerald-900/20 hover:bg-emerald-500 transition-all">+ NOVO REGISTRO</button>
               </header>
 
-              {/* Painel de Indicadores Parametrizados */}
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div className={`${t.card} p-4 border rounded-2xl`}>
                    <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Membros Totais</p>
@@ -635,19 +634,19 @@ function ChurchMembershipSystem() {
                 </div>
                 <div className={`${t.card} p-4 border rounded-2xl`}>
                    <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Só Célula</p>
-                   <p className="text-2xl font-black italic text-emerald-500">{members.filter(m => m.attended_cell && !m.attended_cult).length}</p>
+                   <p className="text-2xl font-black italic text-emerald-500">{members.filter(m => m.attended_cell && m.attended_cult).length}</p>
                 </div>
                 <div className={`${t.card} p-4 border rounded-2xl`}>
-                   <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Só Culto</p>
-                   <p className="text-2xl font-black italic text-amber-500">{members.filter(m => !m.attended_cell && m.attended_cult).length}</p>
+                   <p className="text-[8px] font-black uppercase text-slate-500 mb-1">No Culto</p>
+                   <p className="text-2xl font-black italic text-amber-500">{members.filter(m => !m.attended_cell && !m.attended_cult).length}</p>
                 </div>
                 <div className={`${t.card} p-4 border rounded-2xl`}>
-                   <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Ambos</p>
-                   <p className="text-2xl font-black italic text-blue-500">{members.filter(m => m.attended_cell && m.attended_cult).length}</p>
+                   <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Comprometidos</p>
+                   <p className="text-2xl font-black italic text-blue-500">{members.filter(m => m.attended_cell && !m.attended_cult).length}</p>
                 </div>
                 <div className={`${t.card} p-4 border rounded-2xl`}>
                    <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Ausentes Ambos</p>
-                   <p className="text-2xl font-black italic text-red-500">{members.filter(m => !m.attended_cell && !m.attended_cult).length}</p>
+                   <p className="text-2xl font-black italic text-red-500">{members.filter(m => !m.attended_cell && m.attended_cult).length}</p>
                 </div>
               </div>
 
@@ -660,10 +659,10 @@ function ChurchMembershipSystem() {
                       <PieChart>
                         <Pie
                           data={[
-                            { name: 'Ambos', value: members.filter(m => m.attended_cell && m.attended_cult).length },
-                            { name: 'Só Célula', value: members.filter(m => m.attended_cell && !m.attended_cult).length },
-                            { name: 'Só Culto', value: members.filter(m => !m.attended_cell && m.attended_cult).length },
-                            { name: 'Nenhum', value: members.filter(m => !m.attended_cell && !m.attended_cult).length },
+                            { name: 'Ambos', value: members.filter(m => m.attended_cell && !m.attended_cult).length },
+                            { name: 'Só Célula', value: members.filter(m => m.attended_cell && m.attended_cult).length },
+                            { name: 'Só Culto', value: members.filter(m => !m.attended_cell && !m.attended_cult).length },
+                            { name: 'Nenhum', value: members.filter(m => !m.attended_cell && m.attended_cult).length },
                           ].filter(d => d.value > 0)}
                           cx="50%"
                           cy="50%"
@@ -778,8 +777,8 @@ function ChurchMembershipSystem() {
                           <span className="text-[10px] font-black uppercase italic">Célula</span>
                        </label>
                        <label className="flex items-center gap-3 p-3 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition-all">
-                          <input type="checkbox" checked={memberForm.attended_cult} onChange={e => setMemberForm({...memberForm, attended_cult: e.target.checked})} className="w-5 h-5 rounded border-white/10 bg-slate-800 text-blue-500" />
-                          <span className="text-[10px] font-black uppercase italic">Culto</span>
+                          <input type="checkbox" checked={memberForm.attended_cult} onChange={e => setMemberForm({...memberForm, attended_cult: e.target.checked})} className="w-5 h-5 rounded border-white/10 bg-slate-800 text-red-500" />
+                          <span className="text-[10px] font-black uppercase italic text-red-500">Faltou no Culto</span>
                        </label>
                     </div>
                  </div>
