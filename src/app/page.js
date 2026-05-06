@@ -485,7 +485,8 @@ function ChurchMembershipSystem() {
     };
   });
 
-  if (authLoading) return <div className="min-h-screen bg-[#020617] flex items-center justify-center text-white italic font-bold text-xl animate-pulse">AUTENTICANDO...</div>;
+  // Se for um link de líder, ignora a tela de "Autenticando" e entra direto
+  if (authLoading && !cellIdParam) return <div className="min-h-screen bg-[#020617] flex items-center justify-center text-white italic font-bold text-xl animate-pulse">AUTENTICANDO...</div>;
   
   // Se não houver sessão E não for um link de líder, pede login
   if (!session && !cellIdParam) {
