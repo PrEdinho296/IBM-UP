@@ -173,8 +173,16 @@ function ChurchMembershipSystem() {
   const addCell = async () => {
     if (!cellForm.name || !cellForm.sector_id) return;
     
+    // Remover campos que não devem ser enviados na atualização/inserção
+    const { id, created_at, ...payload } = cellForm;
+
     if (editingCellId) {
-      const { data, error } = await supabase.from('cells').update(cellForm).eq('id', editingCellId).select();
+      const { data, error } = await supabase.from('cells').update(payload).eq('id', editingCellId).select();
+      if (error) {
+        console.error('Erro ao atualizar célula:', error);
+        alert('Erro ao salvar alterações na célula');
+        return;
+      }
       if (data) {
         setCells(cells.map(c => c.id === editingCellId ? data[0] : c));
         setEditingCellId(null);
@@ -182,7 +190,12 @@ function ChurchMembershipSystem() {
         setShowCellForm(false);
       }
     } else {
-      const { data } = await supabase.from('cells').insert([cellForm]).select();
+      const { data, error } = await supabase.from('cells').insert([payload]).select();
+      if (error) {
+        console.error('Erro ao criar célula:', error);
+        alert('Erro ao criar nova célula');
+        return;
+      }
       if (data) {
         setCells([...cells, data[0]]);
         setCellForm({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30' });
