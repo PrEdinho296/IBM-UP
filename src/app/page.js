@@ -618,9 +618,96 @@ function ChurchMembershipSystem() {
           )}
 
           {activeTab === 'reports' && (
-            <div className="space-y-6">
-               <header className="flex justify-between items-center"><h2 className="text-2xl font-black italic uppercase tracking-tighter">Relatórios Culto</h2><button onClick={() => setShowReportForm(true)} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black text-xs">+ NOVO RELATÓRIO</button></header>
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">{reports.map(r => (<div key={r.id} className={`${t.card} border rounded-2xl p-6 relative`}><div className="flex justify-between items-start mb-4"><div className="bg-emerald-600/10 p-2 rounded-lg text-emerald-500"><Calendar size={18}/></div><div className="text-right"><p className="text-xl font-black tracking-tighter">{r.total}</p><p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Total</p></div></div><p className="text-sm font-black italic tracking-tighter uppercase mb-2">{new Date(r.date).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</p><button onClick={() => deleteItem('reports', r.id)} className="text-red-500/20 hover:text-red-500 absolute top-6 right-6 p-1"><Trash2 size={12}/></button></div>))}</div>
+            <div className="space-y-8">
+              <header className="flex justify-between items-center">
+                <div className="flex flex-col">
+                  <h2 className="text-2xl font-black italic uppercase tracking-tighter">Inteligência de Dados</h2>
+                  <p className="text-blue-500 text-[10px] font-black uppercase tracking-widest">Resumo Geral de Engajamento</p>
+                </div>
+                <button onClick={() => setShowReportForm(true)} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg shadow-emerald-900/20 hover:bg-emerald-500 transition-all">+ NOVO REGISTRO</button>
+              </header>
+
+              {/* Painel de Indicadores Parametrizados */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className={`${t.card} p-4 border rounded-2xl`}>
+                   <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Membros Totais</p>
+                   <p className="text-2xl font-black italic text-white">{members.length}</p>
+                </div>
+                <div className={`${t.card} p-4 border rounded-2xl`}>
+                   <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Só Célula</p>
+                   <p className="text-2xl font-black italic text-emerald-500">{members.filter(m => m.attended_cell && !m.attended_cult).length}</p>
+                </div>
+                <div className={`${t.card} p-4 border rounded-2xl`}>
+                   <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Só Culto</p>
+                   <p className="text-2xl font-black italic text-amber-500">{members.filter(m => !m.attended_cell && m.attended_cult).length}</p>
+                </div>
+                <div className={`${t.card} p-4 border rounded-2xl`}>
+                   <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Ambos</p>
+                   <p className="text-2xl font-black italic text-blue-500">{members.filter(m => m.attended_cell && m.attended_cult).length}</p>
+                </div>
+                <div className={`${t.card} p-4 border rounded-2xl`}>
+                   <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Ausentes Ambos</p>
+                   <p className="text-2xl font-black italic text-red-500">{members.filter(m => !m.attended_cell && !m.attended_cult).length}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Gráfico de Distribuição */}
+                <div className={`${t.card} p-6 border rounded-2xl flex flex-col items-center`}>
+                  <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest self-start">Distribuição de Frequência</h3>
+                  <div className="w-full h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Ambos', value: members.filter(m => m.attended_cell && m.attended_cult).length },
+                            { name: 'Só Célula', value: members.filter(m => m.attended_cell && !m.attended_cult).length },
+                            { name: 'Só Culto', value: members.filter(m => !m.attended_cell && m.attended_cult).length },
+                            { name: 'Nenhum', value: members.filter(m => !m.attended_cell && !m.attended_cult).length },
+                          ].filter(d => d.value > 0)}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          <Cell fill="#3b82f6" />
+                          <Cell fill="#10b981" />
+                          <Cell fill="#f59e0b" />
+                          <Cell fill="#ef4444" />
+                        </Pie>
+                        <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Histórico de Relatórios Manuais */}
+                <div className="lg:col-span-2 space-y-4">
+                  <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Registros de Culto</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {reports.map(r => (
+                      <div key={r.id} className={`${t.card} border rounded-2xl p-6 relative group hover:border-blue-500/30 transition-all`}>
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="bg-blue-600/10 p-2 rounded-lg text-blue-500"><Calendar size={18}/></div>
+                          <div className="text-right">
+                            <p className="text-xl font-black tracking-tighter">{r.total}</p>
+                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Total</p>
+                          </div>
+                        </div>
+                        <p className="text-sm font-black italic tracking-tighter uppercase mb-2">{new Date(r.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</p>
+                        <button 
+                          onClick={() => deleteItem('reports', r.id)} 
+                          className="text-red-500 opacity-20 group-hover:opacity-100 absolute top-4 right-4 p-2 bg-red-500/10 rounded-lg hover:bg-red-500 hover:text-white transition-all"
+                        >
+                          <Trash2 size={14}/>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
