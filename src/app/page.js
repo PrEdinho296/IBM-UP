@@ -488,9 +488,21 @@ function ChurchMembershipSystem() {
     };
   });
 
-  // Verificação de "Força Bruta" para garantir que o celular detecte o link
-  const rawUrl = typeof window !== 'undefined' ? window.location.href : '';
-  const hasCellParam = cellIdParam || rawUrl.includes('cellId=');
+  // Verificação de "Segurança Máxima" para garantir que o celular detecte o link
+  // Testamos 3 formas diferentes de ler a URL para não haver erro no mobile
+  const getRawCellId = () => {
+    if (typeof window === 'undefined') return null;
+    const url = window.location.href;
+    const search = window.location.search;
+    const params = new URLSearchParams(search);
+    
+    if (params.has('cellId')) return params.get('cellId');
+    if (url.includes('cellId=')) return url.split('cellId=')[1].split('&')[0];
+    return null;
+  };
+
+  const currentCellId = cellIdParam || getRawCellId();
+  const hasCellParam = !!currentCellId;
 
   if (authLoading && !hasCellParam) return <div className="min-h-screen bg-[#020617] flex items-center justify-center text-white italic font-bold text-xl animate-pulse">IBM UP...</div>;
   
