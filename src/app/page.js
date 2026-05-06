@@ -44,7 +44,7 @@ function ChurchMembershipSystem() {
     const cell = cells.find(c => c.id === m.cell_id);
     const latestDate = getMeetingDates(cell?.day_of_week)[0];
     const isPresentCell = attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
-    const isPresentCult = !m.attended_cult;
+    const isPresentCult = m.attended_cult;
     return { isPresentCell, isPresentCult };
   };
 
@@ -542,9 +542,9 @@ function ChurchMembershipSystem() {
                            <td className="px-4 py-3 text-center">
                              <button 
                                onClick={() => toggleAttendance(m.id, 'attended_cult')}
-                               className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${m.attended_cult ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
+                               className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${m.attended_cult ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
                              >
-                               {m.attended_cult ? 'Faltou' : 'Presente'}
+                               {m.attended_cult ? 'Presente' : 'Faltou'}
                              </button>
                            </td>
                            <td className="px-6 py-4 text-right">
@@ -642,7 +642,7 @@ function ChurchMembershipSystem() {
                       if(confirm('Marcar TODOS como presentes no culto?')) {
                         members.forEach(m => {
                           if (isLeaderMode ? m.cell_id === activeCell.id : true) {
-                            if (m.attended_cult) toggleAttendance(m.id, 'attended_cult');
+                            if (!m.attended_cult) toggleAttendance(m.id, 'attended_cult');
                           }
                         });
                       }
@@ -651,7 +651,7 @@ function ChurchMembershipSystem() {
                       if(confirm('Limpar TODA a frequência de culto?')) {
                         members.forEach(m => {
                           if (isLeaderMode ? m.cell_id === activeCell.id : true) {
-                            if (!m.attended_cult) toggleAttendance(m.id, 'attended_cult');
+                            if (m.attended_cult) toggleAttendance(m.id, 'attended_cult');
                           }
                         });
                       }
@@ -684,9 +684,9 @@ function ChurchMembershipSystem() {
                           <td className="px-4 py-3 text-center">
                             <button 
                               onClick={() => toggleAttendance(m.id, 'attended_cult')}
-                              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${m.attended_cult ? 'bg-red-600 text-white shadow-lg shadow-red-600/20' : 'bg-slate-800 text-slate-600'}`}
+                              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${m.attended_cult ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-600'}`}
                             >
-                              {m.attended_cult ? 'Faltou' : 'Presente'}
+                              {m.attended_cult ? 'Presente' : 'Faltou'}
                             </button>
                           </td>
                         </tr>
