@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Plus, Trash2, Edit2, Users, LogOut, Menu, X, Search, Activity, Heart, Award, ChevronRight, LayoutDashboard, Map, Home, ClipboardList, Save, TrendingUp, PieChart as PieIcon, BarChart as BarIcon, Star, CheckCircle2, Calendar, Share2, Copy, Check, MapPin, Phone, Loader2, Navigation, Zap, Target, Sun, Moon, ArrowUpRight, UserCheck, UserMinus, ShieldCheck, Mail, ExternalLink, Link2, Eye, GraduationCap, Download, Upload, Info, BarChart3, Power, LineChart as LineIcon } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, LineChart, Line } from 'recharts';
+import { Plus, Trash2, Users, Menu, X, Activity, LayoutDashboard, Map, Home, ClipboardList, Star, Calendar, Copy, Check, MapPin, Loader2, Sun, Moon, ShieldCheck, UserMinus, Eye, Download, Upload, Power, LineChart as LineIcon, PieChart as PieIcon } from 'lucide-react';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { supabase } from '../lib/supabase';
 
 function ChurchAppWrapper() {
@@ -31,7 +31,6 @@ function ChurchMembershipSystem() {
   const [searchingCep, setSearchingCep] = useState(false);
   const [filterCellId, setFilterCellId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [showLogin, setShowLogin] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const [timeFilter, setTimeFilter] = useState('Tudo');
 
@@ -53,8 +52,11 @@ function ChurchMembershipSystem() {
   const [reportForm, setReportForm] = useState({ date: new Date().toISOString().split('T')[0], members: 0, frequenters: 0, visitors: 0, notes: '' });
 
   useEffect(() => {
-    fetchData();
-    if (cellIdParam) { setIsLeaderMode(true); setShowLogin(false); setActiveTab('leader-members'); }
+    const initFetch = async () => {
+      await fetchData();
+      if (cellIdParam) { setIsLeaderMode(true); setActiveTab('leader-members'); }
+    };
+    initFetch();
   }, [cellIdParam]);
 
   const fetchData = async () => {
@@ -91,19 +93,14 @@ function ChurchMembershipSystem() {
     const member = members.find(m => m.id === memberId);
     if (!member) return;
     const newValue = !member[type];
-    
-    // Update UI immediately
     setMembers(members.map(m => m.id === memberId ? { ...m, [type]: newValue } : m));
-    
-    // Update Supabase
     await supabase.from('members').update({ [type]: newValue }).eq('id', memberId);
   };
 
   const addMember = async () => {
     const cId = isLeaderMode ? activeCell?.id : memberForm.cell_id;
     if (!memberForm.name || !cId) return;
-    
-    const { data, error } = await supabase.from('members').insert([{ ...memberForm, cell_id: Number(cId) }]).select();
+    const { data } = await supabase.from('members').insert([{ ...memberForm, cell_id: Number(cId) }]).select();
     if (data) {
       setMembers([...members, data[0]]);
       setMemberForm({ name: '', email: '', phone: '', cell_id: '', status: 'active', cep: '', address: '', number: '', neighborhood: '', city: '', pl: false, ecc: false, bat: false, con: false, maturidade: false, ctl: false, ministerios: false, integracao: false, outros: false, attended_cell: false, attended_cult: false });
@@ -113,7 +110,7 @@ function ChurchMembershipSystem() {
 
   const addCell = async () => {
     if (!cellForm.name || !cellForm.sector_id) return;
-    const { data, error } = await supabase.from('cells').insert([cellForm]).select();
+    const { data } = await supabase.from('cells').insert([cellForm]).select();
     if (data) {
       setCells([...cells, data[0]]);
       setCellForm({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30' });
@@ -123,7 +120,7 @@ function ChurchMembershipSystem() {
 
   const addSector = async () => {
     if (!sectorForm.name) return;
-    const { data, error } = await supabase.from('sectors').insert([sectorForm]).select();
+    const { data } = await supabase.from('sectors').insert([sectorForm]).select();
     if (data) {
       setSectors([...sectors, data[0]]);
       setSectorForm({ name: '' });
@@ -133,7 +130,7 @@ function ChurchMembershipSystem() {
 
   const addReport = async () => {
     const total = Number(reportForm.members) + Number(reportForm.frequenters) + Number(reportForm.visitors);
-    const { data, error } = await supabase.from('reports').insert([{ ...reportForm, total }]).select();
+    const { data } = await supabase.from('reports').insert([{ ...reportForm, total }]).select();
     if (data) {
       setReports([data[0], ...reports]);
       setReportForm({ date: new Date().toISOString().split('T')[0], members: 0, frequenters: 0, visitors: 0, notes: '' });
@@ -224,7 +221,7 @@ function ChurchMembershipSystem() {
         <div className={`p-4 border-t ${t.border} space-y-2`}>
            <button onClick={() => fetchData()} className={`w-full flex items-center gap-3 p-3 text-[10px] ${t.subText} hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest`}><Activity size={16}/> {sidebarOpen && 'Atualizar'}</button>
            <button onClick={() => setDarkMode(!darkMode)} className={`w-full flex items-center gap-3 p-3 text-[10px] ${t.subText} ${t.hover} rounded-xl transition-all font-black uppercase tracking-widest`}>{darkMode ? <Sun size={16}/> : <Moon size={16}/>} {sidebarOpen && 'Tema'}</button>
-           <button onClick={() => { if(isLeaderMode) { setIsLeaderMode(false); setActiveTab('cells'); } else { setShowLogin(true); } }} className="w-full flex items-center gap-3 p-3 text-[10px] text-red-500/70 hover:text-red-500 hover:bg-red-400/5 rounded-xl transition-all font-black uppercase tracking-widest"><Power size={16}/> {sidebarOpen && (isLeaderMode ? 'Voltar' : 'Sair')}</button>
+           <button onClick={() => { if(isLeaderMode) { setIsLeaderMode(false); setActiveTab('cells'); } else { fetchData(); } }} className="w-full flex items-center gap-3 p-3 text-[10px] text-red-500/70 hover:text-red-500 hover:bg-red-400/5 rounded-xl transition-all font-black uppercase tracking-widest"><Power size={16}/> {sidebarOpen && (isLeaderMode ? 'Voltar' : 'Sair')}</button>
         </div>
       </aside>
 
@@ -334,7 +331,7 @@ function ChurchMembershipSystem() {
         </div>
       </main>
 
-      {/* Modais de Cadastro com visual limpo */}
+      {/* Modais com visual limpo */}
       {showMemberForm && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-auto">
           <div className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-2xl rounded-2xl p-8 border ${t.border} shadow-2xl my-auto text-left relative`}>
@@ -352,8 +349,8 @@ function ChurchMembershipSystem() {
               <div className="space-y-6">
                 {!isLeaderMode && (<div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}><p className="text-[8px] font-black text-slate-500 uppercase mb-2">CÉLULA</p><select value={memberForm.cell_id} onChange={e => setMemberForm({...memberForm, cell_id: e.target.value})} className="w-full bg-transparent font-black text-sm outline-none"><option value="">Selecionar...</option>{cells.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>)}
                 <div className="space-y-2">
-                   <p className="text-[8px] font-black text-slate-500 uppercase">Cursos do Membro</p>
-                   <div className={`grid grid-cols-1 gap-2 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar-fine`}>
+                   <p className="text-[8px] font-black text-slate-500 uppercase">Cursos</p>
+                   <div className="grid grid-cols-1 gap-2 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar-fine">
                       <CourseCheckCompact label="Potencial Líder" checked={memberForm.pl} onChange={val => setMemberForm({...memberForm, pl: val})} dark={darkMode} />
                       <CourseCheckCompact label="ECC - Casais" checked={memberForm.ecc} onChange={val => setMemberForm({...memberForm, ecc: val})} dark={darkMode} />
                       <CourseCheckCompact label="Batismo" checked={memberForm.bat} onChange={val => setMemberForm({...memberForm, bat: val})} dark={darkMode} />
@@ -374,7 +371,7 @@ function ChurchMembershipSystem() {
           <div className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-xl rounded-2xl p-8 border ${t.border} shadow-2xl relative`}>
             <button onClick={() => setShowCellForm(false)} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24}/></button>
             <h2 className="text-3xl font-black mb-8 italic uppercase tracking-tighter text-left">Nova Célula</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
               <InputCompact label="NOME DA CÉLULA" value={cellForm.name} onChange={val => setCellForm({...cellForm, name: val})} dark={darkMode} />
               <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}><p className="text-[8px] font-black text-slate-500 uppercase mb-2">SETOR</p><select value={cellForm.sector_id} onChange={e => setCellForm({...cellForm, sector_id: e.target.value})} className="w-full bg-transparent font-black text-sm outline-none"><option value="">Selecionar...</option>{sectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
               <InputCompact label="LÍDER" value={cellForm.leader} onChange={val => setCellForm({...cellForm, leader: val})} dark={darkMode} />
@@ -415,7 +412,7 @@ function ChurchMembershipSystem() {
                  <textarea value={reportForm.notes} onChange={e => setReportForm({...reportForm, notes: e.target.value})} className="w-full bg-transparent font-bold text-xs outline-none h-20 resize-none" />
               </div>
             </div>
-            <button onClick={addReport} className="w-full bg-emerald-600 text-white py-4 rounded-xl font-black text-xs uppercase mt-6">Gravar Relatório</button>
+            <button onClick={addReport} className="w-full bg-emerald-600 text-white py-4 rounded-xl font-black text-xs uppercase mt-6">Gravar</button>
           </div>
         </div>
       )}
