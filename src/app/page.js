@@ -518,7 +518,10 @@ function ChurchMembershipSystem() {
               </div>
               <div className="relative"><InputCompact label="CEP LOCAL" value={cellForm.cep} onChange={val => { setCellForm({...cellForm, cep: val}); handleCepSearch(val, 'cell'); }} dark={darkMode} />{searchingCep && <Loader2 className="absolute right-3 top-7 text-blue-500 animate-spin" size={14}/>}</div>
               <InputCompact label="ENDEREÇO" value={cellForm.address} onChange={val => setCellForm({...cellForm, address: val})} dark={darkMode} />
-              <InputCompact label="BAIRRO" value={cellForm.neighborhood} onChange={val => setCellForm({...cellForm, neighborhood: val})} dark={darkMode} />
+              <div className="grid grid-cols-2 gap-4">
+                <InputCompact label="Nº" value={cellForm.number} onChange={val => setCellForm({...cellForm, number: val})} dark={darkMode} />
+                <InputCompact label="BAIRRO" value={cellForm.neighborhood} onChange={val => setCellForm({...cellForm, neighborhood: val})} dark={darkMode} />
+              </div>
             </div>
             <div className="flex gap-4 mt-8"><button onClick={() => setShowCellForm(false)} className="flex-1 text-slate-500 font-black uppercase text-[10px]">Cancelar</button><button onClick={addCell} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-black text-[10px] uppercase italic">Criar Célula</button></div>
           </div>
