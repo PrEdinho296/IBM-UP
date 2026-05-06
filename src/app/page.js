@@ -535,6 +535,9 @@ function ChurchMembershipSystem() {
             <div><h1 className={`text-base font-black ${t.text} italic uppercase tracking-tighter`}>IBMRP</h1><p className={`${t.subText} text-[8px] font-bold uppercase tracking-widest`}>{isLeaderMode ? `Líder: ${activeCell?.name || ''}` : 'Gestão Estratégica'}</p></div>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={() => setShowVisitorModal(true)} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase italic tracking-widest flex items-center gap-2 transition-all shadow-lg shadow-blue-600/20 mr-2">
+              <Users size={14}/> + VISITANTE
+            </button>
             <div className="flex items-center gap-1.5 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
               <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
               <span className="text-[8px] font-black uppercase text-emerald-500 tracking-widest">Cloud Sync</span>
