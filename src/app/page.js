@@ -376,12 +376,14 @@ function ChurchMembershipSystem() {
                 <div className="space-y-2">
                    <p className="text-[8px] font-black text-slate-500 uppercase">Cursos</p>
                    <div className="grid grid-cols-1 gap-2 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar-fine">
-                      <CourseCheckCompact label="Potencial Líder" checked={memberForm.pl} onChange={val => setMemberForm({...memberForm, pl: val})} dark={darkMode} />
-                      <CourseCheckCompact label="ECC - Casais" checked={memberForm.ecc} onChange={val => setMemberForm({...memberForm, ecc: val})} dark={darkMode} />
-                      <CourseCheckCompact label="Batismo" checked={memberForm.bat} onChange={val => setMemberForm({...memberForm, bat: val})} dark={darkMode} />
-                      <CourseCheckCompact label="Maturidade" checked={memberForm.maturidade} onChange={val => setMemberForm({...memberForm, maturidade: val})} dark={darkMode} />
-                      <CourseCheckCompact label="CTL (Liderança)" checked={memberForm.ctl} onChange={val => setMemberForm({...memberForm, ctl: val})} dark={darkMode} />
-                      <CourseCheckCompact label="Escola de Ministérios" checked={memberForm.ministerios} onChange={val => setMemberForm({...memberForm, ministerios: val})} dark={darkMode} />
+                      <CourseCheckCompact label="ECC - CASAIS COM CRISTO" checked={memberForm.ecc} onChange={val => setMemberForm({...memberForm, ecc: val})} dark={darkMode} />
+                      <CourseCheckCompact label="BAT - MEMBROS PARA BATIZAR" checked={memberForm.bat} onChange={val => setMemberForm({...memberForm, bat: val})} dark={darkMode} />
+                      <CourseCheckCompact label="FCC - FREQUENTE CULTOS/CÉLULAS" checked={memberForm.integracao} onChange={val => setMemberForm({...memberForm, integracao: val})} dark={darkMode} />
+                      <CourseCheckCompact label="CON - CONSOLIDAÇÃO PENDENTE" checked={memberForm.con} onChange={val => setMemberForm({...memberForm, con: val})} dark={darkMode} />
+                      <CourseCheckCompact label="VS - VISITANTE DA SEMANA" checked={memberForm.outros} onChange={val => setMemberForm({...memberForm, outros: val})} dark={darkMode} />
+                      <CourseCheckCompact label="TMC - MEMBRO COMPROMETIDO" checked={memberForm.maturidade} onChange={val => setMemberForm({...memberForm, maturidade: val})} dark={darkMode} />
+                      <CourseCheckCompact label="MSD - SEM DISCIPULADOR" checked={memberForm.ctl} onChange={val => setMemberForm({...memberForm, ctl: val})} dark={darkMode} />
+                      <CourseCheckCompact label="PL - POTENCIAL LÍDER" checked={memberForm.pl} onChange={val => setMemberForm({...memberForm, pl: val})} dark={darkMode} />
                    </div>
                 </div>
               </div>
