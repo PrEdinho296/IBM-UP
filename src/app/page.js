@@ -743,12 +743,7 @@ function ChurchMembershipSystem() {
                           </td>
                         </tr>
                       ))}
-                    </tbody>                     <button 
-                       onClick={exportToExcel}
-                       className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-xl font-black text-[10px] uppercase italic tracking-widest flex items-center gap-2 transition-all shadow-lg shadow-emerald-600/20"
-                     >
-                       <FileDown size={14}/> Exportar Excel
-                     </button>
+                    </tbody>
                   </table>
                 </div>
               </div>
@@ -762,7 +757,15 @@ function ChurchMembershipSystem() {
                   <h2 className="text-2xl font-black italic uppercase tracking-tighter">Inteligência de Dados</h2>
                   <p className="text-blue-500 text-[10px] font-black uppercase tracking-widest">Resumo Geral de Engajamento</p>
                 </div>
-                <button onClick={() => setShowReportForm(true)} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg shadow-emerald-900/20 hover:bg-emerald-500 transition-all">+ NOVO REGISTRO</button>
+                <div className="flex gap-3">
+                   <button 
+                     onClick={exportToExcel}
+                     className="bg-emerald-600/10 text-emerald-500 border border-emerald-500/30 px-6 py-3 rounded-xl font-black text-xs hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2"
+                   >
+                     <FileDown size={16}/> EXCEL
+                   </button>
+                   <button onClick={() => setShowReportForm(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg shadow-blue-900/20 hover:bg-blue-500 transition-all">+ NOVO REGISTRO</button>
+                </div>
               </header>
 
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
