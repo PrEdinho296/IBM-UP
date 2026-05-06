@@ -251,6 +251,33 @@ function ChurchMembershipSystem() {
     }
   };
 
+  const exportToExcel = () => {
+    const header = "NOME;TELEFONE;CELULA;DISCIPULADOR;CURSOS;STATUS CULTO;STATUS CELULA;ENGAJAMENTO\n";
+    const rows = filteredMembers.map(m => {
+      const { isPresentCell, isPresentCult } = getMemberEngagement(m);
+      const cellName = cells.find(c => c.id === m.cell_id)?.name || 'Sem Célula';
+      const eng = isPresentCell && isPresentCult ? 'AMBOS' : 
+                  isPresentCell ? 'SÓ CÉLULA' : 
+                  isPresentCult ? 'SÓ CULTO' : 'INATIVO';
+      
+      const courses = [
+        m.ecc && 'ECC', m.bat && 'BAT', m.integracao && 'FCC', m.con && 'CON', 
+        m.maturidade && 'TMC', m.ctl && 'MSD', m.pl && 'PL'
+      ].filter(Boolean).join(', ');
+
+      return `${m.name};${m.phone || ''};${cellName};${m.ministerios || ''};${courses};${isPresentCult ? 'PRESENTE' : 'FALTOU'};${isPresentCell ? 'PRESENTE' : 'FALTOU'};${eng}`;
+    }).join('\n');
+
+    const blob = new Blob(["\ufeff" + header + rows], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `RELATORIO_IBM_UP_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const addSector = async () => {
     if (!sectorForm.name) return;
     const { data } = await supabase.from('sectors').insert([sectorForm]).select();
@@ -716,7 +743,12 @@ function ChurchMembershipSystem() {
                           </td>
                         </tr>
                       ))}
-                    </tbody>
+                    </tbody>                     <button 
+                       onClick={exportToExcel}
+                       className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-xl font-black text-[10px] uppercase italic tracking-widest flex items-center gap-2 transition-all shadow-lg shadow-emerald-600/20"
+                     >
+                       <FileDown size={14}/> Exportar Excel
+                     </button>
                   </table>
                 </div>
               </div>
@@ -1004,7 +1036,15 @@ function ChurchMembershipSystem() {
             <button onClick={() => setShowReportForm(false)} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24}/></button>
             <h2 className="text-3xl font-black mb-8 italic uppercase tracking-tighter">Relatório</h2>
             <div className="space-y-4">
-              <InputCompact label="DATA" value={reportForm.date} onChange={val => setReportForm({...reportForm, date: val})} dark={darkMode} />
+              <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border} transition-all`}>
+                <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">DATA (DD/MM/AAAA)</p>
+                <input 
+                  type="date"
+                  value={reportForm.date} 
+                  onChange={e => setReportForm({...reportForm, date: e.target.value})} 
+                  className={`w-full bg-transparent ${darkMode ? 'text-white' : 'text-slate-900'} font-black text-sm outline-none italic uppercase`}
+                />
+              </div>
               <div className="grid grid-cols-3 gap-3">
                  <InputCompact label="MEMBROS" value={reportForm.members} onChange={val => setReportForm({...reportForm, members: val})} dark={darkMode} />
                  <InputCompact label="FREQ." value={reportForm.frequenters} onChange={val => setReportForm({...reportForm, frequenters: val})} dark={darkMode} />
