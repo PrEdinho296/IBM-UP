@@ -16,7 +16,11 @@ function ChurchAppWrapper() {
 
 function ChurchMembershipSystem() {
   const searchParams = useSearchParams();
-  const cellIdParam = searchParams.get('cellId');
+  const [cellIdParam, setCellIdParam] = useState(null);
+
+  useEffect(() => {
+    setCellIdParam(searchParams.get('cellId'));
+  }, [searchParams]);
 
   const [darkMode, setDarkMode] = useState(true);
   const [members, setMembers] = useState([]);
