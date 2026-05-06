@@ -489,7 +489,6 @@ function ChurchMembershipSystem() {
   });
 
   // Verificação de "Segurança Máxima" para garantir que o celular detecte o link
-  // Testamos 3 formas diferentes de ler a URL para não haver erro no mobile
   const getRawCellId = () => {
     if (typeof window === 'undefined') return null;
     const url = window.location.href;
@@ -497,14 +496,30 @@ function ChurchMembershipSystem() {
     const params = new URLSearchParams(search);
     
     if (params.has('cellId')) return params.get('cellId');
-    if (url.includes('cellId=')) return url.split('cellId=')[1].split('&')[0];
+    if (url.includes('cellId=')) {
+      const match = url.match(/cellId=(\d+)/);
+      return match ? match[1] : null;
+    }
     return null;
   };
 
   const currentCellId = cellIdParam || getRawCellId();
   const hasCellParam = !!currentCellId;
 
-  if (authLoading && !hasCellParam) return <div className="min-h-screen bg-[#020617] flex items-center justify-center text-white italic font-bold text-xl animate-pulse">IBM UP...</div>;
+  // Se for um link de célula, JAMAIS mostra a tela de login, mesmo que demore a carregar
+  if (hasCellParam) {
+    if (authLoading || !isInitialized) return (
+      <div className="min-h-screen bg-[#020617] flex items-center justify-center text-white italic font-bold text-xl animate-pulse">
+        CARREGANDO CÉLULA...
+      </div>
+    );
+  } else {
+    if (authLoading) return (
+      <div className="min-h-screen bg-[#020617] flex items-center justify-center text-white italic font-bold text-xl animate-pulse">
+        IBM UP...
+      </div>
+    );
+  }
   
   if (!session && !hasCellParam) {
     return (
