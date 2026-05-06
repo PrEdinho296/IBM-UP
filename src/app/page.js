@@ -115,8 +115,17 @@ function ChurchMembershipSystem() {
     const cId = isLeaderMode ? activeCell?.id : memberForm.cell_id;
     if (!memberForm.name || !cId) return;
     
+    // Remover campos que não devem ser enviados na atualização/inserção
+    const { id, created_at, ...payload } = memberForm;
+    const finalData = { ...payload, cell_id: Number(cId) };
+
     if (editingId) {
-      const { data } = await supabase.from('members').update({ ...memberForm, cell_id: Number(cId) }).eq('id', editingId).select();
+      const { data, error } = await supabase.from('members').update(finalData).eq('id', editingId).select();
+      if (error) {
+        console.error('Erro ao atualizar membro:', error);
+        alert('Erro ao salvar alterações');
+        return;
+      }
       if (data) {
         setMembers(members.map(m => m.id === editingId ? data[0] : m));
         setEditingId(null);
@@ -124,7 +133,12 @@ function ChurchMembershipSystem() {
         setShowMemberForm(false);
       }
     } else {
-      const { data } = await supabase.from('members').insert([{ ...memberForm, cell_id: Number(cId) }]).select();
+      const { data, error } = await supabase.from('members').insert([finalData]).select();
+      if (error) {
+        console.error('Erro ao inserir membro:', error);
+        alert('Erro ao criar membro');
+        return;
+      }
       if (data) {
         setMembers([...members, data[0]]);
         setMemberForm({ name: '', email: '', phone: '', cell_id: '', status: 'active', cep: '', address: '', number: '', neighborhood: '', city: '', pl: false, ecc: false, bat: false, con: false, maturidade: false, ctl: false, ministerios: false, integracao: false, outros: false, attended_cell: false, attended_cult: false });
