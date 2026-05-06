@@ -39,6 +39,28 @@ function ChurchMembershipSystem() {
     }
     return datesList;
   };
+
+  const getMemberEngagement = (m) => {
+    const cell = cells.find(c => c.id === m.cell_id);
+    const latestDate = getMeetingDates(cell?.day_of_week)[0];
+    const isPresentCell = attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
+    const isPresentCult = !m.attended_cult; // attended_cult=true significa FALTOU
+    return { isPresentCell, isPresentCult };
+  };
+
+  const formatDate = (dateString) => {
+
+  const formatDate = (dateString) => {
+    if (!dateString || !dateString.includes('-')) return dateString;
+    const [year, month, day] = dateString.split("-");
+    return `${day}/${month}/${year}`;
+  };
+
+  const parseDate = (displayDate) => {
+    if (!displayDate || !displayDate.includes('/')) return displayDate;
+    const [day, month, year] = displayDate.split("/");
+    return `${year}-${month}-${day}`;
+  };
   const [filterSectorId, setFilterSectorId] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
@@ -68,7 +90,7 @@ function ChurchMembershipSystem() {
   
   const [cellForm, setCellForm] = useState({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30' });
   const [sectorForm, setSectorForm] = useState({ name: '' });
-  const [reportForm, setReportForm] = useState({ date: new Date().toISOString().split('T')[0], members: 0, frequenters: 0, visitors: 0, notes: '' });
+  const [reportForm, setReportForm] = useState({ date: formatDate(new Date().toISOString().split('T')[0]), members: 0, frequenters: 0, visitors: 0, absents: 0, notes: '' });
 
   useEffect(() => {
     const initFetch = async () => {
@@ -232,10 +254,11 @@ function ChurchMembershipSystem() {
 
   const addReport = async () => {
     const total = Number(reportForm.members) + Number(reportForm.frequenters) + Number(reportForm.visitors);
-    const { data } = await supabase.from('reports').insert([{ ...reportForm, total }]).select();
+    const dbDate = parseDate(reportForm.date);
+    const { data } = await supabase.from('reports').insert([{ ...reportForm, date: dbDate, total }]).select();
     if (data) {
       setReports([data[0], ...reports]);
-      setReportForm({ date: new Date().toISOString().split('T')[0], members: 0, frequenters: 0, visitors: 0, notes: '' });
+      setReportForm({ date: formatDate(new Date().toISOString().split('T')[0]), members: 0, frequenters: 0, visitors: 0, absents: 0, notes: '' });
       setShowReportForm(false);
     }
   };
@@ -251,14 +274,19 @@ function ChurchMembershipSystem() {
     }
   };
 
-  const stats = {
-    total: members.length,
-    onlyCell: members.filter(m => m.attended_cell && !m.attended_cult).length,
-    onlyCult: members.filter(m => !m.attended_cell && m.attended_cult).length,
-    both: members.filter(m => m.attended_cell && m.attended_cult).length,
-    none: members.filter(m => !m.attended_cell && !m.attended_cult).length,
-    totalCult: members.filter(m => m.attended_cult).length,
-  };
+  const stats = members.reduce((acc, m) => {
+    const { isPresentCell, isPresentCult } = getMemberEngagement(m);
+    acc.total++;
+    if (isPresentCell && isPresentCult) acc.both++;
+    else if (isPresentCell && !isPresentCult) acc.onlyCell++;
+    else if (!isPresentCell && isPresentCult) acc.onlyCult++;
+    else acc.none++;
+    
+    if (!isPresentCult) acc.absentCult++;
+    if (!isPresentCell) acc.absentCell++;
+    
+    return acc;
+  }, { total: 0, both: 0, onlyCell: 0, onlyCult: 0, none: 0, absentCult: 0, absentCell: 0 });
 
   const loyaltyData = [
     { name: 'Só Célula', value: stats.onlyCell, color: '#f59e0b' },
@@ -349,13 +377,14 @@ function ChurchMembershipSystem() {
         <div className="p-6 md:p-10 space-y-6 md:space-y-10 animate-in fade-in duration-500 max-w-[1600px] mx-auto w-full">
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
-                <StatCard label="Membros" value={stats.total} icon={<Users size={16}/>} color="blue" dark={darkMode} />
-                <StatCard label="No Culto" value={stats.totalCult} icon={<Activity size={16}/>} color="emerald" dark={darkMode} highlight={true} />
-                <StatCard label="Só Célula" value={stats.onlyCell} icon={<Home size={16}/>} color="orange" dark={darkMode} />
-                <StatCard label="Só Culto" value={stats.onlyCult} icon={<Star size={16}/>} color="purple" dark={darkMode} />
-                <StatCard label="Ambos" value={stats.both} icon={<ShieldCheck size={16}/>} color="blue" dark={darkMode} />
-                <StatCard label="Inativos" value={stats.none} icon={<UserMinus size={16}/>} color="red" dark={darkMode} />
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+                <StatCard label="Membros" value={stats.total} icon={<Users size={16}/>} color="blue" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('all'); }} />
+                <StatCard label="Ambos" value={stats.both} icon={<ShieldCheck size={16}/>} color="emerald" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('both'); }} />
+                <StatCard label="Só Célula" value={stats.onlyCell} icon={<Home size={16}/>} color="blue" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('only-cell'); }} />
+                <StatCard label="Só Culto" value={stats.onlyCult} icon={<Star size={16}/>} color="purple" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('only-culto'); }} />
+                <StatCard label="Faltou Culto" value={stats.absentCult} icon={<Activity size={16}/>} color="red" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-culto'); }} />
+                <StatCard label="Faltou Célula" value={stats.absentCell} icon={<Clock size={16}/>} color="orange" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-cell'); }} />
+                <StatCard label="Ausente Ambos" value={stats.none} icon={<UserMinus size={16}/>} color="red" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('none'); }} />
                 <StatCard label="Células" value={cells.length} icon={<MapPin size={16}/>} color="indigo" dark={darkMode} />
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -411,22 +440,63 @@ function ChurchMembershipSystem() {
           {(activeTab === 'members' || activeTab === 'leader-members') && (
             <div className="space-y-6">
                <header className="flex justify-between items-center">
-                 <h2 className="text-2xl font-black italic uppercase tracking-tighter">Membros</h2>
+                 <h2 className="text-2xl font-black italic uppercase tracking-tighter">Membros & Engajamento</h2>
                  {isLeaderMode && <button onClick={() => setShowMemberForm(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVO MEMBRO</button>}
                </header>
 
+               {/* Dashboard de Engajamento Consolidado (Célula vs Culto) */}
                {isLeaderMode && activeCell && (
-                 <div className={`${t.card} p-6 border rounded-2xl flex flex-col items-center mb-6`}>
+                  <div className="space-y-6 mb-8">
+                    {/* Resumo Consolidado de Engajamento */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className={`${t.card} p-5 border rounded-2xl flex flex-col items-center justify-center bg-blue-600/5 border-blue-500/20 shadow-lg shadow-blue-500/5`}>
+                        <p className="text-[10px] font-black uppercase text-blue-500 mb-1 tracking-widest">Membros Cadastrados</p>
+                        <p className="text-3xl font-black italic">{members.filter(m => m.cell_id === activeCell.id).length}</p>
+                      </div>
+                      <div className={`${t.card} p-5 border rounded-2xl flex flex-col items-center justify-center bg-orange-600/5 border-orange-500/20 shadow-lg shadow-orange-500/5`}>
+                        <p className="text-[10px] font-black uppercase text-orange-500 mb-1 tracking-widest">Presentes na Célula (Hoje)</p>
+                        <p className="text-3xl font-black italic">
+                          {members.filter(m => {
+                            const latestDate = getMeetingDates(activeCell?.day_of_week)[0];
+                            return m.cell_id === activeCell.id && attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
+                          }).length}
+                        </p>
+                      </div>
+                      <div className={`${t.card} p-5 border rounded-2xl flex flex-col items-center justify-center bg-emerald-600/5 border-emerald-500/20 shadow-lg shadow-emerald-500/5`}>
+                        <p className="text-[10px] font-black uppercase text-emerald-500 mb-1 tracking-widest">Presentes no Culto</p>
+                        <p className="text-3xl font-black italic">
+                          {members.filter(m => m.cell_id === activeCell.id && !m.attended_cult).length}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className={`${t.card} p-6 border rounded-2xl flex flex-col items-center`}>
                    <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest self-start">Engajamento (Célula vs Culto)</h3>
                    <div className="w-full h-[180px]">
                      <ResponsiveContainer width="100%" height="100%">
                        <PieChart>
                          <Pie
                            data={[
-                             { name: 'Ambos', value: members.filter(m => m.cell_id === activeCell.id && m.attended_cell && !m.attended_cult).length },
-                             { name: 'Só Célula', value: members.filter(m => m.cell_id === activeCell.id && m.attended_cell && m.attended_cult).length },
-                             { name: 'Só Culto', value: members.filter(m => m.cell_id === activeCell.id && !m.attended_cell && !m.attended_cult).length },
-                             { name: 'Nenhum', value: members.filter(m => m.cell_id === activeCell.id && !m.attended_cell && m.attended_cult).length },
+                             { name: 'Ambos', value: members.filter(m => {
+                               const latestDate = getMeetingDates(activeCell?.day_of_week)[0];
+                               const inCell = attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
+                               return m.cell_id === activeCell.id && inCell && !m.attended_cult;
+                             }).length },
+                             { name: 'Só Célula', value: members.filter(m => {
+                               const latestDate = getMeetingDates(activeCell?.day_of_week)[0];
+                               const inCell = attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
+                               return m.cell_id === activeCell.id && inCell && m.attended_cult;
+                             }).length },
+                             { name: 'Só Culto', value: members.filter(m => {
+                               const latestDate = getMeetingDates(activeCell?.day_of_week)[0];
+                               const inCell = !attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
+                               return m.cell_id === activeCell.id && !inCell && !m.attended_cult;
+                             }).length },
+                             { name: 'Nenhum', value: members.filter(m => {
+                               const latestDate = getMeetingDates(activeCell?.day_of_week)[0];
+                               const inCell = !attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
+                               return m.cell_id === activeCell.id && !inCell && m.attended_cult;
+                             }).length },
                            ].filter(d => d.value > 0)}
                            cx="50%"
                            cy="50%"
@@ -436,8 +506,8 @@ function ChurchMembershipSystem() {
                            dataKey="value"
                          >
                            <Cell fill="#3b82f6" stroke="none" />
+                           <Cell fill="#f97316" stroke="none" />
                            <Cell fill="#10b981" stroke="none" />
-                           <Cell fill="#f59e0b" stroke="none" />
                            <Cell fill="#475569" stroke="none" />
                          </Pie>
                          <Tooltip 
@@ -450,8 +520,8 @@ function ChurchMembershipSystem() {
                    <div className="flex flex-wrap justify-center gap-4 mt-4">
                      {[
                        { label: 'Ambos', color: 'bg-blue-500' },
-                       { label: 'Só Célula', color: 'bg-emerald-500' },
-                       { label: 'Só Culto', color: 'bg-amber-500' },
+                       { label: 'Só Célula', color: 'bg-orange-500' },
+                       { label: 'Só Culto', color: 'bg-emerald-500' },
                        { label: 'Nenhum', color: 'bg-slate-600' }
                      ].map(item => (
                        <div key={item.label} className="flex items-center gap-1.5">
@@ -461,6 +531,7 @@ function ChurchMembershipSystem() {
                      ))}
                    </div>
                  </div>
+               </div>
                )}
                {!isLeaderMode && (
                  <div className="flex flex-wrap gap-4 mb-6">
@@ -649,21 +720,69 @@ function ChurchMembershipSystem() {
                 <button onClick={() => setShowReportForm(true)} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg shadow-emerald-900/20 hover:bg-emerald-500 transition-all">+ NOVO REGISTRO</button>
               </header>
 
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-8">
                 {[
                   { label: 'Membros Totais', value: members.length, color: 'text-white', filter: 'all' },
-                  { label: 'Só Célula', value: members.filter(m => m.attended_cell && m.attended_cult).length, color: 'text-emerald-500', filter: 'only-cell' },
-                  { label: 'No Culto', value: members.filter(m => !m.attended_cell && !m.attended_cult).length, color: 'text-amber-500', filter: 'only-culto' },
-                  { label: 'Comprometidos', value: members.filter(m => m.attended_cell && !m.attended_cult).length, color: 'text-blue-500', filter: 'both' },
-                  { label: 'Ausentes Ambos', value: members.filter(m => !m.attended_cell && m.attended_cult).length, color: 'text-red-500', filter: 'none' },
+                  { 
+                    label: 'Comprometidos', 
+                    value: members.filter(m => {
+                      const { isPresentCell, isPresentCult } = getMemberEngagement(m);
+                      return isPresentCell && isPresentCult;
+                    }).length, 
+                    color: 'text-blue-500', 
+                    filter: 'both' 
+                  },
+                  { 
+                    label: 'Só Célula', 
+                    value: members.filter(m => {
+                      const { isPresentCell, isPresentCult } = getMemberEngagement(m);
+                      return isPresentCell && !isPresentCult;
+                    }).length, 
+                    color: 'text-emerald-500', 
+                    filter: 'only-cell' 
+                  },
+                  { 
+                    label: 'Só Culto', 
+                    value: members.filter(m => {
+                      const { isPresentCell, isPresentCult } = getMemberEngagement(m);
+                      return !isPresentCell && isPresentCult;
+                    }).length, 
+                    color: 'text-amber-500', 
+                    filter: 'only-culto' 
+                  },
+                  { 
+                    label: 'Ausentes Ambos', 
+                    value: members.filter(m => {
+                      const { isPresentCell, isPresentCult } = getMemberEngagement(m);
+                      return !isPresentCell && !isPresentCult;
+                    }).length, 
+                    color: 'text-red-500', 
+                    filter: 'none' 
+                  },
+                  { 
+                    label: 'Ausente Culto', 
+                    value: members.filter(m => m.attended_cult).length, 
+                    color: 'text-rose-400', 
+                    filter: 'absent-culto' 
+                  },
+                  { 
+                    label: 'Ausente Célula', 
+                    value: members.filter(m => {
+                      const cell = cells.find(c => c.id === m.cell_id);
+                      const latestDate = getMeetingDates(cell?.day_of_week)[0];
+                      return !attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
+                    }).length, 
+                    color: 'text-orange-400', 
+                    filter: 'absent-cell' 
+                  },
                 ].map(kpi => (
                   <button 
                     key={kpi.label} 
                     onClick={() => setAnalyticsFilter(analyticsFilter === kpi.filter ? null : kpi.filter)}
                     className={`${t.card} p-4 border rounded-2xl text-left hover:border-blue-500/50 transition-all ${analyticsFilter === kpi.filter ? 'ring-2 ring-blue-500/50 border-blue-500' : ''}`}
                   >
-                     <p className="text-[8px] font-black uppercase text-slate-500 mb-1">{kpi.label}</p>
-                     <p className={`text-2xl font-black italic ${kpi.color}`}>{kpi.value}</p>
+                     <p className="text-[7px] font-black uppercase text-slate-500 mb-1">{kpi.label}</p>
+                     <p className={`text-xl font-black italic ${kpi.color}`}>{kpi.value}</p>
                   </button>
                 ))}
               </div>
@@ -678,37 +797,27 @@ function ChurchMembershipSystem() {
                         analyticsFilter === 'only-cell' ? 'Frequentes apenas na Célula' :
                         analyticsFilter === 'only-culto' ? 'Frequentes apenas no Culto' :
                         analyticsFilter === 'both' ? 'Comprometidos (Célula + Culto)' :
+                        analyticsFilter === 'absent-culto' ? 'Ausentes no Culto Dominical' :
+                        analyticsFilter === 'absent-cell' ? 'Ausentes na Reunião de Célula' :
                         'Ausentes em Ambos'
                       }
                     </h3>
                     <button onClick={() => setAnalyticsFilter(null)} className="text-[8px] font-black uppercase text-slate-500 hover:text-white">Fechar ×</button>
                   </div>
-                  <div className="max-h-[300px] overflow-y-auto custom-scrollbar-fine">
+                  <div className="max-h-[400px] overflow-y-auto custom-scrollbar-fine">
                     <table className="w-full text-left">
                       <tbody className="divide-y divide-white/5">
                         {members
                           .filter(m => {
+                            const { isPresentCell, isPresentCult } = getMemberEngagement(m);
+
                             if (analyticsFilter === 'all') return true;
-                            if (analyticsFilter === 'only-cell') {
-                              const latestDate = getMeetingDates(activeCell?.day_of_week)[0];
-                              const inCell = attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
-                              return inCell && m.attended_cult;
-                            }
-                            if (analyticsFilter === 'only-culto') {
-                              const latestDate = getMeetingDates(activeCell?.day_of_week)[0];
-                              const inCell = !attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
-                              return !inCell && !m.attended_cult;
-                            }
-                            if (analyticsFilter === 'both') {
-                              const latestDate = getMeetingDates(activeCell?.day_of_week)[0];
-                              const inCell = attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
-                              return inCell && !m.attended_cult;
-                            }
-                            if (analyticsFilter === 'none') {
-                              const latestDate = getMeetingDates(activeCell?.day_of_week)[0];
-                              const inCell = !attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
-                              return !inCell && m.attended_cult;
-                            }
+                            if (analyticsFilter === 'only-cell') return isPresentCell && !isPresentCult;
+                            if (analyticsFilter === 'only-culto') return !isPresentCell && isPresentCult;
+                            if (analyticsFilter === 'both') return isPresentCell && isPresentCult;
+                            if (analyticsFilter === 'none') return !isPresentCell && !isPresentCult;
+                            if (analyticsFilter === 'absent-culto') return !isPresentCult;
+                            if (analyticsFilter === 'absent-cell') return !isPresentCell;
                             return true;
                           })
                           .sort((a,b) => a.name.localeCompare(b.name))
@@ -769,12 +878,18 @@ function ChurchMembershipSystem() {
                       <div key={r.id} className={`${t.card} border rounded-2xl p-6 relative group hover:border-blue-500/30 transition-all`}>
                         <div className="flex justify-between items-start mb-4">
                           <div className="bg-blue-600/10 p-2 rounded-lg text-blue-500"><Calendar size={18}/></div>
-                          <div className="text-right">
-                            <p className="text-xl font-black tracking-tighter">{r.total}</p>
-                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Total</p>
+                          <div className="flex gap-4">
+                            <div className="text-right">
+                              <p className="text-xl font-black tracking-tighter text-blue-500">{r.total}</p>
+                              <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Total</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xl font-black tracking-tighter text-red-500">{r.absents || 0}</p>
+                              <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Faltas</p>
+                            </div>
                           </div>
                         </div>
-                        <p className="text-sm font-black italic tracking-tighter uppercase mb-2">{new Date(r.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</p>
+                        <p className="text-sm font-black italic tracking-tighter uppercase mb-2">{formatDate(r.date)}</p>
                         <button 
                           onClick={() => deleteItem('reports', r.id)} 
                           className="text-red-500 opacity-20 group-hover:opacity-100 absolute top-4 right-4 p-2 bg-red-500/10 rounded-lg hover:bg-red-500 hover:text-white transition-all"
@@ -926,10 +1041,11 @@ function ChurchMembershipSystem() {
             <h2 className="text-3xl font-black mb-8 italic uppercase tracking-tighter">Relatório</h2>
             <div className="space-y-4">
               <InputCompact label="DATA" value={reportForm.date} onChange={val => setReportForm({...reportForm, date: val})} dark={darkMode} />
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                  <InputCompact label="MEMBROS" value={reportForm.members} onChange={val => setReportForm({...reportForm, members: val})} dark={darkMode} />
                  <InputCompact label="FREQ." value={reportForm.frequenters} onChange={val => setReportForm({...reportForm, frequenters: val})} dark={darkMode} />
                  <InputCompact label="VISIT." value={reportForm.visitors} onChange={val => setReportForm({...reportForm, visitors: val})} dark={darkMode} />
+                 <InputCompact label="AUSENTES" value={reportForm.absents} onChange={val => setReportForm({...reportForm, absents: val})} dark={darkMode} />
               </div>
               <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}>
                  <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">OBSERVAÇÕES</p>
@@ -977,13 +1093,14 @@ function CourseCheckCompact({ label, checked, onChange, dark }) {
   );
 }
 
-function StatCard({ label, value, icon, color, dark, highlight }) {
+function StatCard({ label, value, icon, color, dark, highlight, onClick }) {
   const colors = { blue: 'text-blue-500', indigo: 'text-indigo-500', yellow: 'text-yellow-500', purple: 'text-purple-500', emerald: 'text-emerald-500', orange: 'text-orange-500', red: 'text-red-500' };
+  const Tag = onClick ? 'button' : 'div';
   return (
-    <div className={`${dark ? 'bg-[#0f172a]/40 border-white/5 shadow-xl' : 'bg-white border-slate-100 shadow-sm'} border p-4 rounded-2xl text-left hover:border-blue-500/30 transition-all group ${highlight ? 'ring-2 ring-emerald-500/20' : ''}`}>
-       <div className="flex justify-between items-start mb-2"><span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{label}</span><div className={`${colors[color]} opacity-40`}>{icon}</div></div>
+    <Tag onClick={onClick} className={`${dark ? 'bg-[#0f172a]/40 border-white/5 shadow-xl' : 'bg-white border-slate-100 shadow-sm'} border p-4 rounded-2xl text-left hover:border-blue-500/30 transition-all group ${highlight ? 'ring-2 ring-emerald-500/20' : ''} ${onClick ? 'cursor-pointer active:scale-95' : ''} w-full`}>
+       <div className="flex justify-between items-start mb-2"><span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{label}</span><div className={`${colors[color]} opacity-40 group-hover:opacity-100 transition-all`}>{icon}</div></div>
        <p className={`text-2xl font-black ${dark ? 'text-white' : 'text-slate-900'} italic tracking-tighter`}>{value}</p>
-    </div>
+    </Tag>
   );
 }
 
