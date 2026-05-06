@@ -424,9 +424,10 @@ function ChurchMembershipSystem() {
                   <thead className={`${t.tableHead} border-b ${t.border}`}>
                     <tr>
                       <th className="px-6 py-4 text-[9px] font-black uppercase sticky left-0 z-10 bg-inherit border-r border-white/5">Nome do Membro</th>
-                      {['2026-04-15', '2026-04-22', '2026-04-29', '2026-05-06', '2026-05-13'].map(d => (
-                        <th key={d} className="px-4 py-4 text-center text-[9px] font-black uppercase whitespace-nowrap">
-                          {new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '')}
+                      {['2026-04-15', '2026-04-22', '2026-04-29', '2026-05-06', '2026-05-13'].map(date => (
+                        <th key={date} className="px-2 py-3 text-center text-[8px] font-black uppercase text-slate-500 border-x border-white/5 italic">
+                          <div className="text-blue-500 mb-0.5">{new Date(date).toLocaleDateString('pt-BR', {weekday: 'short'})}</div>
+                          {new Date(date).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'})}
                         </th>
                       ))}
                     </tr>
