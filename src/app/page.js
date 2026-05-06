@@ -24,6 +24,7 @@ function ChurchMembershipSystem() {
   const [sectors, setSectors] = useState([]);
   const [reports, setReports] = useState([]);
   const [attendance, setAttendance] = useState([]);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   const getMeetingDates = (dayOfWeek) => {
@@ -202,19 +203,21 @@ function ChurchMembershipSystem() {
 
   useEffect(() => {
     const initFetch = async () => {
+      // Forçar leitura do parâmetro mesmo que o hook do Next falhe (comum em mobile)
+      const urlParams = new URLSearchParams(window.location.search);
+      const cellId = urlParams.get('cellId') || cellIdParam;
+      
       const data = await fetchData();
-      if (cellIdParam && data?.cells) {
-        const cell = data.cells.find(c => Number(c.id) === Number(cellIdParam));
+      
+      if (cellId && data?.cells) {
+        const cell = data.cells.find(c => String(c.id) === String(cellId));
         if (cell) {
           setActiveCell(cell);
           setIsLeaderMode(true);
           setActiveTab('leader-members');
-        } else {
-          setIsLeaderMode(false);
         }
-      } else if (!cellIdParam) {
-        setIsLeaderMode(false);
       }
+      setIsInitialized(true);
     };
     initFetch();
   }, [cellIdParam]);
@@ -485,11 +488,12 @@ function ChurchMembershipSystem() {
     };
   });
 
-  // Se for um link de líder, ignora a tela de "Autenticando" e entra direto
-  if (authLoading && !cellIdParam) return <div className="min-h-screen bg-[#020617] flex items-center justify-center text-white italic font-bold text-xl animate-pulse">AUTENTICANDO...</div>;
+  if (authLoading) return <div className="min-h-screen bg-[#020617] flex items-center justify-center text-white italic font-bold text-xl animate-pulse">IBM UP...</div>;
   
-  // Se não houver sessão E não for um link de líder, pede login
-  if (!session && !cellIdParam) {
+  // Verificação robusta de parâmetro para mobile
+  const hasCellParam = cellIdParam || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('cellId'));
+
+  if (!session && !hasCellParam) {
     return (
       <div className="min-h-screen bg-[#020617] flex items-center justify-center p-4">
         <div className="w-full max-w-md space-y-8 animate-in fade-in duration-500">
