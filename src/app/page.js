@@ -203,21 +203,21 @@ function ChurchMembershipSystem() {
   useEffect(() => {
     const initFetch = async () => {
       const data = await fetchData();
-      // Só ativa modo líder se NÃO houver sessão de pastor
-      if (cellIdParam && data?.cells && !session) {
+      if (cellIdParam && data?.cells) {
         const cell = data.cells.find(c => Number(c.id) === Number(cellIdParam));
         if (cell) {
           setActiveCell(cell);
           setIsLeaderMode(true);
           setActiveTab('leader-members');
+        } else {
+          setIsLeaderMode(false);
         }
-      } else if (session) {
-        // Se houver sessão, garante que o modo líder esteja desligado
+      } else if (!cellIdParam) {
         setIsLeaderMode(false);
       }
     };
     initFetch();
-  }, [cellIdParam, session]);
+  }, [cellIdParam]);
 
   const fetchData = async () => {
     setLoading(true);
