@@ -25,17 +25,17 @@ function ChurchMembershipSystem() {
   const [reports, setReports] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   const getMeetingDates = (dayOfWeek) => {
     const daysMap = { 'domingo': 0, 'segunda': 1, 'terça': 2, 'quarta': 3, 'quinta': 4, 'sexta': 5, 'sábado': 6 };
     const targetDay = daysMap[dayOfWeek?.toLowerCase()] ?? 3;
     const datesList = [];
     const today = new Date();
     let current = new Date(today);
-    
+
     // Ajustar para o dia da semana alvo mais recente (ou hoje)
     while (current.getDay() !== targetDay) current.setDate(current.getDate() - 1);
-    
+
     for (let i = 0; i < 12; i++) {
       const year = current.getFullYear();
       const month = String(current.getMonth() + 1).padStart(2, '0');
@@ -51,11 +51,11 @@ function ChurchMembershipSystem() {
     const memberAtt = attendance.filter(a => a.member_id === m.id);
     // Ordenar por data (mais recente primeiro)
     const sortedAtt = [...memberAtt].sort((a, b) => b.date.localeCompare(a.date));
-    
+
     // Consideramos presente na célula se o registro mais recente for 'P'
     const isPresentCell = sortedAtt.length > 0 && sortedAtt[0].status === 'P';
     const isPresentCult = m.attended_cult;
-    
+
     return { isPresentCell, isPresentCult };
   };
 
@@ -89,15 +89,51 @@ function ChurchMembershipSystem() {
   const [showSectorForm, setShowSectorForm] = useState(false);
   const [showReportForm, setShowReportForm] = useState(false);
 
-  const [memberForm, setMemberForm] = useState({ 
-    name: '', email: '', phone: '', cell_id: '', status: 'active', 
-    cep: '', address: '', number: '', neighborhood: '', city: '', 
-    pl: false, ecc: false, bat: false, con: false, 
+  const [memberForm, setMemberForm] = useState({
+    name: '', email: '', phone: '', cell_id: '', status: 'active',
+    cep: '', address: '', number: '', neighborhood: '', city: '',
+    pl: false, ecc: false, bat: false, con: false,
     maturidade: false, ctl: false, ministerios: '', integracao: false, outros: false,
-    attended_cell: false, attended_cult: false 
+    attended_cell: false, attended_cult: false
   });
-  
+
   const [cellForm, setCellForm] = useState({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30' });
+  const [visitorForm, setVisitorForm] = useState({ name: '', phone: '', cep: '', neighborhood: '', suggested_cell: null });
+  const [showVisitorModal, setShowVisitorModal] = useState(false);
+
+  const findClosestCell = (cep, neighborhood) => {
+    if (!cells.length) return null;
+    // Tenta primeiro por bairro exato
+    const byNeighborhood = cells.filter(c => c.neighborhood?.toLowerCase() === neighborhood?.toLowerCase());
+    if (byNeighborhood.length) return byNeighborhood[0];
+    
+    // Se não achar bairro, tenta pelo prefixo do CEP (primeiros 5 dígitos)
+    const cepPrefix = cep.substring(0, 5);
+    const byCep = cells.filter(c => c.cep?.startsWith(cepPrefix));
+    if (byCep.length) return byCep[0];
+
+    return cells[0]; // Fallback para a primeira célula se nada bater
+  };
+
+  const handleVisitorCep = async (cep) => {
+    if (cep.length === 8) {
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const data = await res.json();
+        if (!data.erro) {
+          const suggested = findClosestCell(cep, data.bairro);
+          setVisitorForm({
+            ...visitorForm, 
+            cep,
+            neighborhood: data.bairro,
+            suggested_cell: suggested
+          });
+        }
+      } catch (err) {
+        console.error("Erro ao buscar CEP", err);
+      }
+    }
+  };
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authForm, setAuthForm] = useState({ email: '', password: '', newPassword: '' });
@@ -174,9 +210,9 @@ function ChurchMembershipSystem() {
       if (m) setMembers(m);
       if (r) setReports(r);
       if (att) setAttendance(att);
-      
+
       return { sectors: s, cells: c, members: m, reports: r, attendance: att };
-    } catch (error) { 
+    } catch (error) {
       console.error('Erro ao buscar dados:', error);
       return null;
     } finally {
@@ -228,7 +264,7 @@ function ChurchMembershipSystem() {
   const addMember = async () => {
     const cId = isLeaderMode ? activeCell?.id : memberForm.cell_id;
     if (!memberForm.name || !cId) return;
-    
+
     // Remover campos que não devem ser enviados na atualização/inserção
     const { id, created_at, ...payload } = memberForm;
     const finalData = { ...payload, cell_id: Number(cId) };
@@ -263,7 +299,7 @@ function ChurchMembershipSystem() {
 
   const addCell = async () => {
     if (!cellForm.name || !cellForm.sector_id) return;
-    
+
     // Remover campos que não devem ser enviados na atualização/inserção
     const { id, created_at, ...payload } = cellForm;
 
@@ -295,17 +331,43 @@ function ChurchMembershipSystem() {
     }
   };
 
+  const addVisitor = async (e) => {
+    e.preventDefault();
+    if (!visitorForm.name) return;
+    
+    const payload = {
+      name: visitorForm.name,
+      phone: visitorForm.phone,
+      cep: visitorForm.cep,
+      neighborhood: visitorForm.neighborhood,
+      cell_id: visitorForm.suggested_cell?.id || null,
+      status: 'active',
+      attended_cult: true 
+    };
+
+    const { data, error } = await supabase.from('members').insert([payload]).select();
+    if (error) {
+      console.error('Erro ao registrar visitante:', error);
+      alert('Erro ao registrar visitante');
+    } else if (data) {
+      setMembers([...members, data[0]]);
+      setShowVisitorModal(false);
+      setVisitorForm({ name: '', phone: '', cep: '', neighborhood: '', suggested_cell: null });
+      alert('Visitante registrado e vinculado com sucesso!');
+    }
+  };
+
   const exportToExcel = () => {
     const header = "NOME;TELEFONE;CELULA;DISCIPULADOR;CURSOS;STATUS CULTO;STATUS CELULA;ENGAJAMENTO\n";
     const rows = filteredMembers.map(m => {
       const { isPresentCell, isPresentCult } = getMemberEngagement(m);
       const cellName = cells.find(c => c.id === m.cell_id)?.name || 'Sem Célula';
-      const eng = isPresentCell && isPresentCult ? 'AMBOS' : 
-                  isPresentCell ? 'SÓ CÉLULA' : 
-                  isPresentCult ? 'SÓ CULTO' : 'INATIVO';
-      
+      const eng = isPresentCell && isPresentCult ? 'AMBOS' :
+        isPresentCell ? 'SÓ CÉLULA' :
+          isPresentCult ? 'SÓ CULTO' : 'INATIVO';
+
       const courses = [
-        m.ecc && 'ECC', m.bat && 'BAT', m.integracao && 'FCC', m.con && 'CON', 
+        m.ecc && 'ECC', m.bat && 'BAT', m.integracao && 'FCC', m.con && 'CON',
         m.maturidade && 'TMC', m.ctl && 'MSD', m.pl && 'PL'
       ].filter(Boolean).join(', ');
 
@@ -362,10 +424,10 @@ function ChurchMembershipSystem() {
       else if (isPresentCell && !isPresentCult) acc.onlyCell++;
       else if (!isPresentCell && isPresentCult) acc.onlyCult++;
       else acc.none++;
-      
+
       if (!isPresentCult) acc.absentCult++;
       if (!isPresentCell) acc.absentCell++;
-      
+
       return acc;
     }, { total: 0, both: 0, onlyCell: 0, onlyCult: 0, none: 0, absentCult: 0, absentCell: 0 });
   }, [members, attendance, isLeaderMode, activeCell, cells]);
@@ -395,10 +457,7 @@ function ChurchMembershipSystem() {
 
   if (authLoading) return <div className="min-h-screen bg-[#020617] flex items-center justify-center text-white italic font-bold text-xl animate-pulse">AUTENTICANDO...</div>;
 
-  // EXCEÇÃO INTELIGENTE: Se houver cellId no link, permite entrada direta no modo líder
-  const canAccessWithoutLogin = !!cellIdParam;
-
-  if (!session && !canAccessWithoutLogin) {
+  if (!session) {
     return (
       <div className="min-h-screen bg-[#020617] flex items-center justify-center p-4">
         <div className="w-full max-w-md space-y-8 animate-in fade-in duration-500">
@@ -410,8 +469,8 @@ function ChurchMembershipSystem() {
             <p className="text-blue-500 font-black uppercase text-[10px] tracking-[0.3em] mt-2">Acesso Pastoral</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4 bg-white/5 p-8 rounded-3xl border border-white/10 backdrop-blur-md">
-            <InputCompact label="E-MAIL" value={authForm.email} onChange={val => setAuthForm({...authForm, email: val})} dark={true} />
-            <InputCompact label="SENHA" value={authForm.password} onChange={val => setAuthForm({...authForm, password: val})} dark={true} />
+            <InputCompact label="E-MAIL" value={authForm.email} onChange={val => setAuthForm({ ...authForm, email: val })} dark={true} />
+            <InputCompact label="SENHA" value={authForm.password} onChange={val => setAuthForm({ ...authForm, password: val })} dark={true} />
             <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-blue-900/20 active:scale-95">Entrar no Painel</button>
           </form>
         </div>
@@ -441,245 +500,245 @@ function ChurchMembershipSystem() {
     <div className={`flex h-screen ${t.bg} ${t.text} transition-all duration-300 font-sans overflow-hidden`}>
       <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} ${t.sidebar} border-r ${t.border} transition-all flex flex-col z-50 overflow-hidden`}>
         <div className="p-6 flex items-center gap-3">
-           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg shrink-0"><Users size={18}/></div>
-           {sidebarOpen && <span className={`font-black text-lg tracking-tighter ${t.text} italic`}>IBM <span className="text-blue-500 uppercase">UP</span></span>}
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg shrink-0"><Users size={18} /></div>
+          {sidebarOpen && <span className={`font-black text-lg tracking-tighter ${t.text} italic`}>IBM <span className="text-blue-500 uppercase">UP</span></span>}
         </div>
         <nav className="flex-1 px-3 space-y-1">
           {isLeaderMode ? (
             <>
-              <MenuBtn icon={<Users size={18}/>} label="Membros" active={activeTab === 'leader-members'} onClick={() => setActiveTab('leader-members')} open={sidebarOpen} dark={darkMode} />
-              <MenuBtn icon={<Calendar size={18}/>} label="Frequência" active={activeTab === 'leader-attendance'} onClick={() => setActiveTab('leader-attendance')} open={sidebarOpen} dark={darkMode} />
-              <MenuBtn icon={<Sun size={18}/>} label="Cultos" active={activeTab === 'leader-culto'} onClick={() => setActiveTab('leader-culto')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<Users size={18} />} label="Membros" active={activeTab === 'leader-members'} onClick={() => setActiveTab('leader-members')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<Calendar size={18} />} label="Frequência" active={activeTab === 'leader-attendance'} onClick={() => setActiveTab('leader-attendance')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<Sun size={18} />} label="Cultos" active={activeTab === 'leader-culto'} onClick={() => setActiveTab('leader-culto')} open={sidebarOpen} dark={darkMode} />
             </>
           ) : (
             <>
-              <MenuBtn icon={<LayoutDashboard size={18}/>} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} open={sidebarOpen} dark={darkMode} />
-              <MenuBtn icon={<ClipboardList size={18}/>} label="Relatórios" active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} open={sidebarOpen} dark={darkMode} />
-              <MenuBtn icon={<Users size={18}/>} label="Membros" active={activeTab === 'members'} onClick={() => { setActiveTab('members'); setFilterCellId(null); setSearchTerm(''); }} open={sidebarOpen} dark={darkMode} />
-              <MenuBtn icon={<Home size={18}/>} label="Células" active={activeTab === 'cells'} onClick={() => setActiveTab('cells')} open={sidebarOpen} dark={darkMode} />
-              <MenuBtn icon={<Sun size={18}/>} label="Cultos" active={activeTab === 'culto-geral'} onClick={() => setActiveTab('culto-geral')} open={sidebarOpen} dark={darkMode} />
-              <MenuBtn icon={<Map size={18}/>} label="Setores" active={activeTab === 'sectors'} onClick={() => setActiveTab('sectors')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<LayoutDashboard size={18} />} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<ClipboardList size={18} />} label="Relatórios" active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<Users size={18} />} label="Membros" active={activeTab === 'members'} onClick={() => { setActiveTab('members'); setFilterCellId(null); setSearchTerm(''); }} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<Home size={18} />} label="Células" active={activeTab === 'cells'} onClick={() => setActiveTab('cells')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<Sun size={18} />} label="Cultos" active={activeTab === 'culto-geral'} onClick={() => setActiveTab('culto-geral')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<Map size={18} />} label="Setores" active={activeTab === 'sectors'} onClick={() => setActiveTab('sectors')} open={sidebarOpen} dark={darkMode} />
             </>
           )}
         </nav>
         <div className={`p-4 border-t ${t.border} space-y-2`}>
-           <button onClick={() => setIsChangingPassword(true)} className={`w-full flex items-center gap-3 p-3 text-[10px] ${t.subText} hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest`}><ShieldCheck size={16}/> {sidebarOpen && 'Mudar Senha'}</button>
-           <button onClick={() => fetchData()} className={`w-full flex items-center gap-3 p-3 text-[10px] ${t.subText} hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest`}><Activity size={16}/> {sidebarOpen && 'Atualizar'}</button>
-           <button onClick={handleLogout} className="w-full flex items-center gap-3 p-3 text-[10px] text-red-500/70 hover:text-red-500 hover:bg-red-400/5 rounded-xl transition-all font-black uppercase tracking-widest"><Power size={16}/> {sidebarOpen && 'Sair'}</button>
+          <button onClick={() => setIsChangingPassword(true)} className={`w-full flex items-center gap-3 p-3 text-[10px] ${t.subText} hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest`}><ShieldCheck size={16} /> {sidebarOpen && 'Mudar Senha'}</button>
+          <button onClick={() => fetchData()} className={`w-full flex items-center gap-3 p-3 text-[10px] ${t.subText} hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest`}><Activity size={16} /> {sidebarOpen && 'Atualizar'}</button>
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 p-3 text-[10px] text-red-500/70 hover:text-red-500 hover:bg-red-400/5 rounded-xl transition-all font-black uppercase tracking-widest"><Power size={16} /> {sidebarOpen && 'Sair'}</button>
         </div>
       </aside>
 
       <main className="flex-1 overflow-auto flex flex-col relative">
         <header className={`sticky top-0 z-40 ${t.bg}/80 backdrop-blur-md border-b ${t.border} px-6 py-3 flex justify-between items-center shrink-0`}>
-           <div className="flex items-center gap-4">
-              <button onClick={() => setSidebarOpen(!sidebarOpen)} className={`p-2 border rounded-lg ${t.subText} hover:text-white transition-all`}><Menu size={18}/></button>
-              <div><h1 className={`text-base font-black ${t.text} italic uppercase tracking-tighter`}>IBMRP</h1><p className={`${t.subText} text-[8px] font-bold uppercase tracking-widest`}>{isLeaderMode ? `Líder: ${activeCell?.name || ''}` : 'Gestão Estratégica'}</p></div>
-           </div>
-           <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
-                 <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                 <span className="text-[8px] font-black uppercase text-emerald-500 tracking-widest">Cloud Sync</span>
-              </div>
-           </div>
+          <div className="flex items-center gap-4">
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className={`p-2 border rounded-lg ${t.subText} hover:text-white transition-all`}><Menu size={18} /></button>
+            <div><h1 className={`text-base font-black ${t.text} italic uppercase tracking-tighter`}>IBMRP</h1><p className={`${t.subText} text-[8px] font-bold uppercase tracking-widest`}>{isLeaderMode ? `Líder: ${activeCell?.name || ''}` : 'Gestão Estratégica'}</p></div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
+              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+              <span className="text-[8px] font-black uppercase text-emerald-500 tracking-widest">Cloud Sync</span>
+            </div>
+          </div>
         </header>
 
         <div className="p-6 md:p-10 space-y-6 md:space-y-10 animate-in fade-in duration-500 max-w-[1600px] mx-auto w-full">
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
-               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-                 <StatCard label="Membros" value={stats.total} icon={<Users size={16}/>} color="blue" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('all'); }} />
-                 <StatCard label="Ambos" value={stats.both} icon={<ShieldCheck size={16}/>} color="emerald" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('both'); }} />
-                 <StatCard label="Só Célula" value={stats.onlyCell} icon={<Home size={16}/>} color="blue" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('only-cell'); }} />
-                 <StatCard label="Só Culto" value={stats.onlyCult} icon={<Star size={16}/>} color="purple" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('only-culto'); }} />
-                 <StatCard label="Faltou Culto" value={stats.absentCult} icon={<Activity size={16}/>} color="red" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-culto'); }} />
-                 <StatCard label="Faltou Célula" value={stats.absentCell} icon={<Clock size={16}/>} color="orange" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-cell'); }} />
-                 <StatCard label="Ausente Ambos" value={stats.none} icon={<UserMinus size={16}/>} color="red" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('none'); }} />
-                 <StatCard label="Células" value={cells.length} icon={<MapPin size={16}/>} color="indigo" dark={darkMode} />
-               </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+                <StatCard label="Membros" value={stats.total} icon={<Users size={16} />} color="blue" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('all'); }} />
+                <StatCard label="Ambos" value={stats.both} icon={<ShieldCheck size={16} />} color="emerald" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('both'); }} />
+                <StatCard label="Só Célula" value={stats.onlyCell} icon={<Home size={16} />} color="blue" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('only-cell'); }} />
+                <StatCard label="Só Culto" value={stats.onlyCult} icon={<Star size={16} />} color="purple" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('only-culto'); }} />
+                <StatCard label="Faltou Culto" value={stats.absentCult} icon={<Activity size={16} />} color="red" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-culto'); }} />
+                <StatCard label="Faltou Célula" value={stats.absentCell} icon={<Clock size={16} />} color="orange" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-cell'); }} />
+                <StatCard label="Ausente Ambos" value={stats.none} icon={<UserMinus size={16} />} color="red" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('none'); }} />
+                <StatCard label="Células" value={cells.length} icon={<MapPin size={16} />} color="indigo" dark={darkMode} />
+              </div>
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                 <div className={`${t.card} lg:col-span-4 border rounded-3xl p-6 flex flex-col items-center`}>
-                    <h3 className="text-[9px] font-black uppercase mb-6 self-start tracking-widest flex items-center gap-2 text-slate-500"><PieIcon size={12}/> Fidelidade Global</h3>
-                    <div className="h-[200px] w-full relative mb-6">
-                      <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={[
-                        { name: 'Ambos', value: stats.both, color: '#3b82f6' },
-                        { name: 'Só Célula', value: stats.onlyCell, color: '#10b981' },
-                        { name: 'Só Culto', value: stats.onlyCult, color: '#f59e0b' },
-                        { name: 'Inativos', value: stats.none, color: '#475569' },
-                      ].filter(d => d.value > 0)} innerRadius={55} outerRadius={75} paddingAngle={5} dataKey="value">{[
-                        { color: '#3b82f6' }, { color: '#10b981' }, { color: '#f59e0b' }, { color: '#475569' }
-                      ].map((e, i) => <Cell key={i} fill={e.color} stroke="none" />)}</Pie><Tooltip content={<CustomTooltip dark={darkMode} />} /></PieChart></ResponsiveContainer>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-2xl font-black italic">{Math.round((stats.both/stats.total)*100 || 0)}%</div>
+                <div className={`${t.card} lg:col-span-4 border rounded-3xl p-6 flex flex-col items-center`}>
+                  <h3 className="text-[9px] font-black uppercase mb-6 self-start tracking-widest flex items-center gap-2 text-slate-500"><PieIcon size={12} /> Fidelidade Global</h3>
+                  <div className="h-[200px] w-full relative mb-6">
+                    <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={[
+                      { name: 'Ambos', value: stats.both, color: '#3b82f6' },
+                      { name: 'Só Célula', value: stats.onlyCell, color: '#10b981' },
+                      { name: 'Só Culto', value: stats.onlyCult, color: '#f59e0b' },
+                      { name: 'Inativos', value: stats.none, color: '#475569' },
+                    ].filter(d => d.value > 0)} innerRadius={55} outerRadius={75} paddingAngle={5} dataKey="value">{[
+                      { color: '#3b82f6' }, { color: '#10b981' }, { color: '#f59e0b' }, { color: '#475569' }
+                    ].map((e, i) => <Cell key={i} fill={e.color} stroke="none" />)}</Pie><Tooltip content={<CustomTooltip dark={darkMode} />} /></PieChart></ResponsiveContainer>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-2xl font-black italic">{Math.round((stats.both / stats.total) * 100 || 0)}%</div>
+                  </div>
+                  <div className="w-full space-y-2 mt-auto">
+                    {loyaltyData.map((item, i) => (
+                      <div key={i} className="flex items-center justify-between p-2 rounded-xl hover:bg-white/5 transition-all">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                          <span className="text-[10px] font-black uppercase italic tracking-tighter opacity-70">{item.name}</span>
+                        </div>
+                        <span className="text-xs font-black italic">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className={`${t.card} lg:col-span-8 border rounded-3xl p-6 flex flex-col`}>
+                  <div className="flex justify-between items-center mb-10">
+                    <h3 className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-slate-500"><LineIcon size={12} /> Evolução do Rebanho (Mensal)</h3>
+                    <div className="flex bg-white/5 p-1 rounded-xl border border-white/5">
+                      {['Este Mês', '12m', '24m', 'Tudo'].map(f => (
+                        <button key={f} onClick={() => setTimeFilter(f)} className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${timeFilter === f ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:text-white'}`}>{f}</button>
+                      ))}
                     </div>
-                    <div className="w-full space-y-2 mt-auto">
-                       {loyaltyData.map((item, i) => (
-                         <div key={i} className="flex items-center justify-between p-2 rounded-xl hover:bg-white/5 transition-all">
-                            <div className="flex items-center gap-2">
-                               <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                               <span className="text-[10px] font-black uppercase italic tracking-tighter opacity-70">{item.name}</span>
-                            </div>
-                            <span className="text-xs font-black italic">{item.value}</span>
-                         </div>
-                       ))}
-                    </div>
-                 </div>
-                 <div className={`${t.card} lg:col-span-8 border rounded-3xl p-6 flex flex-col`}>
-                    <div className="flex justify-between items-center mb-10">
-                       <h3 className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-slate-500"><LineIcon size={12}/> Evolução do Rebanho (Mensal)</h3>
-                       <div className="flex bg-white/5 p-1 rounded-xl border border-white/5">
-                          {['Este Mês', '12m', '24m', 'Tudo'].map(f => (
-                            <button key={f} onClick={() => setTimeFilter(f)} className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${timeFilter === f ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:text-white'}`}>{f}</button>
-                          ))}
-                       </div>
-                    </div>
-                    <div className="h-[300px] w-full">
-                       <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={chartData}>
-                             <defs>
-                                <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                                   <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                                   <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                                </linearGradient>
-                             </defs>
-                             <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
-                             <XAxis dataKey="displayDate" stroke="#475569" fontSize={9} axisLine={false} tickLine={false} tick={{angle: -45, textAnchor: 'end'}} dy={10} interval={0} />
-                             <YAxis stroke="#475569" fontSize={9} axisLine={false} tickLine={false} width={30} />
-                             <Tooltip content={<CustomTooltip dark={darkMode} />} />
-                             <Area type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={3} fill="url(#colorTotal)" dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: darkMode ? '#0f172a' : '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
-                          </AreaChart>
-                       </ResponsiveContainer>
-                    </div>
-                 </div>
+                  </div>
+                  <div className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={chartData}>
+                        <defs>
+                          <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+                        <XAxis dataKey="displayDate" stroke="#475569" fontSize={9} axisLine={false} tickLine={false} tick={{ angle: -45, textAnchor: 'end' }} dy={10} interval={0} />
+                        <YAxis stroke="#475569" fontSize={9} axisLine={false} tickLine={false} width={30} />
+                        <Tooltip content={<CustomTooltip dark={darkMode} />} />
+                        <Area type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={3} fill="url(#colorTotal)" dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: darkMode ? '#0f172a' : '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
           {(activeTab === 'members' || activeTab === 'leader-members') && (
             <div className="space-y-6">
-               <header className="flex justify-between items-center">
-                 <h2 className="text-2xl font-black italic uppercase tracking-tighter">Membros</h2>
-                 {isLeaderMode && <button onClick={() => setShowMemberForm(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVO MEMBRO</button>}
-               </header>
+              <header className="flex justify-between items-center">
+                <h2 className="text-2xl font-black italic uppercase tracking-tighter">Membros</h2>
+                {isLeaderMode && <button onClick={() => setShowMemberForm(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVO MEMBRO</button>}
+              </header>
 
-               {isLeaderMode && activeCell && (
-                  <div className={`${t.card} p-6 border rounded-2xl flex flex-col items-center mb-6`}>
-                    <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest self-start">Engajamento (Célula vs Culto)</h3>
-                    <div className="w-full h-[180px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={[
-                              { name: 'Ambos', value: stats.both, color: '#3b82f6' },
-                              { name: 'Só Célula', value: stats.onlyCell, color: '#10b981' },
-                              { name: 'Só Culto', value: stats.onlyCult, color: '#f59e0b' },
-                              { name: 'Nenhum', value: stats.none, color: '#475569' },
-                            ].filter(d => d.value > 0)}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={50}
-                            outerRadius={70}
-                            paddingAngle={5}
-                            dataKey="value"
+              {isLeaderMode && activeCell && (
+                <div className={`${t.card} p-6 border rounded-2xl flex flex-col items-center mb-6`}>
+                  <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest self-start">Engajamento (Célula vs Culto)</h3>
+                  <div className="w-full h-[180px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Ambos', value: stats.both, color: '#3b82f6' },
+                            { name: 'Só Célula', value: stats.onlyCell, color: '#10b981' },
+                            { name: 'Só Culto', value: stats.onlyCult, color: '#f59e0b' },
+                            { name: 'Nenhum', value: stats.none, color: '#475569' },
+                          ].filter(d => d.value > 0)}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={70}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          <Cell fill="#3b82f6" stroke="none" />
+                          <Cell fill="#10b981" stroke="none" />
+                          <Cell fill="#f59e0b" stroke="none" />
+                          <Cell fill="#475569" stroke="none" />
+                        </Pie>
+                        <Tooltip content={<CustomTooltip dark={darkMode} />} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-4 mt-4">
+                    {[
+                      { label: 'Ambos', color: 'bg-blue-500' },
+                      { label: 'Só Célula', color: 'bg-emerald-500' },
+                      { label: 'Só Culto', color: 'bg-amber-500' },
+                      { label: 'Nenhum', color: 'bg-slate-600' }
+                    ].map(item => (
+                      <div key={item.label} className="flex items-center gap-1.5">
+                        <div className={`w-2 h-2 rounded-full ${item.color}`}></div>
+                        <span className="text-[8px] font-black uppercase text-slate-400">{item.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!isLeaderMode && (
+                <div className="flex flex-wrap gap-4 mb-6">
+                  <div className={`${t.card} border rounded-xl flex items-center px-4 py-2 gap-3 min-w-[200px]`}>
+                    <Users size={16} className="text-blue-500" />
+                    <select value={filterCellId || ''} onChange={e => setFilterCellId(e.target.value ? Number(e.target.value) : null)} className="bg-transparent font-black text-[10px] uppercase outline-none w-full italic">
+                      <option value="">Todas as Células</option>
+                      {cells.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div className={`${t.card} border rounded-xl flex items-center px-4 py-2 gap-3 flex-1 min-w-[200px]`}>
+                    <Menu size={16} className="text-slate-500" />
+                    <input type="text" placeholder="BUSCAR POR NOME..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="bg-transparent font-black text-[10px] uppercase outline-none w-full italic" />
+                  </div>
+                </div>
+              )}
+
+              <div className={`${t.card} border rounded-2xl overflow-x-auto`}>
+                <table className="w-full text-left min-w-[600px]">
+                  <thead className={`${t.tableHead} border-b ${t.border}`}>
+                    <tr>
+                      <th className="px-6 py-4 text-[9px] font-black uppercase">Membro</th>
+                      <th className="px-6 py-4 text-center text-[9px] font-black uppercase">Célula</th>
+                      <th className="px-6 py-4 text-center text-[9px] font-black uppercase">Culto</th>
+                      <th className="px-6 py-4 text-right text-[9px] font-black uppercase">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className={`divide-y ${t.border}`}>
+                    {filteredMembers.map(m => (
+                      <tr key={m.id} className={t.hover}>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-black italic uppercase tracking-tighter">{m.name}</p>
+                            {m.pl && <span className="text-[7px] bg-indigo-500 text-white px-1 rounded font-black">PL</span>}
+                          </div>
+                          <div className="flex items-center gap-3 mt-0.5">
+                            <p className="text-[9px] text-slate-500 font-bold">{m.phone || 'Sem Telefone'}</p>
+                            {m.ministerios && <p className="text-[9px] text-blue-500 font-black uppercase italic">D: {m.ministerios}</p>}
+                          </div>
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {m.ecc && <span className="text-[7px] border border-blue-500/30 text-blue-500 px-1 rounded font-black uppercase">ECC</span>}
+                            {m.bat && <span className="text-[7px] border border-emerald-500/30 text-emerald-500 px-1 rounded font-black uppercase">BAT</span>}
+                            {m.integracao && <span className="text-[7px] border border-amber-500/30 text-amber-500 px-1 rounded font-black uppercase">FCC</span>}
+                            {m.con && <span className="text-[7px] border border-red-500/30 text-red-500 px-1 rounded font-black uppercase">CON</span>}
+                            {m.maturidade && <span className="text-[7px] border border-purple-500/30 text-purple-500 px-1 rounded font-black uppercase">TMC</span>}
+                            {m.ctl && <span className="text-[7px] border border-slate-500/30 text-slate-500 px-1 rounded font-black uppercase">MSD</span>}
+                            {m.outros && <span className="text-[7px] border border-pink-500/30 text-pink-500 px-1 rounded font-black uppercase">VS</span>}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => toggleAttendance(m.id, 'attended_cell')}
+                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${m.attended_cell ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
                           >
-                            <Cell fill="#3b82f6" stroke="none" />
-                            <Cell fill="#10b981" stroke="none" />
-                            <Cell fill="#f59e0b" stroke="none" />
-                            <Cell fill="#475569" stroke="none" />
-                          </Pie>
-                          <Tooltip content={<CustomTooltip dark={darkMode} />} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className="flex flex-wrap justify-center gap-4 mt-4">
-                      {[
-                        { label: 'Ambos', color: 'bg-blue-500' },
-                        { label: 'Só Célula', color: 'bg-emerald-500' },
-                        { label: 'Só Culto', color: 'bg-amber-500' },
-                        { label: 'Nenhum', color: 'bg-slate-600' }
-                      ].map(item => (
-                        <div key={item.label} className="flex items-center gap-1.5">
-                          <div className={`w-2 h-2 rounded-full ${item.color}`}></div>
-                          <span className="text-[8px] font-black uppercase text-slate-400">{item.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-               )}
-
-               {!isLeaderMode && (
-                  <div className="flex flex-wrap gap-4 mb-6">
-                     <div className={`${t.card} border rounded-xl flex items-center px-4 py-2 gap-3 min-w-[200px]`}>
-                        <Users size={16} className="text-blue-500" />
-                        <select value={filterCellId || ''} onChange={e => setFilterCellId(e.target.value ? Number(e.target.value) : null)} className="bg-transparent font-black text-[10px] uppercase outline-none w-full italic">
-                           <option value="">Todas as Células</option>
-                           {cells.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                     </div>
-                     <div className={`${t.card} border rounded-xl flex items-center px-4 py-2 gap-3 flex-1 min-w-[200px]`}>
-                        <Menu size={16} className="text-slate-500" />
-                        <input type="text" placeholder="BUSCAR POR NOME..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="bg-transparent font-black text-[10px] uppercase outline-none w-full italic" />
-                     </div>
-                  </div>
-               )}
-
-               <div className={`${t.card} border rounded-2xl overflow-x-auto`}>
-                 <table className="w-full text-left min-w-[600px]">
-                   <thead className={`${t.tableHead} border-b ${t.border}`}>
-                     <tr>
-                       <th className="px-6 py-4 text-[9px] font-black uppercase">Membro</th>
-                       <th className="px-6 py-4 text-center text-[9px] font-black uppercase">Célula</th>
-                       <th className="px-6 py-4 text-center text-[9px] font-black uppercase">Culto</th>
-                       <th className="px-6 py-4 text-right text-[9px] font-black uppercase">Ações</th>
-                     </tr>
-                   </thead>
-                   <tbody className={`divide-y ${t.border}`}>
-                     {filteredMembers.map(m => (
-                         <tr key={m.id} className={t.hover}>
-                           <td className="px-6 py-4">
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm font-black italic uppercase tracking-tighter">{m.name}</p>
-                                {m.pl && <span className="text-[7px] bg-indigo-500 text-white px-1 rounded font-black">PL</span>}
-                              </div>
-                              <div className="flex items-center gap-3 mt-0.5">
-                                <p className="text-[9px] text-slate-500 font-bold">{m.phone || 'Sem Telefone'}</p>
-                                {m.ministerios && <p className="text-[9px] text-blue-500 font-black uppercase italic">D: {m.ministerios}</p>}
-                              </div>
-                              <div className="flex flex-wrap gap-1 mt-1.5">
-                                {m.ecc && <span className="text-[7px] border border-blue-500/30 text-blue-500 px-1 rounded font-black uppercase">ECC</span>}
-                                {m.bat && <span className="text-[7px] border border-emerald-500/30 text-emerald-500 px-1 rounded font-black uppercase">BAT</span>}
-                                {m.integracao && <span className="text-[7px] border border-amber-500/30 text-amber-500 px-1 rounded font-black uppercase">FCC</span>}
-                                {m.con && <span className="text-[7px] border border-red-500/30 text-red-500 px-1 rounded font-black uppercase">CON</span>}
-                                {m.maturidade && <span className="text-[7px] border border-purple-500/30 text-purple-500 px-1 rounded font-black uppercase">TMC</span>}
-                                {m.ctl && <span className="text-[7px] border border-slate-500/30 text-slate-500 px-1 rounded font-black uppercase">MSD</span>}
-                                {m.outros && <span className="text-[7px] border border-pink-500/30 text-pink-500 px-1 rounded font-black uppercase">VS</span>}
-                              </div>
-                           </td>
-                           <td className="px-4 py-3 text-center">
-                             <button 
-                               onClick={() => toggleAttendance(m.id, 'attended_cell')}
-                               className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${m.attended_cell ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
-                             >
-                               {m.attended_cell ? 'Presente' : 'Faltou'}
-                             </button>
-                           </td>
-                           <td className="px-4 py-3 text-center">
-                             <button 
-                               onClick={() => toggleAttendance(m.id, 'attended_cult')}
-                               className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${m.attended_cult ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
-                             >
-                               {m.attended_cult ? 'Presente' : 'Faltou'}
-                             </button>
-                           </td>
-                           <td className="px-6 py-4 text-right">
-                             <div className="flex justify-end gap-2">
-                               <button onClick={() => { setEditingId(m.id); setMemberForm(m); setShowMemberForm(true); }} className="text-blue-500/30 hover:text-blue-500 p-2"><Edit2 size={16}/></button>
-                               <button onClick={() => deleteItem('members', m.id)} className="text-red-500/30 hover:text-red-500 p-2"><Trash2 size={16}/></button>
-                             </div>
-                           </td>
-                         </tr>
-                       ))}
-                   </tbody>
-                 </table>
-               </div>
+                            {m.attended_cell ? 'Presente' : 'Faltou'}
+                          </button>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => toggleAttendance(m.id, 'attended_cult')}
+                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${m.attended_cult ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
+                          >
+                            {m.attended_cult ? 'Presente' : 'Faltou'}
+                          </button>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex justify-end gap-2">
+                            <button onClick={() => { setEditingId(m.id); setMemberForm(m); setShowMemberForm(true); }} className="text-blue-500/30 hover:text-blue-500 p-2"><Edit2 size={16} /></button>
+                            <button onClick={() => deleteItem('members', m.id)} className="text-red-500/30 hover:text-red-500 p-2"><Trash2 size={16} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
@@ -693,8 +752,8 @@ function ChurchMembershipSystem() {
                       <th className="px-6 py-4 text-[9px] font-black uppercase sticky left-0 z-10 bg-inherit border-r border-white/5">Nome do Membro</th>
                       {getMeetingDates(activeCell?.day_of_week).map(date => (
                         <th key={date} className="px-2 py-3 text-center text-[8px] font-black uppercase text-slate-500 border-x border-white/5 italic">
-                          <div className="text-blue-500 mb-0.5">{new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', {weekday: 'short'})}</div>
-                          {new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'})}
+                          <div className="text-blue-500 mb-0.5">{new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short' })}</div>
+                          {new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                         </th>
                       ))}
                     </tr>
@@ -707,7 +766,7 @@ function ChurchMembershipSystem() {
                           const att = attendance.find(a => a.member_id === m.id && a.date === d);
                           return (
                             <td key={d} className="px-4 py-4 text-center">
-                              <button 
+                              <button
                                 onClick={() => toggleHistoryAttendance(m.id, activeCell.id, d)}
                                 className={`w-8 h-8 rounded-lg font-black text-xs transition-all ${att?.status === 'P' ? 'bg-emerald-600 text-white shadow-lg' : att?.status === 'F' ? 'bg-red-600 text-white shadow-lg' : 'bg-white/5 text-slate-500 border border-white/5'}`}
                               >
@@ -760,8 +819,9 @@ function ChurchMembershipSystem() {
                 <div className="p-4 border-b border-white/5 bg-white/5 flex justify-between items-center">
                   <h3 className="text-[10px] font-black uppercase tracking-widest italic text-slate-400">Lista de Chamada do Culto</h3>
                   <div className="flex gap-2">
+                    <button onClick={() => setShowVisitorModal(true)} className="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-black text-[8px] uppercase italic tracking-widest flex items-center gap-2 hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20"><Users size={12}/> NOVO VISITANTE</button>
                     <button onClick={() => {
-                      if(confirm('Marcar TODOS como presentes no culto?')) {
+                      if (confirm('Marcar TODOS como presentes no culto?')) {
                         members.forEach(m => {
                           if (isLeaderMode ? m.cell_id === activeCell.id : true) {
                             if (!m.attended_cult) toggleAttendance(m.id, 'attended_cult');
@@ -770,7 +830,7 @@ function ChurchMembershipSystem() {
                       }
                     }} className="text-[8px] font-black uppercase bg-blue-600/10 text-blue-500 px-3 py-1.5 rounded-lg border border-blue-500/20">Marcar Todos</button>
                     <button onClick={() => {
-                      if(confirm('Limpar TODA a frequência de culto?')) {
+                      if (confirm('Limpar TODA a frequência de culto?')) {
                         members.forEach(m => {
                           if (isLeaderMode ? m.cell_id === activeCell.id : true) {
                             if (m.attended_cult) toggleAttendance(m.id, 'attended_cult');
@@ -792,27 +852,27 @@ function ChurchMembershipSystem() {
                     <tbody className="divide-y divide-white/5">
                       {members
                         .filter(m => isLeaderMode ? m.cell_id === activeCell.id : true)
-                        .sort((a,b) => a.name.localeCompare(b.name))
+                        .sort((a, b) => a.name.localeCompare(b.name))
                         .map(m => (
-                        <tr key={m.id} className="hover:bg-white/5 transition-all">
-                          <td className="px-6 py-4">
-                            <p className="text-sm font-black italic uppercase tracking-tighter">{m.name}</p>
-                          </td>
-                          {!isLeaderMode && (
+                          <tr key={m.id} className="hover:bg-white/5 transition-all">
                             <td className="px-6 py-4">
-                              <span className="text-[10px] font-black uppercase text-slate-500 bg-white/5 px-2 py-1 rounded-md">{cells.find(c => c.id === m.cell_id)?.name || 'Sem Célula'}</span>
+                              <p className="text-sm font-black italic uppercase tracking-tighter">{m.name}</p>
                             </td>
-                          )}
-                          <td className="px-4 py-3 text-center">
-                            <button 
-                              onClick={() => toggleAttendance(m.id, 'attended_cult')}
-                              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${m.attended_cult ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-600'}`}
-                            >
-                              {m.attended_cult ? 'Presente' : 'Faltou'}
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                            {!isLeaderMode && (
+                              <td className="px-6 py-4">
+                                <span className="text-[10px] font-black uppercase text-slate-500 bg-white/5 px-2 py-1 rounded-md">{cells.find(c => c.id === m.cell_id)?.name || 'Sem Célula'}</span>
+                              </td>
+                            )}
+                            <td className="px-4 py-3 text-center">
+                              <button
+                                onClick={() => toggleAttendance(m.id, 'attended_cult')}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${m.attended_cult ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-600'}`}
+                              >
+                                {m.attended_cult ? 'Presente' : 'Faltou'}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
                 </div>
@@ -828,13 +888,13 @@ function ChurchMembershipSystem() {
                   <p className="text-blue-500 text-[10px] font-black uppercase tracking-widest">Resumo Geral de Engajamento</p>
                 </div>
                 <div className="flex gap-3">
-                   <button 
-                     onClick={exportToExcel}
-                     className="bg-emerald-600/10 text-emerald-500 border border-emerald-500/30 px-6 py-3 rounded-xl font-black text-xs hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2"
-                   >
-                     <FileDown size={16}/> EXCEL
-                   </button>
-                   <button onClick={() => setShowReportForm(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg shadow-blue-900/20 hover:bg-blue-500 transition-all">+ NOVO REGISTRO</button>
+                  <button
+                    onClick={exportToExcel}
+                    className="bg-emerald-600/10 text-emerald-500 border border-emerald-500/30 px-6 py-3 rounded-xl font-black text-xs hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-2"
+                  >
+                    <FileDown size={16} /> EXCEL
+                  </button>
+                  <button onClick={() => setShowReportForm(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg shadow-blue-900/20 hover:bg-blue-500 transition-all">+ NOVO REGISTRO</button>
                 </div>
               </header>
 
@@ -849,13 +909,13 @@ function ChurchMembershipSystem() {
                   { label: 'Ausente Ambos', value: stats.none, color: 'text-red-600', filter: 'none' },
                   { label: 'Células', value: cells.length, color: 'text-indigo-400', filter: null },
                 ].map(kpi => (
-                  <button 
-                    key={kpi.label} 
+                  <button
+                    key={kpi.label}
                     onClick={() => kpi.filter && setAnalyticsFilter(analyticsFilter === kpi.filter ? null : kpi.filter)}
                     className={`${t.card} p-4 border rounded-2xl text-left hover:border-blue-500/50 transition-all ${analyticsFilter === kpi.filter ? 'ring-2 ring-blue-500/50 border-blue-500' : ''}`}
                   >
-                     <p className="text-[8px] font-black uppercase text-slate-500 mb-1">{kpi.label}</p>
-                     <p className={`text-xl font-black italic ${kpi.color}`}>{kpi.value}</p>
+                    <p className="text-[8px] font-black uppercase text-slate-500 mb-1">{kpi.label}</p>
+                    <p className={`text-xl font-black italic ${kpi.color}`}>{kpi.value}</p>
                   </button>
                 ))}
               </div>
@@ -867,12 +927,12 @@ function ChurchMembershipSystem() {
                     <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-500 italic">
                       Lista: {
                         analyticsFilter === 'all' ? 'Todos os Membros' :
-                        analyticsFilter === 'both' ? 'Comprometidos (Célula + Culto)' :
-                        analyticsFilter === 'only-cell' ? 'Frequentes apenas na Célula' :
-                        analyticsFilter === 'only-culto' ? 'Frequentes apenas no Culto' :
-                        analyticsFilter === 'absent-culto' ? 'Ausentes no Culto' :
-                        analyticsFilter === 'absent-cell' ? 'Ausentes na Célula' :
-                        'Inativos (Ausentes em Ambos)'
+                          analyticsFilter === 'both' ? 'Comprometidos (Célula + Culto)' :
+                            analyticsFilter === 'only-cell' ? 'Frequentes apenas na Célula' :
+                              analyticsFilter === 'only-culto' ? 'Frequentes apenas no Culto' :
+                                analyticsFilter === 'absent-culto' ? 'Ausentes no Culto' :
+                                  analyticsFilter === 'absent-cell' ? 'Ausentes na Célula' :
+                                    'Inativos (Ausentes em Ambos)'
                       }
                     </h3>
                     <button onClick={() => setAnalyticsFilter(null)} className="text-[8px] font-black uppercase text-slate-500 hover:text-white">Fechar ×</button>
@@ -894,7 +954,7 @@ function ChurchMembershipSystem() {
                             if (analyticsFilter === 'absent-cell') return !isPresentCell;
                             return true;
                           })
-                          .sort((a,b) => a.name.localeCompare(b.name))
+                          .sort((a, b) => a.name.localeCompare(b.name))
                           .map(m => (
                             <tr key={m.id} className="hover:bg-white/5">
                               <td className="px-6 py-3">
@@ -951,18 +1011,18 @@ function ChurchMembershipSystem() {
                     {reports.map(r => (
                       <div key={r.id} className={`${t.card} border rounded-2xl p-6 relative group hover:border-blue-500/30 transition-all`}>
                         <div className="flex justify-between items-start mb-4">
-                          <div className="bg-blue-600/10 p-2 rounded-lg text-blue-500"><Calendar size={18}/></div>
+                          <div className="bg-blue-600/10 p-2 rounded-lg text-blue-500"><Calendar size={18} /></div>
                           <div className="text-right">
                             <p className="text-xl font-black tracking-tighter">{r.total}</p>
                             <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Total</p>
                           </div>
                         </div>
                         <p className="text-sm font-black italic tracking-tighter uppercase mb-2">{new Date(r.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</p>
-                        <button 
-                          onClick={() => deleteItem('reports', r.id)} 
+                        <button
+                          onClick={() => deleteItem('reports', r.id)}
                           className="text-red-500 opacity-20 group-hover:opacity-100 absolute top-4 right-4 p-2 bg-red-500/10 rounded-lg hover:bg-red-500 hover:text-white transition-all"
                         >
-                          <Trash2 size={14}/>
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     ))}
@@ -974,41 +1034,41 @@ function ChurchMembershipSystem() {
 
           {activeTab === 'cells' && (
             <div className="space-y-6">
-               <header className="flex justify-between items-center">
-                 <div className="flex flex-col">
-                   <h2 className="text-2xl font-black italic uppercase tracking-tighter">Células</h2>
-                   {filterSectorId && (
-                     <button onClick={() => setFilterSectorId(null)} className="text-[9px] font-black uppercase text-blue-500 hover:text-blue-400 flex items-center gap-1 mt-1">
-                       Setor: {sectors.find(s => s.id === filterSectorId)?.name} (Limpar ×)
-                     </button>
-                   )}
-                 </div>
-                 <button onClick={() => setShowCellForm(true)} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVA CÉLULA</button>
-               </header>
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                 {cells.filter(cell => !filterSectorId || Number(cell.sector_id) === filterSectorId).map(cell => (<div key={cell.id} className={`${t.card} border rounded-2xl p-6 flex flex-col group`}><div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-500 mb-4 group-hover:bg-blue-600 group-hover:text-white transition-all"><Home size={20}/></div><h3 className="text-lg font-black uppercase italic mb-1">{cell.name}</h3><p className="text-blue-500 text-[9px] font-black uppercase mb-2">{cell.leader}</p>                    <div className="grid grid-cols-2 gap-2 mb-4 border-y border-white/5 py-4">
-                      <div className="flex items-center justify-center gap-2 text-[11px] font-black uppercase text-blue-400 italic notranslate" translate="no">
-                        <Calendar size={14}/> {cell.day_of_week || '---'}
-                      </div>
-                      <div className="flex items-center justify-center gap-2 text-[11px] font-black uppercase text-emerald-400 italic border-l border-white/5 notranslate" translate="no">
-                        <Clock size={14}/> {cell.meeting_time || '---'}
-                      </div>
-                    </div><div className="flex gap-2"><button onClick={() => { const link = `${window.location.origin}${window.location.pathname}?cellId=${cell.id}`; navigator.clipboard.writeText(link); setCopiedId(cell.id); setTimeout(() => setCopiedId(null), 2000); }} className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 font-black text-[8px] uppercase tracking-widest transition-all ${copiedId === cell.id ? 'bg-emerald-600 text-white' : 'bg-blue-600/10 text-blue-500'}`}>{copiedId === cell.id ? 'Copiado!' : 'Link Líder'}</button><button onClick={() => { setEditingCellId(cell.id); setCellForm(cell); setShowCellForm(true); }} className="p-2.5 rounded-lg border border-white/10 text-white/50 hover:bg-white/5 hover:text-blue-400"><Edit2 size={12}/></button>
-<button onClick={() => { setActiveCell(cell); setIsLeaderMode(true); setActiveTab('leader-members'); }} className="p-2.5 rounded-lg border border-white/10 text-white/50 hover:bg-white/5"><Eye size={12}/></button><button onClick={() => deleteItem('cells', cell.id)} className="p-2.5 rounded-lg text-red-500/30 hover:text-red-500"><Trash2 size={12}/></button></div></div>))}</div>
+              <header className="flex justify-between items-center">
+                <div className="flex flex-col">
+                  <h2 className="text-2xl font-black italic uppercase tracking-tighter">Células</h2>
+                  {filterSectorId && (
+                    <button onClick={() => setFilterSectorId(null)} className="text-[9px] font-black uppercase text-blue-500 hover:text-blue-400 flex items-center gap-1 mt-1">
+                      Setor: {sectors.find(s => s.id === filterSectorId)?.name} (Limpar ×)
+                    </button>
+                  )}
+                </div>
+                <button onClick={() => setShowCellForm(true)} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVA CÉLULA</button>
+              </header>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {cells.filter(cell => !filterSectorId || Number(cell.sector_id) === filterSectorId).map(cell => (<div key={cell.id} className={`${t.card} border rounded-2xl p-6 flex flex-col group`}><div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-500 mb-4 group-hover:bg-blue-600 group-hover:text-white transition-all"><Home size={20} /></div><h3 className="text-lg font-black uppercase italic mb-1">{cell.name}</h3><p className="text-blue-500 text-[9px] font-black uppercase mb-2">{cell.leader}</p>                    <div className="grid grid-cols-2 gap-2 mb-4 border-y border-white/5 py-4">
+                  <div className="flex items-center justify-center gap-2 text-[11px] font-black uppercase text-blue-400 italic notranslate" translate="no">
+                    <Calendar size={14} /> {cell.day_of_week || '---'}
+                  </div>
+                  <div className="flex items-center justify-center gap-2 text-[11px] font-black uppercase text-emerald-400 italic border-l border-white/5 notranslate" translate="no">
+                    <Clock size={14} /> {cell.meeting_time || '---'}
+                  </div>
+                </div><div className="flex gap-2"><button onClick={() => { const link = `${window.location.origin}${window.location.pathname}?cellId=${cell.id}`; navigator.clipboard.writeText(link); setCopiedId(cell.id); setTimeout(() => setCopiedId(null), 2000); }} className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 font-black text-[8px] uppercase tracking-widest transition-all ${copiedId === cell.id ? 'bg-emerald-600 text-white' : 'bg-blue-600/10 text-blue-500'}`}>{copiedId === cell.id ? 'Copiado!' : 'Link Líder'}</button><button onClick={() => { setEditingCellId(cell.id); setCellForm(cell); setShowCellForm(true); }} className="p-2.5 rounded-lg border border-white/10 text-white/50 hover:bg-white/5 hover:text-blue-400"><Edit2 size={12} /></button>
+                    <button onClick={() => { setActiveCell(cell); setIsLeaderMode(true); setActiveTab('leader-members'); }} className="p-2.5 rounded-lg border border-white/10 text-white/50 hover:bg-white/5"><Eye size={12} /></button><button onClick={() => deleteItem('cells', cell.id)} className="p-2.5 rounded-lg text-red-500/30 hover:text-red-500"><Trash2 size={12} /></button></div></div>))}</div>
             </div>
           )}
 
           {activeTab === 'sectors' && (
             <div className="space-y-6">
-               <header className="flex justify-between items-center"><h2 className="text-2xl font-black italic uppercase tracking-tighter">Setores</h2><button onClick={() => setShowSectorForm(true)} className="bg-slate-700 text-white px-6 py-3 rounded-xl font-black text-xs">+ NOVO SETOR</button></header>
-               <div className={`${t.card} border rounded-2xl overflow-hidden`}><table className="w-full text-left"><thead className={`${t.tableHead} border-b ${t.border}`}><tr><th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest">Nome do Setor</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase tracking-widest">Células</th><th className="px-6 py-4 text-right text-[9px] font-black uppercase tracking-widest">Ação</th></tr></thead><tbody className={`divide-y ${t.border}`}>{sectors.map(s => (<tr key={s.id} className={t.hover}><td className="px-6 py-4 text-lg font-black italic">{s.name}</td><td className="px-6 py-4 text-center">
-  <button 
-    onClick={() => { setFilterSectorId(s.id); setActiveTab('cells'); }}
-    className="bg-blue-600/10 text-blue-500 hover:bg-blue-600 hover:text-white px-4 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all cursor-pointer border border-blue-600/20 shadow-lg shadow-blue-600/5"
-  >
-    {cells.filter(c => Number(c.sector_id) === s.id).length} Células
-  </button>
-</td><td className="px-6 py-4 text-right"><button onClick={() => deleteItem('sectors', s.id)} className="text-red-500/20 hover:text-red-500 p-1"><Trash2 size={16}/></button></td></tr>))}</tbody></table></div>
+              <header className="flex justify-between items-center"><h2 className="text-2xl font-black italic uppercase tracking-tighter">Setores</h2><button onClick={() => setShowSectorForm(true)} className="bg-slate-700 text-white px-6 py-3 rounded-xl font-black text-xs">+ NOVO SETOR</button></header>
+              <div className={`${t.card} border rounded-2xl overflow-hidden`}><table className="w-full text-left"><thead className={`${t.tableHead} border-b ${t.border}`}><tr><th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest">Nome do Setor</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase tracking-widest">Células</th><th className="px-6 py-4 text-right text-[9px] font-black uppercase tracking-widest">Ação</th></tr></thead><tbody className={`divide-y ${t.border}`}>{sectors.map(s => (<tr key={s.id} className={t.hover}><td className="px-6 py-4 text-lg font-black italic">{s.name}</td><td className="px-6 py-4 text-center">
+                <button
+                  onClick={() => { setFilterSectorId(s.id); setActiveTab('cells'); }}
+                  className="bg-blue-600/10 text-blue-500 hover:bg-blue-600 hover:text-white px-4 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all cursor-pointer border border-blue-600/20 shadow-lg shadow-blue-600/5"
+                >
+                  {cells.filter(c => Number(c.sector_id) === s.id).length} Células
+                </button>
+              </td><td className="px-6 py-4 text-right"><button onClick={() => deleteItem('sectors', s.id)} className="text-red-500/20 hover:text-red-500 p-1"><Trash2 size={16} /></button></td></tr>))}</tbody></table></div>
             </div>
           )}
         </div>
@@ -1018,47 +1078,47 @@ function ChurchMembershipSystem() {
       {showMemberForm && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 overflow-auto">
           <div className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-2xl rounded-2xl p-8 border ${t.border} shadow-2xl my-auto text-left relative`}>
-            <button onClick={() => { setShowMemberForm(false); setEditingId(null); setMemberForm({ name: '', email: '', phone: '', cell_id: '', status: 'active', cep: '', address: '', number: '', neighborhood: '', city: '', pl: false, ecc: false, bat: false, con: false, maturidade: false, ctl: false, ministerios: false, integracao: false, outros: false, attended_cell: false, attended_cult: false }); }} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white hover:bg-white/5 rounded-full transition-all"><X size={24}/></button>
+            <button onClick={() => { setShowMemberForm(false); setEditingId(null); setMemberForm({ name: '', email: '', phone: '', cell_id: '', status: 'active', cep: '', address: '', number: '', neighborhood: '', city: '', pl: false, ecc: false, bat: false, con: false, maturidade: false, ctl: false, ministerios: false, integracao: false, outros: false, attended_cell: false, attended_cult: false }); }} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white hover:bg-white/5 rounded-full transition-all"><X size={24} /></button>
             <h2 className="text-3xl font-black italic uppercase mb-8 pr-12">{editingId ? 'EDITAR' : 'NOVO'} ; {activeCell?.name || 'MEMBRO'}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
-                <InputCompact label="NOME COMPLETO" value={memberForm.name} onChange={val => setMemberForm({...memberForm, name: val})} dark={darkMode} />
-                <InputCompact label="TELEFONE" value={memberForm.phone} onChange={val => setMemberForm({...memberForm, phone: val})} dark={darkMode} />
-                <div className="relative"><InputCompact label="CEP" value={memberForm.cep} onChange={val => { setMemberForm({...memberForm, cep: val}); handleCepSearch(val, 'member'); }} dark={darkMode} />{searchingCep && <Loader2 className="absolute right-3 top-7 text-blue-500 animate-spin" size={14}/>}</div>
-                <InputCompact label="ENDEREÇO" value={memberForm.address} onChange={val => setMemberForm({...memberForm, address: val})} dark={darkMode} />
-                <div className="grid grid-cols-2 gap-4"><InputCompact label="Nº" value={memberForm.number} onChange={val => setMemberForm({...memberForm, number: val})} dark={darkMode} /><InputCompact label="BAIRRO" value={memberForm.neighborhood} onChange={val => setMemberForm({...memberForm, neighborhood: val})} dark={darkMode} /></div>
-                <InputCompact label="CIDADE" value={memberForm.city} onChange={val => setMemberForm({...memberForm, city: val})} dark={darkMode} />
-                <InputCompact label="DISCIPULADOR" value={memberForm.ministerios} onChange={val => setMemberForm({...memberForm, ministerios: val})} dark={darkMode} />
+                <InputCompact label="NOME COMPLETO" value={memberForm.name} onChange={val => setMemberForm({ ...memberForm, name: val })} dark={darkMode} />
+                <InputCompact label="TELEFONE" value={memberForm.phone} onChange={val => setMemberForm({ ...memberForm, phone: val })} dark={darkMode} />
+                <div className="relative"><InputCompact label="CEP" value={memberForm.cep} onChange={val => { setMemberForm({ ...memberForm, cep: val }); handleCepSearch(val, 'member'); }} dark={darkMode} />{searchingCep && <Loader2 className="absolute right-3 top-7 text-blue-500 animate-spin" size={14} />}</div>
+                <InputCompact label="ENDEREÇO" value={memberForm.address} onChange={val => setMemberForm({ ...memberForm, address: val })} dark={darkMode} />
+                <div className="grid grid-cols-2 gap-4"><InputCompact label="Nº" value={memberForm.number} onChange={val => setMemberForm({ ...memberForm, number: val })} dark={darkMode} /><InputCompact label="BAIRRO" value={memberForm.neighborhood} onChange={val => setMemberForm({ ...memberForm, neighborhood: val })} dark={darkMode} /></div>
+                <InputCompact label="CIDADE" value={memberForm.city} onChange={val => setMemberForm({ ...memberForm, city: val })} dark={darkMode} />
+                <InputCompact label="DISCIPULADOR" value={memberForm.ministerios} onChange={val => setMemberForm({ ...memberForm, ministerios: val })} dark={darkMode} />
               </div>
               <div className="space-y-6">
-                 {/* Frequência Rápida */}
-                 <div className="bg-blue-600/5 p-4 rounded-xl border border-blue-500/10 space-y-3">
-                    <p className="text-[8px] font-black text-blue-500 uppercase tracking-widest">Frequência desta Semana</p>
-                    <div className="grid grid-cols-2 gap-4">
-                       <label className="flex items-center gap-3 p-3 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition-all">
-                          <input type="checkbox" checked={memberForm.attended_cell} onChange={e => setMemberForm({...memberForm, attended_cell: e.target.checked})} className="w-5 h-5 rounded border-white/10 bg-slate-800 text-blue-500" />
-                          <span className="text-[10px] font-black uppercase italic">Célula</span>
-                       </label>
-                       <label className="flex items-center gap-3 p-3 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition-all">
-                          <input type="checkbox" checked={memberForm.attended_cult} onChange={e => setMemberForm({...memberForm, attended_cult: e.target.checked})} className="w-5 h-5 rounded border-white/10 bg-slate-800 text-red-500" />
-                          <span className="text-[10px] font-black uppercase italic text-red-500">Faltou no Culto</span>
-                       </label>
-                    </div>
-                 </div>
+                {/* Frequência Rápida */}
+                <div className="bg-blue-600/5 p-4 rounded-xl border border-blue-500/10 space-y-3">
+                  <p className="text-[8px] font-black text-blue-500 uppercase tracking-widest">Frequência desta Semana</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <label className="flex items-center gap-3 p-3 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition-all">
+                      <input type="checkbox" checked={memberForm.attended_cell} onChange={e => setMemberForm({ ...memberForm, attended_cell: e.target.checked })} className="w-5 h-5 rounded border-white/10 bg-slate-800 text-blue-500" />
+                      <span className="text-[10px] font-black uppercase italic">Célula</span>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition-all">
+                      <input type="checkbox" checked={memberForm.attended_cult} onChange={e => setMemberForm({ ...memberForm, attended_cult: e.target.checked })} className="w-5 h-5 rounded border-white/10 bg-slate-800 text-red-500" />
+                      <span className="text-[10px] font-black uppercase italic text-red-500">Faltou no Culto</span>
+                    </label>
+                  </div>
+                </div>
 
-                 {!isLeaderMode && (<div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}><p className="text-[8px] font-black text-slate-500 uppercase mb-2">CÉLULA</p><select value={memberForm.cell_id} onChange={e => setMemberForm({...memberForm, cell_id: e.target.value})} className="w-full bg-transparent font-black text-sm outline-none"><option value="">Selecionar...</option>{cells.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>)}
+                {!isLeaderMode && (<div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}><p className="text-[8px] font-black text-slate-500 uppercase mb-2">CÉLULA</p><select value={memberForm.cell_id} onChange={e => setMemberForm({ ...memberForm, cell_id: e.target.value })} className="w-full bg-transparent font-black text-sm outline-none"><option value="">Selecionar...</option>{cells.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>)}
                 <div className="space-y-2">
-                   <p className="text-[8px] font-black text-slate-500 uppercase">Cursos</p>
-                   <div className="grid grid-cols-1 gap-2 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar-fine">
-                      <CourseCheckCompact label="ECC - CASAIS COM CRISTO" checked={memberForm.ecc} onChange={val => setMemberForm({...memberForm, ecc: val})} dark={darkMode} />
-                      <CourseCheckCompact label="BAT - MEMBROS PARA BATIZAR" checked={memberForm.bat} onChange={val => setMemberForm({...memberForm, bat: val})} dark={darkMode} />
-                      <CourseCheckCompact label="FCC - FREQUENTE CULTOS/CÉLULAS" checked={memberForm.integracao} onChange={val => setMemberForm({...memberForm, integracao: val})} dark={darkMode} />
-                      <CourseCheckCompact label="CON - CONSOLIDAÇÃO PENDENTE" checked={memberForm.con} onChange={val => setMemberForm({...memberForm, con: val})} dark={darkMode} />
-                      <CourseCheckCompact label="VS - VISITANTE DA SEMANA" checked={memberForm.outros} onChange={val => setMemberForm({...memberForm, outros: val})} dark={darkMode} />
-                      <CourseCheckCompact label="TMC - MEMBRO COMPROMETIDO" checked={memberForm.maturidade} onChange={val => setMemberForm({...memberForm, maturidade: val})} dark={darkMode} />
-                      <CourseCheckCompact label="MSD - SEM DISCIPULADOR" checked={memberForm.ctl} onChange={val => setMemberForm({...memberForm, ctl: val})} dark={darkMode} />
-                      <CourseCheckCompact label="PL - POTENCIAL LÍDER" checked={memberForm.pl} onChange={val => setMemberForm({...memberForm, pl: val})} dark={darkMode} />
-                   </div>
+                  <p className="text-[8px] font-black text-slate-500 uppercase">Cursos</p>
+                  <div className="grid grid-cols-1 gap-2 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar-fine">
+                    <CourseCheckCompact label="ECC - CASAIS COM CRISTO" checked={memberForm.ecc} onChange={val => setMemberForm({ ...memberForm, ecc: val })} dark={darkMode} />
+                    <CourseCheckCompact label="BAT - MEMBROS PARA BATIZAR" checked={memberForm.bat} onChange={val => setMemberForm({ ...memberForm, bat: val })} dark={darkMode} />
+                    <CourseCheckCompact label="FCC - FREQUENTE CULTOS/CÉLULAS" checked={memberForm.integracao} onChange={val => setMemberForm({ ...memberForm, integracao: val })} dark={darkMode} />
+                    <CourseCheckCompact label="CON - CONSOLIDAÇÃO PENDENTE" checked={memberForm.con} onChange={val => setMemberForm({ ...memberForm, con: val })} dark={darkMode} />
+                    <CourseCheckCompact label="VS - VISITANTE DA SEMANA" checked={memberForm.outros} onChange={val => setMemberForm({ ...memberForm, outros: val })} dark={darkMode} />
+                    <CourseCheckCompact label="TMC - MEMBRO COMPROMETIDO" checked={memberForm.maturidade} onChange={val => setMemberForm({ ...memberForm, maturidade: val })} dark={darkMode} />
+                    <CourseCheckCompact label="MSD - SEM DISCIPULADOR" checked={memberForm.ctl} onChange={val => setMemberForm({ ...memberForm, ctl: val })} dark={darkMode} />
+                    <CourseCheckCompact label="PL - POTENCIAL LÍDER" checked={memberForm.pl} onChange={val => setMemberForm({ ...memberForm, pl: val })} dark={darkMode} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1070,21 +1130,21 @@ function ChurchMembershipSystem() {
       {showCellForm && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-xl rounded-2xl p-8 border ${t.border} shadow-2xl relative`}>
-            <button onClick={() => { setShowCellForm(false); setEditingCellId(null); setCellForm({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30' }); }} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24}/></button>
+            <button onClick={() => { setShowCellForm(false); setEditingCellId(null); setCellForm({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30' }); }} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24} /></button>
             <h2 className="text-3xl font-black mb-8 italic uppercase tracking-tighter text-left">{editingCellId ? 'Editar' : 'Nova'} Célula</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-              <InputCompact label="NOME DA CÉLULA" value={cellForm.name} onChange={val => setCellForm({...cellForm, name: val})} dark={darkMode} />
-              <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}><p className="text-[8px] font-black text-slate-500 uppercase mb-2">SETOR</p><select value={cellForm.sector_id} onChange={e => setCellForm({...cellForm, sector_id: e.target.value})} className="w-full bg-transparent font-black text-sm outline-none"><option value="">Selecionar...</option>{sectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-              <InputCompact label="LÍDER" value={cellForm.leader} onChange={val => setCellForm({...cellForm, leader: val})} dark={darkMode} />
+              <InputCompact label="NOME DA CÉLULA" value={cellForm.name} onChange={val => setCellForm({ ...cellForm, name: val })} dark={darkMode} />
+              <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}><p className="text-[8px] font-black text-slate-500 uppercase mb-2">SETOR</p><select value={cellForm.sector_id} onChange={e => setCellForm({ ...cellForm, sector_id: e.target.value })} className="w-full bg-transparent font-black text-sm outline-none"><option value="">Selecionar...</option>{sectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+              <InputCompact label="LÍDER" value={cellForm.leader} onChange={val => setCellForm({ ...cellForm, leader: val })} dark={darkMode} />
               <div className="grid grid-cols-2 gap-4">
-                <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}><p className="text-[8px] font-black text-slate-500 uppercase mb-2">DIA DA SEMANA</p><select value={cellForm.day_of_week} onChange={e => setCellForm({...cellForm, day_of_week: e.target.value})} className="w-full bg-transparent font-black text-sm outline-none"><option value="segunda">Segunda</option><option value="terça">Terça</option><option value="quarta">Quarta</option><option value="quinta">Quinta</option><option value="sexta">Sexta</option><option value="sábado">Sábado</option><option value="domingo">Domingo</option></select></div>
-                <InputCompact label="HORÁRIO" value={cellForm.meeting_time} onChange={val => setCellForm({...cellForm, meeting_time: val})} dark={darkMode} />
+                <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}><p className="text-[8px] font-black text-slate-500 uppercase mb-2">DIA DA SEMANA</p><select value={cellForm.day_of_week} onChange={e => setCellForm({ ...cellForm, day_of_week: e.target.value })} className="w-full bg-transparent font-black text-sm outline-none"><option value="segunda">Segunda</option><option value="terça">Terça</option><option value="quarta">Quarta</option><option value="quinta">Quinta</option><option value="sexta">Sexta</option><option value="sábado">Sábado</option><option value="domingo">Domingo</option></select></div>
+                <InputCompact label="HORÁRIO" value={cellForm.meeting_time} onChange={val => setCellForm({ ...cellForm, meeting_time: val })} dark={darkMode} />
               </div>
-              <div className="relative"><InputCompact label="CEP LOCAL" value={cellForm.cep} onChange={val => { setCellForm({...cellForm, cep: val}); handleCepSearch(val, 'cell'); }} dark={darkMode} />{searchingCep && <Loader2 className="absolute right-3 top-7 text-blue-500 animate-spin" size={14}/>}</div>
-              <InputCompact label="ENDEREÇO" value={cellForm.address} onChange={val => setCellForm({...cellForm, address: val})} dark={darkMode} />
+              <div className="relative"><InputCompact label="CEP LOCAL" value={cellForm.cep} onChange={val => { setCellForm({ ...cellForm, cep: val }); handleCepSearch(val, 'cell'); }} dark={darkMode} />{searchingCep && <Loader2 className="absolute right-3 top-7 text-blue-500 animate-spin" size={14} />}</div>
+              <InputCompact label="ENDEREÇO" value={cellForm.address} onChange={val => setCellForm({ ...cellForm, address: val })} dark={darkMode} />
               <div className="grid grid-cols-2 gap-4">
-                <InputCompact label="Nº" value={cellForm.number} onChange={val => setCellForm({...cellForm, number: val})} dark={darkMode} />
-                <InputCompact label="BAIRRO" value={cellForm.neighborhood} onChange={val => setCellForm({...cellForm, neighborhood: val})} dark={darkMode} />
+                <InputCompact label="Nº" value={cellForm.number} onChange={val => setCellForm({ ...cellForm, number: val })} dark={darkMode} />
+                <InputCompact label="BAIRRO" value={cellForm.neighborhood} onChange={val => setCellForm({ ...cellForm, neighborhood: val })} dark={darkMode} />
               </div>
             </div>
             <div className="flex gap-4 mt-8"><button onClick={() => setShowCellForm(false)} className="flex-1 text-slate-500 font-black uppercase text-[10px]">Cancelar</button><button onClick={addCell} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-black text-[10px] uppercase italic">Criar Célula</button></div>
@@ -1095,9 +1155,9 @@ function ChurchMembershipSystem() {
       {showSectorForm && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-md rounded-2xl p-8 border ${t.border} shadow-2xl relative`}>
-            <button onClick={() => setShowSectorForm(false)} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24}/></button>
+            <button onClick={() => setShowSectorForm(false)} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24} /></button>
             <h2 className="text-3xl font-black mb-8 italic uppercase tracking-tighter text-left">Novo Setor</h2>
-            <InputCompact label="NOME DO SETOR" value={sectorForm.name} onChange={val => setSectorForm({...sectorForm, name: val})} dark={darkMode} />
+            <InputCompact label="NOME DO SETOR" value={sectorForm.name} onChange={val => setSectorForm({ ...sectorForm, name: val })} dark={darkMode} />
             <div className="flex gap-4 mt-8"><button onClick={() => setShowSectorForm(false)} className="flex-1 text-slate-500 font-black uppercase text-[10px]">Cancelar</button><button onClick={addSector} className="flex-1 bg-slate-700 text-white py-3 rounded-xl font-black text-[10px] uppercase italic">Criar Setor</button></div>
           </div>
         </div>
@@ -1106,42 +1166,42 @@ function ChurchMembershipSystem() {
       {showReportForm && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-md rounded-2xl p-8 border ${t.border} shadow-2xl relative text-left`}>
-            <button onClick={() => setShowReportForm(false)} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24}/></button>
+            <button onClick={() => setShowReportForm(false)} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24} /></button>
             <h2 className="text-3xl font-black mb-8 italic uppercase tracking-tighter">Relatório</h2>
             <div className="space-y-4">
               <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border} transition-all`}>
                 <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">DATA (DD/MM/AAAA)</p>
-                <input 
+                <input
                   type="text"
                   placeholder="00/00/0000"
-                  value={reportForm.date.split('-').reverse().join('/')} 
+                  value={reportForm.date.split('-').reverse().join('/')}
                   onChange={e => {
                     const val = e.target.value;
                     if (val.length === 10) {
                       const parts = val.split('/');
                       if (parts.length === 3) {
-                        setReportForm({...reportForm, date: `${parts[2]}-${parts[1]}-${parts[0]}`});
+                        setReportForm({ ...reportForm, date: `${parts[2]}-${parts[1]}-${parts[0]}` });
                       }
                     } else {
                       // Permite digitar livremente mas só salva se estiver completo
                       // Para facilitar, vamos apenas inverter o que for digitado se houver barras
                       const parts = val.split('/');
                       if (parts.length === 3 && parts[2].length === 4) {
-                         setReportForm({...reportForm, date: `${parts[2]}-${parts[1]}-${parts[0]}`});
+                        setReportForm({ ...reportForm, date: `${parts[2]}-${parts[1]}-${parts[0]}` });
                       }
                     }
-                  }} 
+                  }}
                   className={`w-full bg-transparent ${darkMode ? 'text-white' : 'text-slate-900'} font-black text-sm outline-none italic uppercase`}
                 />
               </div>
               <div className="grid grid-cols-3 gap-3">
-                 <InputCompact label="MEMBROS" value={reportForm.members} onChange={val => setReportForm({...reportForm, members: val})} dark={darkMode} />
-                 <InputCompact label="FREQ." value={reportForm.frequenters} onChange={val => setReportForm({...reportForm, frequenters: val})} dark={darkMode} />
-                 <InputCompact label="VISIT." value={reportForm.visitors} onChange={val => setReportForm({...reportForm, visitors: val})} dark={darkMode} />
+                <InputCompact label="MEMBROS" value={reportForm.members} onChange={val => setReportForm({ ...reportForm, members: val })} dark={darkMode} />
+                <InputCompact label="FREQ." value={reportForm.frequenters} onChange={val => setReportForm({ ...reportForm, frequenters: val })} dark={darkMode} />
+                <InputCompact label="VISIT." value={reportForm.visitors} onChange={val => setReportForm({ ...reportForm, visitors: val })} dark={darkMode} />
               </div>
               <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}>
-                 <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">OBSERVAÇÕES</p>
-                 <textarea value={reportForm.notes} onChange={e => setReportForm({...reportForm, notes: e.target.value})} className="w-full bg-transparent font-bold text-xs outline-none h-20 resize-none" />
+                <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">OBSERVAÇÕES</p>
+                <textarea value={reportForm.notes} onChange={e => setReportForm({ ...reportForm, notes: e.target.value })} className="w-full bg-transparent font-bold text-xs outline-none h-20 resize-none" />
               </div>
             </div>
             <button onClick={addReport} className="w-full bg-emerald-600 text-white py-4 rounded-xl font-black text-xs uppercase mt-6">Gravar</button>
@@ -1152,12 +1212,65 @@ function ChurchMembershipSystem() {
       {isChangingPassword && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <form onSubmit={handleChangePassword} className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-md rounded-2xl p-8 border ${t.border} shadow-2xl relative text-left`}>
-            <button type="button" onClick={() => setIsChangingPassword(false)} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24}/></button>
+            <button type="button" onClick={() => setIsChangingPassword(false)} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24} /></button>
             <h2 className="text-3xl font-black mb-8 italic uppercase tracking-tighter">Mudar Senha</h2>
             <div className="space-y-4">
-              <InputCompact label="NOVA SENHA" value={authForm.newPassword} onChange={val => setAuthForm({...authForm, newPassword: val})} dark={darkMode} />
+              <InputCompact label="NOVA SENHA" value={authForm.newPassword} onChange={val => setAuthForm({ ...authForm, newPassword: val })} dark={darkMode} />
             </div>
             <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-xl font-black text-xs uppercase mt-6">Confirmar Nova Senha</button>
+          </form>
+        </div>
+      )}
+
+      {showVisitorModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <form onSubmit={addVisitor} className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-md rounded-2xl p-8 border ${t.border} shadow-2xl relative text-left`}>
+            <button type="button" onClick={() => setShowVisitorModal(false)} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24}/></button>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg"><Star size={24}/></div>
+              <h2 className="text-3xl font-black italic uppercase tracking-tighter">Novo Visitante</h2>
+            </div>
+            
+            <div className="space-y-4">
+              <InputCompact label="NOME DO VISITANTE" value={visitorForm.name} onChange={val => setVisitorForm({...visitorForm, name: val})} dark={darkMode} />
+              <InputCompact label="TELEFONE" value={visitorForm.phone} onChange={val => setVisitorForm({...visitorForm, phone: val})} dark={darkMode} />
+              
+              <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}>
+                <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">CEP PARA LOCALIZAÇÃO</p>
+                <input 
+                  type="text" 
+                  maxLength={8}
+                  placeholder="Apenas números"
+                  value={visitorForm.cep}
+                  onChange={e => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    setVisitorForm({...visitorForm, cep: val});
+                    if (val.length === 8) handleVisitorCep(val);
+                  }}
+                  className={`w-full bg-transparent ${darkMode ? 'text-white' : 'text-slate-900'} font-black text-sm outline-none`}
+                />
+              </div>
+
+              {visitorForm.neighborhood && (
+                <div className="p-4 bg-blue-600/10 border border-blue-500/20 rounded-xl animate-in zoom-in-95 duration-300">
+                  <p className="text-[8px] font-black uppercase text-blue-500 mb-1 tracking-widest">Bairro Identificado</p>
+                  <p className="text-sm font-black italic uppercase">{visitorForm.neighborhood}</p>
+                </div>
+              )}
+
+              {visitorForm.suggested_cell && (
+                <div className="p-4 bg-emerald-600/10 border border-emerald-500/20 rounded-xl animate-in slide-in-from-bottom-2 duration-500">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                    <p className="text-[8px] font-black uppercase text-emerald-500 tracking-widest">Célula Recomendada</p>
+                  </div>
+                  <p className="text-lg font-black italic uppercase text-white leading-tight">{visitorForm.suggested_cell.name}</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase mt-1">Líder: {visitorForm.suggested_cell.leader}</p>
+                </div>
+              )}
+            </div>
+
+            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-black text-xs uppercase mt-8 transition-all shadow-xl shadow-blue-900/20">Registrar e Vincular</button>
           </form>
         </div>
       )}
@@ -1184,7 +1297,7 @@ function InputCompact({ label, value, onChange, dark }) {
   return (
     <div className={`${dark ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${dark ? 'border-white/10' : 'border-slate-200'} transition-all`}>
       <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">{label}</p>
-      <input value={value} onChange={e => onChange(e.target.value)} className={`w-full bg-transparent ${dark ? 'text-white' : 'text-slate-900'} font-black text-sm outline-none italic uppercase`}/>
+      <input value={value} onChange={e => onChange(e.target.value)} className={`w-full bg-transparent ${dark ? 'text-white' : 'text-slate-900'} font-black text-sm outline-none italic uppercase`} />
     </div>
   );
 }
@@ -1203,8 +1316,8 @@ function StatCard({ label, value, icon, color, dark, highlight, onClick }) {
   const Tag = onClick ? 'button' : 'div';
   return (
     <Tag onClick={onClick} className={`${dark ? 'bg-[#0f172a]/40 border-white/5 shadow-xl' : 'bg-white border-slate-100 shadow-sm'} border p-4 rounded-2xl text-left hover:border-blue-500/30 transition-all group ${highlight ? 'ring-2 ring-emerald-500/20' : ''} ${onClick ? 'cursor-pointer active:scale-95' : ''} w-full`}>
-       <div className="flex justify-between items-start mb-2"><span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{label}</span><div className={`${colors[color]} opacity-40 group-hover:opacity-100 transition-all`}>{icon}</div></div>
-       <p className={`text-2xl font-black ${dark ? 'text-white' : 'text-slate-900'} italic tracking-tighter`}>{value}</p>
+      <div className="flex justify-between items-start mb-2"><span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{label}</span><div className={`${colors[color]} opacity-40 group-hover:opacity-100 transition-all`}>{icon}</div></div>
+      <p className={`text-2xl font-black ${dark ? 'text-white' : 'text-slate-900'} italic tracking-tighter`}>{value}</p>
     </Tag>
   );
 }
