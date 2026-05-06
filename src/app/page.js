@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Plus, Trash2, Edit2, Users, LogOut, Menu, X, Search, Activity, Heart, Award, ChevronRight, LayoutDashboard, Map, Home, ClipboardList, Save, TrendingUp, PieChart as PieIcon, BarChart as BarIcon, Star, CheckCircle2, Calendar, Share2, Copy, Check, MapPin, Phone, Loader2, Navigation, Zap, Target, Sun, Moon, ArrowUpRight, UserCheck, UserMinus, ShieldCheck, Mail, ExternalLink, Link2, Eye, GraduationCap, Download, Upload, Info, BarChart3, Power, LineChart as LineIcon } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, LineChart, Line } from 'recharts';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../lib/supabase';
 
 function ChurchAppWrapper() {
   return (
