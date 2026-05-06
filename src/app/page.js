@@ -570,7 +570,13 @@ function ChurchMembershipSystem() {
               <div className="flex items-center gap-2">
                 <p className={`${t.subText} text-[8px] font-bold uppercase tracking-widest`}>{isLeaderMode ? `Líder: ${activeCell?.name || ''}` : 'Gestão Estratégica'}</p>
                 {isLeaderMode && session && (
-                  <button onClick={() => window.location.href = '/'} className="text-[7px] font-black text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20 hover:bg-blue-500 hover:text-white transition-all uppercase italic tracking-tighter">Voltar ao Início</button>
+                  <button 
+                    onClick={() => window.location.href = '/'} 
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-full font-black text-[9px] uppercase italic tracking-tighter transition-all hover:scale-105 active:scale-95 shadow-lg shadow-blue-600/40 animate-in fade-in slide-in-from-right-4 duration-500"
+                  >
+                    <ArrowLeft size={14} className="animate-pulse" />
+                    VOLTAR AO PAINEL GERAL
+                  </button>
                 )}
               </div>
             </div>
