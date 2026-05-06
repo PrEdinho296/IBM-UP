@@ -546,6 +546,9 @@ function ChurchMembershipSystem() {
           )}
         </nav>
         <div className={`p-4 border-t ${t.border} space-y-2`}>
+          {isLeaderMode && session && (
+            <button onClick={() => window.location.href = window.location.pathname} className="w-full flex items-center gap-3 p-3 text-[10px] text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest mb-2"><LayoutDashboard size={16}/> {sidebarOpen && 'Painel Geral'}</button>
+          )}
           <button onClick={() => setIsChangingPassword(true)} className={`w-full flex items-center gap-3 p-3 text-[10px] ${t.subText} hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest`}><ShieldCheck size={16} /> {sidebarOpen && 'Mudar Senha'}</button>
           <button onClick={() => fetchData()} className={`w-full flex items-center gap-3 p-3 text-[10px] ${t.subText} hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest`}><Activity size={16} /> {sidebarOpen && 'Atualizar'}</button>
           <button onClick={handleLogout} className="w-full flex items-center gap-3 p-3 text-[10px] text-red-500/70 hover:text-red-500 hover:bg-red-400/5 rounded-xl transition-all font-black uppercase tracking-widest"><Power size={16} /> {sidebarOpen && 'Sair'}</button>
@@ -556,7 +559,15 @@ function ChurchMembershipSystem() {
         <header className={`sticky top-0 z-40 ${t.bg}/80 backdrop-blur-md border-b ${t.border} px-6 py-3 flex justify-between items-center shrink-0`}>
           <div className="flex items-center gap-4">
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className={`p-2 border rounded-lg ${t.subText} hover:text-white transition-all`}><Menu size={18} /></button>
-            <div><h1 className={`text-base font-black ${t.text} italic uppercase tracking-tighter`}>IBMRP</h1><p className={`${t.subText} text-[8px] font-bold uppercase tracking-widest`}>{isLeaderMode ? `Líder: ${activeCell?.name || ''}` : 'Gestão Estratégica'}</p></div>
+            <div>
+              <h1 className={`text-base font-black ${t.text} italic uppercase tracking-tighter`}>IBMRP</h1>
+              <div className="flex items-center gap-2">
+                <p className={`${t.subText} text-[8px] font-bold uppercase tracking-widest`}>{isLeaderMode ? `Líder: ${activeCell?.name || ''}` : 'Gestão Estratégica'}</p>
+                {isLeaderMode && session && (
+                  <button onClick={() => window.location.href = window.location.pathname} className="text-[7px] font-black text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20 hover:bg-blue-500 hover:text-white transition-all uppercase italic tracking-tighter">Voltar ao Início</button>
+                )}
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => setShowVisitorModal(true)} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase italic tracking-widest flex items-center gap-2 transition-all shadow-lg shadow-blue-600/20 mr-2">
