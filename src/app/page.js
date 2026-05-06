@@ -431,12 +431,12 @@ function ChurchMembershipSystem() {
                     <h3 className="text-[9px] font-black uppercase mb-6 self-start tracking-widest flex items-center gap-2 text-slate-500"><PieIcon size={12}/> Fidelidade Global</h3>
                     <div className="h-[200px] w-full relative mb-6">
                       <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={[
-                        { name: 'Ambos', value: stats.both, color: '#10b981' },
-                        { name: 'Só Célula', value: stats.onlyCell, color: '#f59e0b' },
-                        { name: 'Só Culto', value: stats.onlyCult, color: '#a855f7' },
-                        { name: 'Inativos', value: stats.none, color: '#ef4444' },
+                        { name: 'Ambos', value: stats.both, color: '#3b82f6' },
+                        { name: 'Só Célula', value: stats.onlyCell, color: '#10b981' },
+                        { name: 'Só Culto', value: stats.onlyCult, color: '#f59e0b' },
+                        { name: 'Inativos', value: stats.none, color: '#475569' },
                       ].filter(d => d.value > 0)} innerRadius={55} outerRadius={75} paddingAngle={5} dataKey="value">{[
-                        { color: '#10b981' }, { color: '#f59e0b' }, { color: '#a855f7' }, { color: '#ef4444' }
+                        { color: '#3b82f6' }, { color: '#10b981' }, { color: '#f59e0b' }, { color: '#475569' }
                       ].map((e, i) => <Cell key={i} fill={e.color} stroke="none" />)}</Pie><Tooltip content={<CustomTooltip dark={darkMode} />} /></PieChart></ResponsiveContainer>
                       <div className="absolute inset-0 flex flex-col items-center justify-center text-2xl font-black italic">{Math.round((stats.both/stats.total)*100 || 0)}%</div>
                     </div>
@@ -498,10 +498,10 @@ function ChurchMembershipSystem() {
                         <PieChart>
                           <Pie
                             data={[
-                              { name: 'Ambos', value: stats.both },
-                              { name: 'Só Célula', value: stats.onlyCell },
-                              { name: 'Só Culto', value: stats.onlyCult },
-                              { name: 'Nenhum', value: stats.none },
+                              { name: 'Ambos', value: stats.both, color: '#3b82f6' },
+                              { name: 'Só Célula', value: stats.onlyCell, color: '#10b981' },
+                              { name: 'Só Culto', value: stats.onlyCult, color: '#f59e0b' },
+                              { name: 'Nenhum', value: stats.none, color: '#475569' },
                             ].filter(d => d.value > 0)}
                             cx="50%"
                             cy="50%"
