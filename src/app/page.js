@@ -475,9 +475,30 @@ function ChurchMembershipSystem() {
                        <Menu size={16} className="text-slate-500" />
                        <input type="text" placeholder="BUSCAR POR NOME..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="bg-transparent font-black text-[10px] uppercase outline-none w-full italic" />
                     </div>
-                 </div>
-               )}
-               <div className={`${t.card} border rounded-2xl overflow-x-auto`}><table className="w-full text-left min-w-[600px]"><thead className={`${t.tableHead} border-b ${t.border}`}><tr><th className="px-6 py-4 text-[9px] font-black uppercase">Membro</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase">Célula</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase">Culto</th><th className="px-6 py-4 text-right text-[9px] font-black uppercase">Ações</th></tr></thead><tbody className={`divide-y ${t.border}`}>{filteredMembers.map(m => (<tr key={m.id} className={t.hover}><td className="px-6 py-4 text-sm font-black italic">{m.name}</td><td className="px-6 py-4 text-center"><button onClick={() => toggleAttendance(m.id, 'attended_cell')} className={`p-3 rounded-xl border ${m.attended_cell ? 'bg-orange-500 text-white' : 'bg-white/5 text-slate-500'}`}>{m.attended_cell ? <Check size={16}/> : <Home size={16}/>}</button></td><td className="px-6 py-4 text-center"><button onClick={() => toggleAttendance(m.id, 'attended_cult')} className={`p-3 rounded-xl border ${!m.attended_cult ? 'bg-blue-600 text-white' : 'bg-white/5 text-slate-500'}`}>{!m.attended_cult ? <Check size={16}/> : <Users size={16}/>}</button></td><td className="px-6 py-4 text-right"><div className="flex justify-end gap-2"><button onClick={() => { setEditingId(m.id); setMemberForm(m); setShowMemberForm(true); }} className="text-blue-500/30 hover:text-blue-500 p-2"><Edit2 size={16}/></button><button onClick={() => deleteItem('members', m.id)} className="text-red-500/30 hover:text-red-500 p-2"><Trash2 size={16}/></button></div></td></tr>))}</tbody></table></div>
+                <div className={`${t.card} border rounded-2xl overflow-x-auto`}><table className="w-full text-left min-w-[600px]"><thead className={`${t.tableHead} border-b ${t.border}`}><tr><th className="px-6 py-4 text-[9px] font-black uppercase">Membro</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase">Célula</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase">Culto</th><th className="px-6 py-4 text-right text-[9px] font-black uppercase">Ações</th></tr></thead><tbody className={`divide-y ${t.border}`}>{filteredMembers.map(m => {
+                  const latestDate = getMeetingDates(activeCell?.day_of_week)[0];
+                  const inCell = attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
+                  return (
+                    <tr key={m.id} className={t.hover}>
+                      <td className="px-6 py-4 text-sm font-black italic">{m.name}</td>
+                      <td className="px-6 py-4 text-center">
+                        <div className={`inline-flex p-3 rounded-xl border transition-all ${inCell ? 'bg-orange-500 text-white border-orange-400' : 'bg-white/5 text-slate-500 border-white/5'}`}>
+                          {inCell ? <Check size={16}/> : <Home size={16}/>}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <button onClick={() => toggleAttendance(m.id, 'attended_cult')} className={`p-3 rounded-xl border ${!m.attended_cult ? 'bg-blue-600 text-white border-blue-400' : 'bg-white/5 text-slate-500 border-white/5'}`}>
+                          {!m.attended_cult ? <Check size={16}/> : <Users size={16}/>}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button onClick={() => { setEditingId(m.id); setMemberForm(m); setShowMemberForm(true); }} className="text-blue-500/30 hover:text-blue-500 p-2"><Edit2 size={16}/></button>
+                          <button onClick={() => deleteItem('members', m.id)} className="text-red-500/30 hover:text-red-500 p-2"><Trash2 size={16}/></button>
+                        </div>
+                      </td>
+                    </tr>
+                  )})}</tbody></table></div>utton></div></td></tr>))}</tbody></table></div>
             </div>
           )}
 
@@ -668,10 +689,26 @@ function ChurchMembershipSystem() {
                         {members
                           .filter(m => {
                             if (analyticsFilter === 'all') return true;
-                            if (analyticsFilter === 'only-cell') return m.attended_cell && m.attended_cult;
-                            if (analyticsFilter === 'only-culto') return !m.attended_cell && !m.attended_cult;
-                            if (analyticsFilter === 'both') return m.attended_cell && !m.attended_cult;
-                            if (analyticsFilter === 'none') return !m.attended_cell && m.attended_cult;
+                            if (analyticsFilter === 'only-cell') {
+                              const latestDate = getMeetingDates(activeCell?.day_of_week)[0];
+                              const inCell = attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
+                              return inCell && m.attended_cult;
+                            }
+                            if (analyticsFilter === 'only-culto') {
+                              const latestDate = getMeetingDates(activeCell?.day_of_week)[0];
+                              const inCell = !attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
+                              return !inCell && !m.attended_cult;
+                            }
+                            if (analyticsFilter === 'both') {
+                              const latestDate = getMeetingDates(activeCell?.day_of_week)[0];
+                              const inCell = attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
+                              return inCell && !m.attended_cult;
+                            }
+                            if (analyticsFilter === 'none') {
+                              const latestDate = getMeetingDates(activeCell?.day_of_week)[0];
+                              const inCell = !attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
+                              return !inCell && m.attended_cult;
+                            }
                             return true;
                           })
                           .sort((a,b) => a.name.localeCompare(b.name))
