@@ -74,6 +74,8 @@ function ChurchMembershipSystem() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
   const [isLeaderMode, setIsLeaderMode] = useState(false);
+  const [session, setSession] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [activeCell, setActiveCell] = useState(null);
   const [searchingCep, setSearchingCep] = useState(false);
   const [filterCellId, setFilterCellId] = useState(null);
@@ -201,17 +203,21 @@ function ChurchMembershipSystem() {
   useEffect(() => {
     const initFetch = async () => {
       const data = await fetchData();
-      if (cellIdParam && data?.cells) {
+      // Só ativa modo líder se NÃO houver sessão de pastor
+      if (cellIdParam && data?.cells && !session) {
         const cell = data.cells.find(c => Number(c.id) === Number(cellIdParam));
         if (cell) {
           setActiveCell(cell);
           setIsLeaderMode(true);
           setActiveTab('leader-members');
         }
+      } else if (session) {
+        // Se houver sessão, garante que o modo líder esteja desligado
+        setIsLeaderMode(false);
       }
     };
     initFetch();
-  }, [cellIdParam]);
+  }, [cellIdParam, session]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -546,12 +552,12 @@ function ChurchMembershipSystem() {
           )}
         </nav>
         <div className={`p-4 border-t ${t.border} space-y-2`}>
-          {isLeaderMode && session && (
-            <button onClick={() => window.location.href = '/'} className="w-full flex items-center gap-3 p-3 text-[10px] text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest mb-2"><LayoutDashboard size={16}/> {sidebarOpen && 'Painel Geral'}</button>
-          )}
-          <button onClick={() => setIsChangingPassword(true)} className={`w-full flex items-center gap-3 p-3 text-[10px] ${t.subText} hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest`}><ShieldCheck size={16} /> {sidebarOpen && 'Mudar Senha'}</button>
-          <button onClick={() => fetchData()} className={`w-full flex items-center gap-3 p-3 text-[10px] ${t.subText} hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest`}><Activity size={16} /> {sidebarOpen && 'Atualizar'}</button>
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 p-3 text-[10px] text-red-500/70 hover:text-red-500 hover:bg-red-400/5 rounded-xl transition-all font-black uppercase tracking-widest"><Power size={16} /> {sidebarOpen && 'Sair'}</button>
+           {isLeaderMode && (
+             <button onClick={() => window.location.href = '/'} className="w-full flex items-center gap-3 p-3 text-[10px] text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest mb-2"><LayoutDashboard size={16}/> {sidebarOpen && 'Painel Geral'}</button>
+           )}
+           <button onClick={() => setIsChangingPassword(true)} className={`w-full flex items-center gap-3 p-3 text-[10px] ${t.subText} hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest`}><ShieldCheck size={16}/> {sidebarOpen && 'Mudar Senha'}</button>
+           <button onClick={() => fetchData()} className={`w-full flex items-center gap-3 p-3 text-[10px] ${t.subText} hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest`}><Activity size={16}/> {sidebarOpen && 'Atualizar'}</button>
+           <button onClick={handleLogout} className="w-full flex items-center gap-3 p-3 text-[10px] text-red-500/70 hover:text-red-500 hover:bg-red-400/5 rounded-xl transition-all font-black uppercase tracking-widest"><Power size={16}/> {sidebarOpen && 'Encerrar Sessão'}</button>
         </div>
       </aside>
 
