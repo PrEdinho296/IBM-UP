@@ -93,7 +93,7 @@ function ChurchMembershipSystem() {
     name: '', email: '', phone: '', cell_id: '', status: 'active', 
     cep: '', address: '', number: '', neighborhood: '', city: '', 
     pl: false, ecc: false, bat: false, con: false, 
-    maturidade: false, ctl: false, ministerios: false, integracao: false, outros: false,
+    maturidade: false, ctl: false, ministerios: '', integracao: false, outros: false,
     attended_cell: false, attended_cult: false 
   });
   
@@ -199,7 +199,7 @@ function ChurchMembershipSystem() {
       if (data) {
         setMembers(members.map(m => m.id === editingId ? data[0] : m));
         setEditingId(null);
-        setMemberForm({ name: '', email: '', phone: '', cell_id: '', status: 'active', cep: '', address: '', number: '', neighborhood: '', city: '', pl: false, ecc: false, bat: false, con: false, maturidade: false, ctl: false, ministerios: false, integracao: false, outros: false, attended_cell: false, attended_cult: false });
+        setMemberForm({ name: '', email: '', phone: '', cell_id: '', status: 'active', cep: '', address: '', number: '', neighborhood: '', city: '', pl: false, ecc: false, bat: false, con: false, maturidade: false, ctl: false, ministerios: '', integracao: false, outros: false, attended_cell: false, attended_cult: false });
         setShowMemberForm(false);
       }
     } else {
@@ -211,7 +211,7 @@ function ChurchMembershipSystem() {
       }
       if (data) {
         setMembers([...members, data[0]]);
-        setMemberForm({ name: '', email: '', phone: '', cell_id: '', status: 'active', cep: '', address: '', number: '', neighborhood: '', city: '', pl: false, ecc: false, bat: false, con: false, maturidade: false, ctl: false, ministerios: false, integracao: false, outros: false, attended_cell: false, attended_cult: false });
+        setMemberForm({ name: '', email: '', phone: '', cell_id: '', status: 'active', cep: '', address: '', number: '', neighborhood: '', city: '', pl: false, ecc: false, bat: false, con: false, maturidade: false, ctl: false, ministerios: '', integracao: false, outros: false, attended_cell: false, attended_cult: false });
         setShowMemberForm(false);
       }
     }
@@ -471,10 +471,10 @@ function ChurchMembershipSystem() {
                         <PieChart>
                           <Pie
                             data={[
-                              { name: 'Ambos', value: members.filter(m => m.cell_id === activeCell.id && m.attended_cell && !m.attended_cult).length },
-                              { name: 'Só Célula', value: members.filter(m => m.cell_id === activeCell.id && m.attended_cell && m.attended_cult).length },
-                              { name: 'Só Culto', value: members.filter(m => m.cell_id === activeCell.id && !m.attended_cell && !m.attended_cult).length },
-                              { name: 'Nenhum', value: members.filter(m => m.cell_id === activeCell.id && !m.attended_cell && m.attended_cult).length },
+                              { name: 'Ambos', value: stats.both },
+                              { name: 'Só Célula', value: stats.onlyCell },
+                              { name: 'Só Culto', value: stats.onlyCult },
+                              { name: 'Nenhum', value: stats.none },
                             ].filter(d => d.value > 0)}
                             cx="50%"
                             cy="50%"
@@ -488,10 +488,7 @@ function ChurchMembershipSystem() {
                             <Cell fill="#f59e0b" stroke="none" />
                             <Cell fill="#475569" stroke="none" />
                           </Pie>
-                          <Tooltip 
-                            contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                            itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}
-                          />
+                          <Tooltip content={<CustomTooltip dark={darkMode} />} />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
@@ -541,8 +538,23 @@ function ChurchMembershipSystem() {
                      {filteredMembers.map(m => (
                          <tr key={m.id} className={t.hover}>
                            <td className="px-6 py-4">
-                             <p className="text-sm font-black italic uppercase tracking-tighter">{m.name}</p>
-                             <p className="text-[9px] text-slate-500 font-bold">{m.phone || 'Sem Telefone'}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-black italic uppercase tracking-tighter">{m.name}</p>
+                                {m.pl && <span className="text-[7px] bg-indigo-500 text-white px-1 rounded font-black">PL</span>}
+                              </div>
+                              <div className="flex items-center gap-3 mt-0.5">
+                                <p className="text-[9px] text-slate-500 font-bold">{m.phone || 'Sem Telefone'}</p>
+                                {m.ministerios && <p className="text-[9px] text-blue-500 font-black uppercase italic">D: {m.ministerios}</p>}
+                              </div>
+                              <div className="flex flex-wrap gap-1 mt-1.5">
+                                {m.ecc && <span className="text-[7px] border border-blue-500/30 text-blue-500 px-1 rounded font-black uppercase">ECC</span>}
+                                {m.bat && <span className="text-[7px] border border-emerald-500/30 text-emerald-500 px-1 rounded font-black uppercase">BAT</span>}
+                                {m.integracao && <span className="text-[7px] border border-amber-500/30 text-amber-500 px-1 rounded font-black uppercase">FCC</span>}
+                                {m.con && <span className="text-[7px] border border-red-500/30 text-red-500 px-1 rounded font-black uppercase">CON</span>}
+                                {m.maturidade && <span className="text-[7px] border border-purple-500/30 text-purple-500 px-1 rounded font-black uppercase">TMC</span>}
+                                {m.ctl && <span className="text-[7px] border border-slate-500/30 text-slate-500 px-1 rounded font-black uppercase">MSD</span>}
+                                {m.outros && <span className="text-[7px] border border-pink-500/30 text-pink-500 px-1 rounded font-black uppercase">VS</span>}
+                              </div>
                            </td>
                            <td className="px-4 py-3 text-center">
                              <button 
@@ -911,6 +923,7 @@ function ChurchMembershipSystem() {
                 <InputCompact label="ENDEREÇO" value={memberForm.address} onChange={val => setMemberForm({...memberForm, address: val})} dark={darkMode} />
                 <div className="grid grid-cols-2 gap-4"><InputCompact label="Nº" value={memberForm.number} onChange={val => setMemberForm({...memberForm, number: val})} dark={darkMode} /><InputCompact label="BAIRRO" value={memberForm.neighborhood} onChange={val => setMemberForm({...memberForm, neighborhood: val})} dark={darkMode} /></div>
                 <InputCompact label="CIDADE" value={memberForm.city} onChange={val => setMemberForm({...memberForm, city: val})} dark={darkMode} />
+                <InputCompact label="DISCIPULADOR" value={memberForm.ministerios} onChange={val => setMemberForm({...memberForm, ministerios: val})} dark={darkMode} />
               </div>
               <div className="space-y-6">
                  {/* Frequência Rápida */}
