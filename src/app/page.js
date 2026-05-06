@@ -44,7 +44,7 @@ function ChurchMembershipSystem() {
     const cell = cells.find(c => c.id === m.cell_id);
     const latestDate = getMeetingDates(cell?.day_of_week)[0];
     const isPresentCell = attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
-    const isPresentCult = !m.attended_cult; // attended_cult=true significa FALTOU
+    const isPresentCult = !m.attended_cult;
     return { isPresentCell, isPresentCult };
   };
 
@@ -88,7 +88,7 @@ function ChurchMembershipSystem() {
   
   const [cellForm, setCellForm] = useState({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30' });
   const [sectorForm, setSectorForm] = useState({ name: '' });
-  const [reportForm, setReportForm] = useState({ date: formatDate(new Date().toISOString().split('T')[0]), members: 0, frequenters: 0, visitors: 0, absents: 0, notes: '' });
+  const [reportForm, setReportForm] = useState({ date: new Date().toISOString().split('T')[0], members: 0, frequenters: 0, visitors: 0, notes: '' });
 
   useEffect(() => {
     const initFetch = async () => {
@@ -252,11 +252,10 @@ function ChurchMembershipSystem() {
 
   const addReport = async () => {
     const total = Number(reportForm.members) + Number(reportForm.frequenters) + Number(reportForm.visitors);
-    const dbDate = parseDate(reportForm.date);
-    const { data } = await supabase.from('reports').insert([{ ...reportForm, date: dbDate, total }]).select();
+    const { data } = await supabase.from('reports').insert([{ ...reportForm, total }]).select();
     if (data) {
       setReports([data[0], ...reports]);
-      setReportForm({ date: formatDate(new Date().toISOString().split('T')[0]), members: 0, frequenters: 0, visitors: 0, absents: 0, notes: '' });
+      setReportForm({ date: new Date().toISOString().split('T')[0], members: 0, frequenters: 0, visitors: 0, notes: '' });
       setShowReportForm(false);
     }
   };
@@ -375,21 +374,28 @@ function ChurchMembershipSystem() {
         <div className="p-6 md:p-10 space-y-6 md:space-y-10 animate-in fade-in duration-500 max-w-[1600px] mx-auto w-full">
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-                <StatCard label="Membros" value={stats.total} icon={<Users size={16}/>} color="blue" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('all'); }} />
-                <StatCard label="Ambos" value={stats.both} icon={<ShieldCheck size={16}/>} color="emerald" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('both'); }} />
-                <StatCard label="Só Célula" value={stats.onlyCell} icon={<Home size={16}/>} color="blue" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('only-cell'); }} />
-                <StatCard label="Só Culto" value={stats.onlyCult} icon={<Star size={16}/>} color="purple" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('only-culto'); }} />
-                <StatCard label="Faltou Culto" value={stats.absentCult} icon={<Activity size={16}/>} color="red" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-culto'); }} />
-                <StatCard label="Faltou Célula" value={stats.absentCell} icon={<Clock size={16}/>} color="orange" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-cell'); }} />
-                <StatCard label="Ausente Ambos" value={stats.none} icon={<UserMinus size={16}/>} color="red" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('none'); }} />
-                <StatCard label="Células" value={cells.length} icon={<MapPin size={16}/>} color="indigo" dark={darkMode} />
-              </div>
+               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+                 <StatCard label="Membros" value={stats.total} icon={<Users size={16}/>} color="blue" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('all'); }} />
+                 <StatCard label="Ambos" value={stats.both} icon={<ShieldCheck size={16}/>} color="emerald" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('both'); }} />
+                 <StatCard label="Só Célula" value={stats.onlyCell} icon={<Home size={16}/>} color="blue" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('only-cell'); }} />
+                 <StatCard label="Só Culto" value={stats.onlyCult} icon={<Star size={16}/>} color="purple" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('only-culto'); }} />
+                 <StatCard label="Faltou Culto" value={stats.absentCult} icon={<Activity size={16}/>} color="red" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-culto'); }} />
+                 <StatCard label="Faltou Célula" value={stats.absentCell} icon={<Clock size={16}/>} color="orange" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-cell'); }} />
+                 <StatCard label="Ausente Ambos" value={stats.none} icon={<UserMinus size={16}/>} color="red" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('none'); }} />
+                 <StatCard label="Células" value={cells.length} icon={<MapPin size={16}/>} color="indigo" dark={darkMode} />
+               </div>
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                  <div className={`${t.card} lg:col-span-4 border rounded-3xl p-6 flex flex-col items-center`}>
                     <h3 className="text-[9px] font-black uppercase mb-6 self-start tracking-widest flex items-center gap-2 text-slate-500"><PieIcon size={12}/> Fidelidade Global</h3>
                     <div className="h-[200px] w-full relative mb-6">
-                      <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={loyaltyData} innerRadius={55} outerRadius={75} paddingAngle={5} dataKey="value">{loyaltyData.map((e, i) => <Cell key={i} fill={e.color} stroke="none" />)}</Pie><Tooltip content={<CustomTooltip dark={darkMode} />} /></PieChart></ResponsiveContainer>
+                      <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={[
+                        { name: 'Ambos', value: stats.both, color: '#10b981' },
+                        { name: 'Só Célula', value: stats.onlyCell, color: '#f59e0b' },
+                        { name: 'Só Culto', value: stats.onlyCult, color: '#a855f7' },
+                        { name: 'Inativos', value: stats.none, color: '#ef4444' },
+                      ].filter(d => d.value > 0)} innerRadius={55} outerRadius={75} paddingAngle={5} dataKey="value">{[
+                        { color: '#10b981' }, { color: '#f59e0b' }, { color: '#a855f7' }, { color: '#ef4444' }
+                      ].map((e, i) => <Cell key={i} fill={e.color} stroke="none" />)}</Pie><Tooltip content={<CustomTooltip dark={darkMode} />} /></PieChart></ResponsiveContainer>
                       <div className="absolute inset-0 flex flex-col items-center justify-center text-2xl font-black italic">{Math.round((stats.both/stats.total)*100 || 0)}%</div>
                     </div>
                     <div className="w-full space-y-2 mt-auto">
@@ -438,136 +444,120 @@ function ChurchMembershipSystem() {
           {(activeTab === 'members' || activeTab === 'leader-members') && (
             <div className="space-y-6">
                <header className="flex justify-between items-center">
-                 <h2 className="text-2xl font-black italic uppercase tracking-tighter">Membros & Engajamento</h2>
+                 <h2 className="text-2xl font-black italic uppercase tracking-tighter">Membros</h2>
                  {isLeaderMode && <button onClick={() => setShowMemberForm(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVO MEMBRO</button>}
                </header>
 
-               {/* Dashboard de Engajamento Consolidado (Célula vs Culto) */}
                {isLeaderMode && activeCell && (
-                  <div className="space-y-6 mb-8">
-                    {/* Resumo Consolidado de Engajamento */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className={`${t.card} p-5 border rounded-2xl flex flex-col items-center justify-center bg-blue-600/5 border-blue-500/20 shadow-lg shadow-blue-500/5`}>
-                        <p className="text-[10px] font-black uppercase text-blue-500 mb-1 tracking-widest">Membros Cadastrados</p>
-                        <p className="text-3xl font-black italic">{members.filter(m => m.cell_id === activeCell.id).length}</p>
-                      </div>
-                      <div className={`${t.card} p-5 border rounded-2xl flex flex-col items-center justify-center bg-orange-600/5 border-orange-500/20 shadow-lg shadow-orange-500/5`}>
-                        <p className="text-[10px] font-black uppercase text-orange-500 mb-1 tracking-widest">Presentes na Célula (Hoje)</p>
-                        <p className="text-3xl font-black italic">
-                          {members.filter(m => {
-                            const latestDate = getMeetingDates(activeCell?.day_of_week)[0];
-                            return m.cell_id === activeCell.id && attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
-                          }).length}
-                        </p>
-                      </div>
-                      <div className={`${t.card} p-5 border rounded-2xl flex flex-col items-center justify-center bg-emerald-600/5 border-emerald-500/20 shadow-lg shadow-emerald-500/5`}>
-                        <p className="text-[10px] font-black uppercase text-emerald-500 mb-1 tracking-widest">Presentes no Culto</p>
-                        <p className="text-3xl font-black italic">
-                          {members.filter(m => m.cell_id === activeCell.id && !m.attended_cult).length}
-                        </p>
-                      </div>
+                  <div className={`${t.card} p-6 border rounded-2xl flex flex-col items-center mb-6`}>
+                    <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest self-start">Engajamento (Célula vs Culto)</h3>
+                    <div className="w-full h-[180px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: 'Ambos', value: members.filter(m => m.cell_id === activeCell.id && m.attended_cell && !m.attended_cult).length },
+                              { name: 'Só Célula', value: members.filter(m => m.cell_id === activeCell.id && m.attended_cell && m.attended_cult).length },
+                              { name: 'Só Culto', value: members.filter(m => m.cell_id === activeCell.id && !m.attended_cell && !m.attended_cult).length },
+                              { name: 'Nenhum', value: members.filter(m => m.cell_id === activeCell.id && !m.attended_cell && m.attended_cult).length },
+                            ].filter(d => d.value > 0)}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={50}
+                            outerRadius={70}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            <Cell fill="#3b82f6" stroke="none" />
+                            <Cell fill="#10b981" stroke="none" />
+                            <Cell fill="#f59e0b" stroke="none" />
+                            <Cell fill="#475569" stroke="none" />
+                          </Pie>
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                            itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
                     </div>
-
-                    <div className={`${t.card} p-6 border rounded-2xl flex flex-col items-center`}>
-                   <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest self-start">Engajamento (Célula vs Culto)</h3>
-                   <div className="w-full h-[180px]">
-                     <ResponsiveContainer width="100%" height="100%">
-                       <PieChart>
-                         <Pie
-                           data={[
-                             { name: 'Ambos', value: members.filter(m => {
-                               const latestDate = getMeetingDates(activeCell?.day_of_week)[0];
-                               const inCell = attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
-                               return m.cell_id === activeCell.id && inCell && !m.attended_cult;
-                             }).length },
-                             { name: 'Só Célula', value: members.filter(m => {
-                               const latestDate = getMeetingDates(activeCell?.day_of_week)[0];
-                               const inCell = attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
-                               return m.cell_id === activeCell.id && inCell && m.attended_cult;
-                             }).length },
-                             { name: 'Só Culto', value: members.filter(m => {
-                               const latestDate = getMeetingDates(activeCell?.day_of_week)[0];
-                               const inCell = !attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
-                               return m.cell_id === activeCell.id && !inCell && !m.attended_cult;
-                             }).length },
-                             { name: 'Nenhum', value: members.filter(m => {
-                               const latestDate = getMeetingDates(activeCell?.day_of_week)[0];
-                               const inCell = !attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
-                               return m.cell_id === activeCell.id && !inCell && m.attended_cult;
-                             }).length },
-                           ].filter(d => d.value > 0)}
-                           cx="50%"
-                           cy="50%"
-                           innerRadius={50}
-                           outerRadius={70}
-                           paddingAngle={5}
-                           dataKey="value"
-                         >
-                           <Cell fill="#3b82f6" stroke="none" />
-                           <Cell fill="#f97316" stroke="none" />
-                           <Cell fill="#10b981" stroke="none" />
-                           <Cell fill="#475569" stroke="none" />
-                         </Pie>
-                         <Tooltip 
-                           contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                           itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}
-                         />
-                       </PieChart>
-                     </ResponsiveContainer>
-                   </div>
-                   <div className="flex flex-wrap justify-center gap-4 mt-4">
-                     {[
-                       { label: 'Ambos', color: 'bg-blue-500' },
-                       { label: 'Só Célula', color: 'bg-orange-500' },
-                       { label: 'Só Culto', color: 'bg-emerald-500' },
-                       { label: 'Nenhum', color: 'bg-slate-600' }
-                     ].map(item => (
-                       <div key={item.label} className="flex items-center gap-1.5">
-                         <div className={`w-2 h-2 rounded-full ${item.color}`}></div>
-                         <span className="text-[8px] font-black uppercase text-slate-400">{item.label}</span>
-                       </div>
-                     ))}
-                   </div>
-                 </div>
-               </div>
+                    <div className="flex flex-wrap justify-center gap-4 mt-4">
+                      {[
+                        { label: 'Ambos', color: 'bg-blue-500' },
+                        { label: 'Só Célula', color: 'bg-emerald-500' },
+                        { label: 'Só Culto', color: 'bg-amber-500' },
+                        { label: 'Nenhum', color: 'bg-slate-600' }
+                      ].map(item => (
+                        <div key={item.label} className="flex items-center gap-1.5">
+                          <div className={`w-2 h-2 rounded-full ${item.color}`}></div>
+                          <span className="text-[8px] font-black uppercase text-slate-400">{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                )}
+
                {!isLeaderMode && (
-                 <div className="flex flex-wrap gap-4 mb-6">
-                    <div className={`${t.card} border rounded-xl flex items-center px-4 py-2 gap-3 min-w-[200px]`}>
-                       <Users size={16} className="text-blue-500" />
-                       <select value={filterCellId || ''} onChange={e => setFilterCellId(e.target.value ? Number(e.target.value) : null)} className="bg-transparent font-black text-[10px] uppercase outline-none w-full italic">
-                          <option value="">Todas as Células</option>
-                          {cells.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                       </select>
-                    </div>
-                    <div className={`${t.card} border rounded-xl flex items-center px-4 py-2 gap-3 flex-1 min-w-[200px]`}>
-                       <Menu size={16} className="text-slate-500" />
-                       <input type="text" placeholder="BUSCAR POR NOME..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="bg-transparent font-black text-[10px] uppercase outline-none w-full italic" />
-                    </div>
-                <div className={`${t.card} border rounded-2xl overflow-x-auto`}><table className="w-full text-left min-w-[600px]"><thead className={`${t.tableHead} border-b ${t.border}`}><tr><th className="px-6 py-4 text-[9px] font-black uppercase">Membro</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase">Célula</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase">Culto</th><th className="px-6 py-4 text-right text-[9px] font-black uppercase">Ações</th></tr></thead><tbody className={`divide-y ${t.border}`}>{filteredMembers.map(m => {
-                  const latestDate = getMeetingDates(activeCell?.day_of_week)[0];
-                  const inCell = attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
-                  return (
-                    <tr key={m.id} className={t.hover}>
-                      <td className="px-6 py-4 text-sm font-black italic">{m.name}</td>
-                      <td className="px-6 py-4 text-center">
-                        <div className={`inline-flex p-3 rounded-xl border transition-all ${inCell ? 'bg-orange-500 text-white border-orange-400' : 'bg-white/5 text-slate-500 border-white/5'}`}>
-                          {inCell ? <Check size={16}/> : <Home size={16}/>}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <button onClick={() => toggleAttendance(m.id, 'attended_cult')} className={`p-3 rounded-xl border ${!m.attended_cult ? 'bg-blue-600 text-white border-blue-400' : 'bg-white/5 text-slate-500 border-white/5'}`}>
-                          {!m.attended_cult ? <Check size={16}/> : <Users size={16}/>}
-                        </button>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button onClick={() => { setEditingId(m.id); setMemberForm(m); setShowMemberForm(true); }} className="text-blue-500/30 hover:text-blue-500 p-2"><Edit2 size={16}/></button>
-                          <button onClick={() => deleteItem('members', m.id)} className="text-red-500/30 hover:text-red-500 p-2"><Trash2 size={16}/></button>
-                        </div>
-                      </td>
-                    </tr>
-                  )})}</tbody></table></div>utton></div></td></tr>))}</tbody></table></div>
+                  <div className="flex flex-wrap gap-4 mb-6">
+                     <div className={`${t.card} border rounded-xl flex items-center px-4 py-2 gap-3 min-w-[200px]`}>
+                        <Users size={16} className="text-blue-500" />
+                        <select value={filterCellId || ''} onChange={e => setFilterCellId(e.target.value ? Number(e.target.value) : null)} className="bg-transparent font-black text-[10px] uppercase outline-none w-full italic">
+                           <option value="">Todas as Células</option>
+                           {cells.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                     </div>
+                     <div className={`${t.card} border rounded-xl flex items-center px-4 py-2 gap-3 flex-1 min-w-[200px]`}>
+                        <Menu size={16} className="text-slate-500" />
+                        <input type="text" placeholder="BUSCAR POR NOME..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="bg-transparent font-black text-[10px] uppercase outline-none w-full italic" />
+                     </div>
+                  </div>
+               )}
+
+               <div className={`${t.card} border rounded-2xl overflow-x-auto`}>
+                 <table className="w-full text-left min-w-[600px]">
+                   <thead className={`${t.tableHead} border-b ${t.border}`}>
+                     <tr>
+                       <th className="px-6 py-4 text-[9px] font-black uppercase">Membro</th>
+                       <th className="px-6 py-4 text-center text-[9px] font-black uppercase">Célula</th>
+                       <th className="px-6 py-4 text-center text-[9px] font-black uppercase">Culto</th>
+                       <th className="px-6 py-4 text-right text-[9px] font-black uppercase">Ações</th>
+                     </tr>
+                   </thead>
+                   <tbody className={`divide-y ${t.border}`}>
+                     {members
+                       .filter(m => (!filterCellId || m.cell_id === filterCellId) && m.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                       .map(m => (
+                         <tr key={m.id} className={t.hover}>
+                           <td className="px-6 py-4">
+                             <p className="text-sm font-black italic uppercase tracking-tighter">{m.name}</p>
+                             <p className="text-[9px] text-slate-500 font-bold">{m.phone || 'Sem Telefone'}</p>
+                           </td>
+                           <td className="px-4 py-3 text-center">
+                             <button 
+                               onClick={() => toggleAttendance(m.id, 'attended_cell')}
+                               className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${m.attended_cell ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
+                             >
+                               {m.attended_cell ? 'Presente' : 'Faltou'}
+                             </button>
+                           </td>
+                           <td className="px-4 py-3 text-center">
+                             <button 
+                               onClick={() => toggleAttendance(m.id, 'attended_cult')}
+                               className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${m.attended_cult ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
+                             >
+                               {m.attended_cult ? 'Faltou' : 'Presente'}
+                             </button>
+                           </td>
+                           <td className="px-6 py-4 text-right">
+                             <div className="flex justify-end gap-2">
+                               <button onClick={() => { setEditingId(m.id); setMemberForm(m); setShowMemberForm(true); }} className="text-blue-500/30 hover:text-blue-500 p-2"><Edit2 size={16}/></button>
+                               <button onClick={() => deleteItem('members', m.id)} className="text-red-500/30 hover:text-red-500 p-2"><Trash2 size={16}/></button>
+                             </div>
+                           </td>
+                         </tr>
+                       ))}
+                   </tbody>
+                 </table>
+               </div>
             </div>
           )}
 
@@ -718,68 +708,23 @@ function ChurchMembershipSystem() {
                 <button onClick={() => setShowReportForm(true)} className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg shadow-emerald-900/20 hover:bg-emerald-500 transition-all">+ NOVO REGISTRO</button>
               </header>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-8">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
                 {[
-                  { label: 'Membros Totais', value: members.length, color: 'text-white', filter: 'all' },
-                  { 
-                    label: 'Comprometidos', 
-                    value: members.filter(m => {
-                      const { isPresentCell, isPresentCult } = getMemberEngagement(m);
-                      return isPresentCell && isPresentCult;
-                    }).length, 
-                    color: 'text-blue-500', 
-                    filter: 'both' 
-                  },
-                  { 
-                    label: 'Só Célula', 
-                    value: members.filter(m => {
-                      const { isPresentCell, isPresentCult } = getMemberEngagement(m);
-                      return isPresentCell && !isPresentCult;
-                    }).length, 
-                    color: 'text-emerald-500', 
-                    filter: 'only-cell' 
-                  },
-                  { 
-                    label: 'Só Culto', 
-                    value: members.filter(m => {
-                      const { isPresentCell, isPresentCult } = getMemberEngagement(m);
-                      return !isPresentCell && isPresentCult;
-                    }).length, 
-                    color: 'text-amber-500', 
-                    filter: 'only-culto' 
-                  },
-                  { 
-                    label: 'Ausentes Ambos', 
-                    value: members.filter(m => {
-                      const { isPresentCell, isPresentCult } = getMemberEngagement(m);
-                      return !isPresentCell && !isPresentCult;
-                    }).length, 
-                    color: 'text-red-500', 
-                    filter: 'none' 
-                  },
-                  { 
-                    label: 'Ausente Culto', 
-                    value: members.filter(m => m.attended_cult).length, 
-                    color: 'text-rose-400', 
-                    filter: 'absent-culto' 
-                  },
-                  { 
-                    label: 'Ausente Célula', 
-                    value: members.filter(m => {
-                      const cell = cells.find(c => c.id === m.cell_id);
-                      const latestDate = getMeetingDates(cell?.day_of_week)[0];
-                      return !attendance.some(a => a.member_id === m.id && a.date === latestDate && a.status === 'P');
-                    }).length, 
-                    color: 'text-orange-400', 
-                    filter: 'absent-cell' 
-                  },
+                  { label: 'Membros', value: stats.total, color: 'text-white', filter: 'all' },
+                  { label: 'Ambos', value: stats.both, color: 'text-emerald-500', filter: 'both' },
+                  { label: 'Só Célula', value: stats.onlyCell, color: 'text-blue-400', filter: 'only-cell' },
+                  { label: 'Só Culto', value: stats.onlyCult, color: 'text-purple-400', filter: 'only-culto' },
+                  { label: 'Faltou Culto', value: stats.absentCult, color: 'text-red-400', filter: 'absent-culto' },
+                  { label: 'Faltou Célula', value: stats.absentCell, color: 'text-orange-400', filter: 'absent-cell' },
+                  { label: 'Ausente Ambos', value: stats.none, color: 'text-red-600', filter: 'none' },
+                  { label: 'Células', value: cells.length, color: 'text-indigo-400', filter: null },
                 ].map(kpi => (
                   <button 
                     key={kpi.label} 
-                    onClick={() => setAnalyticsFilter(analyticsFilter === kpi.filter ? null : kpi.filter)}
+                    onClick={() => kpi.filter && setAnalyticsFilter(analyticsFilter === kpi.filter ? null : kpi.filter)}
                     className={`${t.card} p-4 border rounded-2xl text-left hover:border-blue-500/50 transition-all ${analyticsFilter === kpi.filter ? 'ring-2 ring-blue-500/50 border-blue-500' : ''}`}
                   >
-                     <p className="text-[7px] font-black uppercase text-slate-500 mb-1">{kpi.label}</p>
+                     <p className="text-[8px] font-black uppercase text-slate-500 mb-1">{kpi.label}</p>
                      <p className={`text-xl font-black italic ${kpi.color}`}>{kpi.value}</p>
                   </button>
                 ))}
@@ -792,17 +737,17 @@ function ChurchMembershipSystem() {
                     <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-500 italic">
                       Lista: {
                         analyticsFilter === 'all' ? 'Todos os Membros' :
+                        analyticsFilter === 'both' ? 'Comprometidos (Célula + Culto)' :
                         analyticsFilter === 'only-cell' ? 'Frequentes apenas na Célula' :
                         analyticsFilter === 'only-culto' ? 'Frequentes apenas no Culto' :
-                        analyticsFilter === 'both' ? 'Comprometidos (Célula + Culto)' :
-                        analyticsFilter === 'absent-culto' ? 'Ausentes no Culto Dominical' :
-                        analyticsFilter === 'absent-cell' ? 'Ausentes na Reunião de Célula' :
-                        'Ausentes em Ambos'
+                        analyticsFilter === 'absent-culto' ? 'Ausentes no Culto' :
+                        analyticsFilter === 'absent-cell' ? 'Ausentes na Célula' :
+                        'Inativos (Ausentes em Ambos)'
                       }
                     </h3>
                     <button onClick={() => setAnalyticsFilter(null)} className="text-[8px] font-black uppercase text-slate-500 hover:text-white">Fechar ×</button>
                   </div>
-                  <div className="max-h-[400px] overflow-y-auto custom-scrollbar-fine">
+                  <div className="max-h-[300px] overflow-y-auto custom-scrollbar-fine">
                     <table className="w-full text-left">
                       <tbody className="divide-y divide-white/5">
                         {members
@@ -845,10 +790,10 @@ function ChurchMembershipSystem() {
                       <PieChart>
                         <Pie
                           data={[
-                            { name: 'Ambos', value: members.filter(m => m.attended_cell && !m.attended_cult).length },
-                            { name: 'Só Célula', value: members.filter(m => m.attended_cell && m.attended_cult).length },
-                            { name: 'Só Culto', value: members.filter(m => !m.attended_cell && !m.attended_cult).length },
-                            { name: 'Nenhum', value: members.filter(m => !m.attended_cell && m.attended_cult).length },
+                            { name: 'Ambos', value: stats.both, color: '#10b981' },
+                            { name: 'Só Célula', value: stats.onlyCell, color: '#f59e0b' },
+                            { name: 'Só Culto', value: stats.onlyCult, color: '#a855f7' },
+                            { name: 'Inativos', value: stats.none, color: '#ef4444' },
                           ].filter(d => d.value > 0)}
                           cx="50%"
                           cy="50%"
@@ -857,9 +802,9 @@ function ChurchMembershipSystem() {
                           paddingAngle={5}
                           dataKey="value"
                         >
-                          <Cell fill="#3b82f6" />
                           <Cell fill="#10b981" />
                           <Cell fill="#f59e0b" />
+                          <Cell fill="#a855f7" />
                           <Cell fill="#ef4444" />
                         </Pie>
                         <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} />
@@ -876,18 +821,12 @@ function ChurchMembershipSystem() {
                       <div key={r.id} className={`${t.card} border rounded-2xl p-6 relative group hover:border-blue-500/30 transition-all`}>
                         <div className="flex justify-between items-start mb-4">
                           <div className="bg-blue-600/10 p-2 rounded-lg text-blue-500"><Calendar size={18}/></div>
-                          <div className="flex gap-4">
-                            <div className="text-right">
-                              <p className="text-xl font-black tracking-tighter text-blue-500">{r.total}</p>
-                              <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Total</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-xl font-black tracking-tighter text-red-500">{r.absents || 0}</p>
-                              <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Faltas</p>
-                            </div>
+                          <div className="text-right">
+                            <p className="text-xl font-black tracking-tighter">{r.total}</p>
+                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Total</p>
                           </div>
                         </div>
-                        <p className="text-sm font-black italic tracking-tighter uppercase mb-2">{formatDate(r.date)}</p>
+                        <p className="text-sm font-black italic tracking-tighter uppercase mb-2">{new Date(r.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</p>
                         <button 
                           onClick={() => deleteItem('reports', r.id)} 
                           className="text-red-500 opacity-20 group-hover:opacity-100 absolute top-4 right-4 p-2 bg-red-500/10 rounded-lg hover:bg-red-500 hover:text-white transition-all"
@@ -1039,11 +978,10 @@ function ChurchMembershipSystem() {
             <h2 className="text-3xl font-black mb-8 italic uppercase tracking-tighter">Relatório</h2>
             <div className="space-y-4">
               <InputCompact label="DATA" value={reportForm.date} onChange={val => setReportForm({...reportForm, date: val})} dark={darkMode} />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                  <InputCompact label="MEMBROS" value={reportForm.members} onChange={val => setReportForm({...reportForm, members: val})} dark={darkMode} />
                  <InputCompact label="FREQ." value={reportForm.frequenters} onChange={val => setReportForm({...reportForm, frequenters: val})} dark={darkMode} />
                  <InputCompact label="VISIT." value={reportForm.visitors} onChange={val => setReportForm({...reportForm, visitors: val})} dark={darkMode} />
-                 <InputCompact label="AUSENTES" value={reportForm.absents} onChange={val => setReportForm({...reportForm, absents: val})} dark={darkMode} />
               </div>
               <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}>
                  <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">OBSERVAÇÕES</p>
