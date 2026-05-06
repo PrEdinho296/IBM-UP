@@ -33,7 +33,7 @@ function ChurchMembershipSystem() {
     const today = new Date();
     let current = new Date(today);
     while (current.getDay() !== targetDay) current.setDate(current.getDate() - 1);
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 12; i++) {
       datesList.unshift(new Date(current).toISOString().split('T')[0]);
       current.setDate(current.getDate() - 7);
     }
