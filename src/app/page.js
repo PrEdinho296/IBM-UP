@@ -47,6 +47,7 @@ function ChurchMembershipSystem() {
   const [searchingCep, setSearchingCep] = useState(false);
   const [filterCellId, setFilterCellId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [analyticsFilter, setAnalyticsFilter] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [timeFilter, setTimeFilter] = useState('Tudo');
 
@@ -628,27 +629,68 @@ function ChurchMembershipSystem() {
               </header>
 
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className={`${t.card} p-4 border rounded-2xl`}>
-                   <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Membros Totais</p>
-                   <p className="text-2xl font-black italic text-white">{members.length}</p>
-                </div>
-                <div className={`${t.card} p-4 border rounded-2xl`}>
-                   <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Só Célula</p>
-                   <p className="text-2xl font-black italic text-emerald-500">{members.filter(m => m.attended_cell && m.attended_cult).length}</p>
-                </div>
-                <div className={`${t.card} p-4 border rounded-2xl`}>
-                   <p className="text-[8px] font-black uppercase text-slate-500 mb-1">No Culto</p>
-                   <p className="text-2xl font-black italic text-amber-500">{members.filter(m => !m.attended_cell && !m.attended_cult).length}</p>
-                </div>
-                <div className={`${t.card} p-4 border rounded-2xl`}>
-                   <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Comprometidos</p>
-                   <p className="text-2xl font-black italic text-blue-500">{members.filter(m => m.attended_cell && !m.attended_cult).length}</p>
-                </div>
-                <div className={`${t.card} p-4 border rounded-2xl`}>
-                   <p className="text-[8px] font-black uppercase text-slate-500 mb-1">Ausentes Ambos</p>
-                   <p className="text-2xl font-black italic text-red-500">{members.filter(m => !m.attended_cell && m.attended_cult).length}</p>
-                </div>
+                {[
+                  { label: 'Membros Totais', value: members.length, color: 'text-white', filter: 'all' },
+                  { label: 'Só Célula', value: members.filter(m => m.attended_cell && m.attended_cult).length, color: 'text-emerald-500', filter: 'only-cell' },
+                  { label: 'No Culto', value: members.filter(m => !m.attended_cell && !m.attended_cult).length, color: 'text-amber-500', filter: 'only-culto' },
+                  { label: 'Comprometidos', value: members.filter(m => m.attended_cell && !m.attended_cult).length, color: 'text-blue-500', filter: 'both' },
+                  { label: 'Ausentes Ambos', value: members.filter(m => !m.attended_cell && m.attended_cult).length, color: 'text-red-500', filter: 'none' },
+                ].map(kpi => (
+                  <button 
+                    key={kpi.label} 
+                    onClick={() => setAnalyticsFilter(analyticsFilter === kpi.filter ? null : kpi.filter)}
+                    className={`${t.card} p-4 border rounded-2xl text-left hover:border-blue-500/50 transition-all ${analyticsFilter === kpi.filter ? 'ring-2 ring-blue-500/50 border-blue-500' : ''}`}
+                  >
+                     <p className="text-[8px] font-black uppercase text-slate-500 mb-1">{kpi.label}</p>
+                     <p className={`text-2xl font-black italic ${kpi.color}`}>{kpi.value}</p>
+                  </button>
+                ))}
               </div>
+
+              {/* Lista Dinâmica de Membros Filtrada */}
+              {analyticsFilter && (
+                <div className={`${t.card} border rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300`}>
+                  <div className="p-4 border-b border-white/5 bg-blue-600/5 flex justify-between items-center">
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-500 italic">
+                      Lista: {
+                        analyticsFilter === 'all' ? 'Todos os Membros' :
+                        analyticsFilter === 'only-cell' ? 'Frequentes apenas na Célula' :
+                        analyticsFilter === 'only-culto' ? 'Frequentes apenas no Culto' :
+                        analyticsFilter === 'both' ? 'Comprometidos (Célula + Culto)' :
+                        'Ausentes em Ambos'
+                      }
+                    </h3>
+                    <button onClick={() => setAnalyticsFilter(null)} className="text-[8px] font-black uppercase text-slate-500 hover:text-white">Fechar ×</button>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto custom-scrollbar-fine">
+                    <table className="w-full text-left">
+                      <tbody className="divide-y divide-white/5">
+                        {members
+                          .filter(m => {
+                            if (analyticsFilter === 'all') return true;
+                            if (analyticsFilter === 'only-cell') return m.attended_cell && m.attended_cult;
+                            if (analyticsFilter === 'only-culto') return !m.attended_cell && !m.attended_cult;
+                            if (analyticsFilter === 'both') return m.attended_cell && !m.attended_cult;
+                            if (analyticsFilter === 'none') return !m.attended_cell && m.attended_cult;
+                            return true;
+                          })
+                          .sort((a,b) => a.name.localeCompare(b.name))
+                          .map(m => (
+                            <tr key={m.id} className="hover:bg-white/5">
+                              <td className="px-6 py-3">
+                                <p className="text-xs font-black uppercase italic">{m.name}</p>
+                                <p className="text-[8px] font-black text-slate-500 uppercase">{cells.find(c => c.id === m.cell_id)?.name || 'Sem Célula'}</p>
+                              </td>
+                              <td className="px-6 py-3 text-right">
+                                <button onClick={() => { setEditingId(m.id); setMemberForm(m); setShowMemberForm(true); }} className="text-blue-500 hover:text-blue-400 font-black text-[8px] uppercase tracking-widest">Ver Ficha</button>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Gráfico de Distribuição */}
