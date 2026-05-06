@@ -23,6 +23,7 @@ function ChurchMembershipSystem() {
   const [cells, setCells] = useState([]);
   const [sectors, setSectors] = useState([]);
   const [reports, setReports] = useState([]);
+  const [attendance, setAttendance] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
@@ -74,13 +75,15 @@ function ChurchMembershipSystem() {
       const { data: c } = await supabase.from('cells').select('*').order('name');
       const { data: m } = await supabase.from('members').select('*').order('name');
       const { data: r } = await supabase.from('reports').select('*').order('date', { ascending: false });
+      const { data: att } = await supabase.from('cell_attendance').select('*').order('date', { ascending: false });
 
       if (s) setSectors(s);
       if (c) setCells(c);
       if (m) setMembers(m);
       if (r) setReports(r);
+      if (att) setAttendance(att);
       
-      return { sectors: s, cells: c, members: m, reports: r };
+      return { sectors: s, cells: c, members: m, reports: r, attendance: att };
     } catch (error) { 
       console.error('Erro ao buscar dados:', error);
       return null;
@@ -109,6 +112,25 @@ function ChurchMembershipSystem() {
     const newValue = !member[type];
     setMembers(members.map(m => m.id === memberId ? { ...m, [type]: newValue } : m));
     await supabase.from('members').update({ [type]: newValue }).eq('id', memberId);
+  };
+
+  const toggleHistoryAttendance = async (memberId, cellId, date) => {
+    const existing = attendance.find(a => a.member_id === memberId && a.date === date);
+    let nextStatus = 'P';
+    if (existing?.status === 'P') nextStatus = 'F';
+    else if (existing?.status === 'F') nextStatus = null;
+
+    if (nextStatus) {
+      const payload = { member_id: memberId, cell_id: cellId, date, status: nextStatus };
+      setAttendance(prev => {
+        const other = prev.filter(a => !(a.member_id === memberId && a.date === date));
+        return [...other, { ...payload, id: existing?.id || Date.now() }];
+      });
+      await supabase.from('cell_attendance').upsert([payload], { onConflict: 'member_id,date' });
+    } else {
+      setAttendance(prev => prev.filter(a => !(a.member_id === memberId && a.date === date)));
+      await supabase.from('cell_attendance').delete().match({ member_id: memberId, date });
+    }
   };
 
   const addMember = async () => {
@@ -246,7 +268,10 @@ function ChurchMembershipSystem() {
         </div>
         <nav className="flex-1 px-3 space-y-1">
           {isLeaderMode ? (
-            <MenuBtn icon={<Users size={18}/>} label="Minha Célula" active={true} onClick={() => setActiveTab('leader-members')} open={sidebarOpen} dark={darkMode} />
+            <>
+              <MenuBtn icon={<Users size={18}/>} label="Membros" active={activeTab === 'leader-members'} onClick={() => setActiveTab('leader-members')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<Calendar size={18}/>} label="Frequência" active={activeTab === 'leader-attendance'} onClick={() => setActiveTab('leader-attendance')} open={sidebarOpen} dark={darkMode} />
+            </>
           ) : (
             <>
               <MenuBtn icon={<LayoutDashboard size={18}/>} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} open={sidebarOpen} dark={darkMode} />
@@ -342,8 +367,66 @@ function ChurchMembershipSystem() {
 
           {(activeTab === 'members' || activeTab === 'leader-members') && (
             <div className="space-y-6">
-               <header className="flex justify-between items-center"><h2 className="text-2xl font-black italic uppercase tracking-tighter">Membros</h2><button onClick={() => setShowMemberForm(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVO MEMBRO</button></header>
+               <header className="flex justify-between items-center">
+                 <h2 className="text-2xl font-black italic uppercase tracking-tighter">Membros</h2>
+                 {isLeaderMode && <button onClick={() => setShowMemberForm(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVO MEMBRO</button>}
+               </header>
+               {!isLeaderMode && (
+                 <div className="flex flex-wrap gap-4 mb-6">
+                    <div className={`${t.card} border rounded-xl flex items-center px-4 py-2 gap-3 min-w-[200px]`}>
+                       <Users size={16} className="text-blue-500" />
+                       <select value={filterCellId || ''} onChange={e => setFilterCellId(e.target.value ? Number(e.target.value) : null)} className="bg-transparent font-black text-[10px] uppercase outline-none w-full italic">
+                          <option value="">Todas as Células</option>
+                          {cells.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                       </select>
+                    </div>
+                    <div className={`${t.card} border rounded-xl flex items-center px-4 py-2 gap-3 flex-1 min-w-[200px]`}>
+                       <Menu size={16} className="text-slate-500" />
+                       <input type="text" placeholder="BUSCAR POR NOME..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="bg-transparent font-black text-[10px] uppercase outline-none w-full italic" />
+                    </div>
+                 </div>
+               )}
                <div className={`${t.card} border rounded-2xl overflow-x-auto`}><table className="w-full text-left min-w-[600px]"><thead className={`${t.tableHead} border-b ${t.border}`}><tr><th className="px-6 py-4 text-[9px] font-black uppercase">Membro</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase">Célula</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase">Culto</th><th className="px-6 py-4 text-right text-[9px] font-black uppercase">Ações</th></tr></thead><tbody className={`divide-y ${t.border}`}>{filteredMembers.map(m => (<tr key={m.id} className={t.hover}><td className="px-6 py-4 text-sm font-black italic">{m.name}</td><td className="px-6 py-4 text-center"><button onClick={() => toggleAttendance(m.id, 'attended_cell')} className={`p-3 rounded-xl border ${m.attended_cell ? 'bg-orange-500 text-white' : 'bg-white/5 text-slate-500'}`}>{m.attended_cell ? <Check size={16}/> : <Home size={16}/>}</button></td><td className="px-6 py-4 text-center"><button onClick={() => toggleAttendance(m.id, 'attended_cult')} className={`p-3 rounded-xl border ${m.attended_cult ? 'bg-blue-600 text-white' : 'bg-white/5 text-slate-500'}`}>{m.attended_cult ? <Check size={16}/> : <Users size={16}/>}</button></td><td className="px-6 py-4 text-right"><div className="flex justify-end gap-2"><button onClick={() => { setEditingId(m.id); setMemberForm(m); setShowMemberForm(true); }} className="text-blue-500/30 hover:text-blue-500 p-2"><Edit2 size={16}/></button><button onClick={() => deleteItem('members', m.id)} className="text-red-500/30 hover:text-red-500 p-2"><Trash2 size={16}/></button></div></td></tr>))}</tbody></table></div>
+            </div>
+          )}
+
+          {isLeaderMode && activeTab === 'leader-attendance' && (
+            <div className="space-y-6">
+              <header className="flex justify-between items-center"><h2 className="text-2xl font-black italic uppercase tracking-tighter">Histórico de Frequência</h2></header>
+              <div className={`${t.card} border rounded-2xl overflow-x-auto`}>
+                <table className="w-full text-left">
+                  <thead className={`${t.tableHead} border-b ${t.border}`}>
+                    <tr>
+                      <th className="px-6 py-4 text-[9px] font-black uppercase sticky left-0 z-10 bg-inherit border-r border-white/5">Nome do Membro</th>
+                      {['2026-04-15', '2026-04-22', '2026-04-29', '2026-05-06', '2026-05-13'].map(d => (
+                        <th key={d} className="px-4 py-4 text-center text-[9px] font-black uppercase whitespace-nowrap">
+                          {new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '')}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className={`divide-y ${t.border}`}>
+                    {filteredMembers.map(m => (
+                      <tr key={m.id} className={t.hover}>
+                        <td className="px-6 py-4 text-sm font-black italic sticky left-0 z-10 bg-inherit border-r border-white/5">{m.name}</td>
+                        {['2026-04-15', '2026-04-22', '2026-04-29', '2026-05-06', '2026-05-13'].map(d => {
+                          const att = attendance.find(a => a.member_id === m.id && a.date === d);
+                          return (
+                            <td key={d} className="px-4 py-4 text-center">
+                              <button 
+                                onClick={() => toggleHistoryAttendance(m.id, activeCell.id, d)}
+                                className={`w-8 h-8 rounded-lg font-black text-xs transition-all ${att?.status === 'P' ? 'bg-emerald-600 text-white shadow-lg' : att?.status === 'F' ? 'bg-red-600 text-white shadow-lg' : 'bg-white/5 text-slate-500 border border-white/5'}`}
+                              >
+                                {att?.status || '-'}
+                              </button>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
