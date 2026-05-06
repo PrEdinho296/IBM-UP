@@ -466,17 +466,11 @@ function ChurchMembershipSystem() {
             <div className="space-y-6">
                <header className="flex justify-between items-center"><h2 className="text-2xl font-black italic uppercase tracking-tighter">Células</h2><button onClick={() => setShowCellForm(true)} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVA CÉLULA</button></header>
                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">{cells.map(cell => (<div key={cell.id} className={`${t.card} border rounded-2xl p-6 flex flex-col group`}><div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-500 mb-4 group-hover:bg-blue-600 group-hover:text-white transition-all"><Home size={20}/></div><h3 className="text-lg font-black uppercase italic mb-1">{cell.name}</h3><p className="text-blue-500 text-[9px] font-black uppercase mb-2">{cell.leader}</p>                    <div className="grid grid-cols-2 gap-2 mb-4 border-y border-white/5 py-4">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest">Reunião</span>
-                        <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-blue-400 italic">
-                          <Calendar size={12}/> {cell.day_of_week || '---'}
-                        </div>
+                      <div className="flex items-center justify-center gap-2 text-[11px] font-black uppercase text-blue-400 italic notranslate" translate="no">
+                        <Calendar size={14}/> {cell.day_of_week || '---'}
                       </div>
-                      <div className="flex flex-col gap-1 border-l border-white/5 pl-3">
-                        <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest">Início</span>
-                        <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-emerald-400 italic">
-                          <Clock size={12}/> {cell.meeting_time || '---'}
-                        </div>
+                      <div className="flex items-center justify-center gap-2 text-[11px] font-black uppercase text-emerald-400 italic border-l border-white/5 notranslate" translate="no">
+                        <Clock size={14}/> {cell.meeting_time || '---'}
                       </div>
                     </div><div className="flex gap-2"><button onClick={() => { const link = `${window.location.origin}${window.location.pathname}?cellId=${cell.id}`; navigator.clipboard.writeText(link); setCopiedId(cell.id); setTimeout(() => setCopiedId(null), 2000); }} className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 font-black text-[8px] uppercase tracking-widest transition-all ${copiedId === cell.id ? 'bg-emerald-600 text-white' : 'bg-blue-600/10 text-blue-500'}`}>{copiedId === cell.id ? 'Copiado!' : 'Link Líder'}</button><button onClick={() => { setEditingCellId(cell.id); setCellForm(cell); setShowCellForm(true); }} className="p-2.5 rounded-lg border border-white/10 text-white/50 hover:bg-white/5 hover:text-blue-400"><Edit2 size={12}/></button>
 <button onClick={() => { setActiveCell(cell); setIsLeaderMode(true); setActiveTab('leader-members'); }} className="p-2.5 rounded-lg border border-white/10 text-white/50 hover:bg-white/5"><Eye size={12}/></button><button onClick={() => deleteItem('cells', cell.id)} className="p-2.5 rounded-lg text-red-500/30 hover:text-red-500"><Trash2 size={12}/></button></div></div>))}</div>
