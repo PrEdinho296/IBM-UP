@@ -98,6 +98,50 @@ function ChurchMembershipSystem() {
   });
   
   const [cellForm, setCellForm] = useState({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30' });
+  const [session, setSession] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authForm, setAuthForm] = useState({ email: '', password: '', newPassword: '' });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setAuthLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: authForm.email,
+      password: authForm.password,
+    });
+    if (error) alert('Erro no login: ' + error.message);
+    setAuthLoading(false);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    const { error } = await supabase.auth.updateUser({ password: authForm.newPassword });
+    if (error) alert('Erro ao alterar senha: ' + error.message);
+    else {
+      alert('Senha alterada com sucesso!');
+      setIsChangingPassword(false);
+      setAuthForm({ ...authForm, newPassword: '' });
+    }
+  };
   const [sectorForm, setSectorForm] = useState({ name: '' });
   const [reportForm, setReportForm] = useState({ date: new Date().toISOString().split('T')[0], members: 0, frequenters: 0, visitors: 0, notes: '' });
 
@@ -349,6 +393,29 @@ function ChurchMembershipSystem() {
     };
   });
 
+  if (authLoading) return <div className="min-h-screen bg-[#020617] flex items-center justify-center text-white italic font-bold text-xl animate-pulse">AUTENTICANDO...</div>;
+
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-[#020617] flex items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-8 animate-in fade-in duration-500">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-blue-600 rounded-3xl mx-auto flex items-center justify-center text-white shadow-2xl shadow-blue-600/20 mb-6 rotate-3 hover:rotate-0 transition-all duration-500">
+              <Users size={40} />
+            </div>
+            <h1 className="text-5xl font-black italic uppercase tracking-tighter text-white">IBMUP</h1>
+            <p className="text-blue-500 font-black uppercase text-[10px] tracking-[0.3em] mt-2">Acesso Pastoral</p>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-4 bg-white/5 p-8 rounded-3xl border border-white/10 backdrop-blur-md">
+            <InputCompact label="E-MAIL" value={authForm.email} onChange={val => setAuthForm({...authForm, email: val})} dark={true} />
+            <InputCompact label="SENHA" value={authForm.password} onChange={val => setAuthForm({...authForm, password: val})} dark={true} />
+            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-blue-900/20 active:scale-95">Entrar no Painel</button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   const t = {
     bg: darkMode ? 'bg-[#020617]' : 'bg-[#f8fafc]',
     card: darkMode ? 'bg-[#0f172a]/40 border-white/5' : 'bg-white border-slate-200 shadow-sm',
@@ -393,9 +460,9 @@ function ChurchMembershipSystem() {
           )}
         </nav>
         <div className={`p-4 border-t ${t.border} space-y-2`}>
+           <button onClick={() => setIsChangingPassword(true)} className={`w-full flex items-center gap-3 p-3 text-[10px] ${t.subText} hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest`}><ShieldCheck size={16}/> {sidebarOpen && 'Mudar Senha'}</button>
            <button onClick={() => fetchData()} className={`w-full flex items-center gap-3 p-3 text-[10px] ${t.subText} hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest`}><Activity size={16}/> {sidebarOpen && 'Atualizar'}</button>
-           <button onClick={() => setDarkMode(!darkMode)} className={`w-full flex items-center gap-3 p-3 text-[10px] ${t.subText} ${t.hover} rounded-xl transition-all font-black uppercase tracking-widest`}>{darkMode ? <Sun size={16}/> : <Moon size={16}/>} {sidebarOpen && 'Tema'}</button>
-           <button onClick={() => { if(isLeaderMode) { setIsLeaderMode(false); setActiveTab('cells'); } else { fetchData(); } }} className="w-full flex items-center gap-3 p-3 text-[10px] text-red-500/70 hover:text-red-500 hover:bg-red-400/5 rounded-xl transition-all font-black uppercase tracking-widest"><Power size={16}/> {sidebarOpen && (isLeaderMode ? 'Voltar' : 'Sair')}</button>
+           <button onClick={handleLogout} className="w-full flex items-center gap-3 p-3 text-[10px] text-red-500/70 hover:text-red-500 hover:bg-red-400/5 rounded-xl transition-all font-black uppercase tracking-widest"><Power size={16}/> {sidebarOpen && 'Sair'}</button>
         </div>
       </aside>
 
@@ -1076,6 +1143,19 @@ function ChurchMembershipSystem() {
             </div>
             <button onClick={addReport} className="w-full bg-emerald-600 text-white py-4 rounded-xl font-black text-xs uppercase mt-6">Gravar</button>
           </div>
+        </div>
+      )}
+
+      {isChangingPassword && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <form onSubmit={handleChangePassword} className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-md rounded-2xl p-8 border ${t.border} shadow-2xl relative text-left`}>
+            <button type="button" onClick={() => setIsChangingPassword(false)} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24}/></button>
+            <h2 className="text-3xl font-black mb-8 italic uppercase tracking-tighter">Mudar Senha</h2>
+            <div className="space-y-4">
+              <InputCompact label="NOVA SENHA" value={authForm.newPassword} onChange={val => setAuthForm({...authForm, newPassword: val})} dark={darkMode} />
+            </div>
+            <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-xl font-black text-xs uppercase mt-6">Confirmar Nova Senha</button>
+          </form>
         </div>
       )}
 
