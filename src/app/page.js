@@ -547,7 +547,7 @@ function ChurchMembershipSystem() {
         </nav>
         <div className={`p-4 border-t ${t.border} space-y-2`}>
           {isLeaderMode && session && (
-            <button onClick={() => window.location.href = window.location.pathname} className="w-full flex items-center gap-3 p-3 text-[10px] text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest mb-2"><LayoutDashboard size={16}/> {sidebarOpen && 'Painel Geral'}</button>
+            <button onClick={() => window.location.href = '/'} className="w-full flex items-center gap-3 p-3 text-[10px] text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest mb-2"><LayoutDashboard size={16}/> {sidebarOpen && 'Painel Geral'}</button>
           )}
           <button onClick={() => setIsChangingPassword(true)} className={`w-full flex items-center gap-3 p-3 text-[10px] ${t.subText} hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest`}><ShieldCheck size={16} /> {sidebarOpen && 'Mudar Senha'}</button>
           <button onClick={() => fetchData()} className={`w-full flex items-center gap-3 p-3 text-[10px] ${t.subText} hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest`}><Activity size={16} /> {sidebarOpen && 'Atualizar'}</button>
@@ -564,7 +564,7 @@ function ChurchMembershipSystem() {
               <div className="flex items-center gap-2">
                 <p className={`${t.subText} text-[8px] font-bold uppercase tracking-widest`}>{isLeaderMode ? `Líder: ${activeCell?.name || ''}` : 'Gestão Estratégica'}</p>
                 {isLeaderMode && session && (
-                  <button onClick={() => window.location.href = window.location.pathname} className="text-[7px] font-black text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20 hover:bg-blue-500 hover:text-white transition-all uppercase italic tracking-tighter">Voltar ao Início</button>
+                  <button onClick={() => window.location.href = '/'} className="text-[7px] font-black text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20 hover:bg-blue-500 hover:text-white transition-all uppercase italic tracking-tighter">Voltar ao Início</button>
                 )}
               </div>
             </div>
