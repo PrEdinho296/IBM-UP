@@ -201,7 +201,12 @@ function ChurchMembershipSystem() {
     }
   };
   const [sectorForm, setSectorForm] = useState({ name: '' });
-  const [reportForm, setReportForm] = useState({ date: new Date().toISOString().split('T')[0], members: 0, frequenters: 0, visitors: 0, notes: '' });
+  const [reportForm, setReportForm] = useState({ 
+    date: new Date().toISOString().split('T')[0], 
+    morning_people: 0, morning_visitors: 0, morning_kids: 0,
+    night_people: 0, night_visitors: 0, night_kids: 0,
+    notes: '' 
+  });
 
   useEffect(() => {
     const initFetch = async () => {
@@ -449,28 +454,36 @@ function ChurchMembershipSystem() {
   };
 
   const addReport = async () => {
-    // Calculamos o total global para fins de estatística simples
-    const total = Number(reportForm.m_total) + Number(reportForm.e_total);
-    
-    // Concatenamos os detalhes no campo notes para não quebrar o schema do banco caso não existam colunas
-    const detailNotes = `[MANHÃ: ${reportForm.m_total} Pessoas, ${reportForm.m_visitors} Vis., ${reportForm.m_children} Crianças] | [NOITE: ${reportForm.e_total} Pessoas, ${reportForm.e_visitors} Vis., ${reportForm.e_children} Crianças]\n${reportForm.notes}`;
-    
-    const { data } = await supabase.from('reports').insert([{ 
+    const pM = Number(reportForm.morning_people || 0);
+    const vM = Number(reportForm.morning_visitors || 0);
+    const kM = Number(reportForm.morning_kids || 0);
+    const pN = Number(reportForm.night_people || 0);
+    const vN = Number(reportForm.night_visitors || 0);
+    const kN = Number(reportForm.night_kids || 0);
+
+    const totalMembers = pM + pN;
+    const totalVisitors = vM + vN;
+    const totalKids = kM + kN;
+    const grandTotal = totalMembers + totalVisitors + totalKids;
+
+    const detailedNotes = `[MANHÃ: P:${pM}, V:${vM}, C:${kM}] [NOITE: P:${pN}, V:${vN}, C:${kN}] ${reportForm.notes}`;
+
+    const payload = {
       date: reportForm.date,
-      members: Number(reportForm.members),
-      frequenters: Number(reportForm.frequenters),
-      visitors: Number(reportForm.visitors),
-      total, 
-      notes: detailNotes 
-    }]).select();
-    
+      members: totalMembers,
+      visitors: totalVisitors,
+      frequenters: totalKids,
+      total: grandTotal,
+      notes: detailedNotes
+    };
+
+    const { data } = await supabase.from('reports').insert([payload]).select();
     if (data) {
       setReports([data[0], ...reports]);
       setReportForm({ 
         date: new Date().toISOString().split('T')[0], 
-        members: 0, frequenters: 0, visitors: 0, 
-        m_total: 0, m_visitors: 0, m_children: 0,
-        e_total: 0, e_visitors: 0, e_children: 0,
+        morning_people: 0, morning_visitors: 0, morning_kids: 0,
+        night_people: 0, night_visitors: 0, night_kids: 0,
         notes: '' 
       });
       setShowReportForm(false);
@@ -543,26 +556,28 @@ function ChurchMembershipSystem() {
   });
 
   const openReportForm = () => {
-    // Se estiver no modo líder, filtra pela célula. Se for pastor, pega tudo.
     const targetMembers = (isLeaderMode && activeCell) 
       ? members.filter(m => Number(m.cell_id) === Number(activeCell.id))
       : members;
     
-    const reportStats = targetMembers.reduce((acc, m) => {
+    const churchStats = targetMembers.reduce((acc, m) => {
       const { isPresentCell, isPresentCult } = getMemberEngagement(m);
       const attended = isLeaderMode ? isPresentCell : isPresentCult;
       
-      if (attended) acc.frequenters++;
+      if (attended) acc.people++;
       if (m.outros && attended) acc.visitors++;
       return acc;
-    }, { frequenters: 0, visitors: 0 });
+    }, { people: 0, visitors: 0 });
     
     setReportForm({
       ...reportForm,
-      members: targetMembers.length,
-      frequenters: reportStats.frequenters,
-      visitors: reportStats.visitors,
-      date: new Date().toISOString().split('T')[0]
+      date: new Date().toISOString().split('T')[0],
+      night_people: churchStats.people,
+      night_visitors: churchStats.visitors,
+      night_kids: 0,
+      morning_people: 0,
+      morning_visitors: 0,
+      morning_kids: 0
     });
     setShowReportForm(true);
   };
@@ -1216,24 +1231,15 @@ function ChurchMembershipSystem() {
                           </div>
                           <div className="bg-white/5 px-3 py-1 rounded-lg border border-white/5">
                             <p className="text-lg font-black tracking-tighter text-blue-500">{r.total || 0}</p>
-                            <p className="text-[6px] font-black uppercase tracking-[0.2em] text-slate-500 text-center">TOTAL CULTO</p>
+                            <p className="text-[6px] font-black uppercase tracking-[0.2em] text-slate-500 text-center">TOTAL</p>
                           </div>
                         </div>
                         
-                        {/* Audit Details */}
-                        <div className="grid grid-cols-3 gap-2 border-t border-white/5 pt-4 mb-4">
-                          <div className="text-center"><p className="text-[10px] font-black">{r.frequenters || 0}</p><p className="text-[6px] text-slate-500 uppercase font-bold">Audit. Freq.</p></div>
-                          <div className="text-center border-x border-white/5"><p className="text-[10px] font-black">{r.visitors || 0}</p><p className="text-[6px] text-slate-500 uppercase font-bold">Audit. Visit.</p></div>
-                          <div className="text-center"><p className="text-[10px] font-black">{r.members || 0}</p><p className="text-[6px] text-slate-500 uppercase font-bold">Total Memb.</p></div>
+                        <div className="grid grid-cols-3 gap-2 border-t border-white/5 pt-4">
+                          <div className="text-center"><p className="text-[10px] font-black">{r.frequenters || 0}</p><p className="text-[6px] text-slate-500 uppercase font-bold">Freq.</p></div>
+                          <div className="text-center border-x border-white/5"><p className="text-[10px] font-black">{r.visitors || 0}</p><p className="text-[6px] text-slate-500 uppercase font-bold">Visit.</p></div>
+                          <div className="text-center"><p className="text-[10px] font-black">{r.members || 0}</p><p className="text-[6px] text-slate-500 uppercase font-bold">Memb.</p></div>
                         </div>
-
-                        {/* Note breakdown if exists */}
-                        {r.notes && (
-                          <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Detalhamento por Culto</p>
-                            <p className="text-[9px] font-bold text-blue-400 leading-tight whitespace-pre-line">{r.notes}</p>
-                          </div>
-                        )}
 
                         <button
                           onClick={() => deleteItem('reports', r.id)}
@@ -1417,62 +1423,52 @@ function ChurchMembershipSystem() {
             </div>
 
             {/* Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar-fine">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar-fine">
               <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border} transition-all`}>
-                <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">DATA DO RELATÓRIO</p>
+                <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">DATA (DD/MM/AAAA)</p>
                 <input
-                  type="date"
-                  value={reportForm.date}
-                  onChange={e => setReportForm({ ...reportForm, date: e.target.value })}
-                  className={`w-full bg-transparent ${darkMode ? 'text-white' : 'text-slate-900'} font-black text-sm outline-none uppercase`}
+                  type="text"
+                  placeholder="00/00/0000"
+                  value={reportForm.date.split('-').reverse().join('/')}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val.length === 10) {
+                      const parts = val.split('/');
+                      if (parts.length === 3) {
+                        setReportForm({ ...reportForm, date: `${parts[2]}-${parts[1]}-${parts[0]}` });
+                      }
+                    } else {
+                      const parts = val.split('/');
+                      if (parts.length === 3 && parts[2].length === 4) {
+                        setReportForm({ ...reportForm, date: `${parts[2]}-${parts[1]}-${parts[0]}` });
+                      }
+                    }
+                  }}
+                  className={`w-full bg-transparent ${darkMode ? 'text-white' : 'text-slate-900'} font-black text-sm outline-none italic uppercase`}
                 />
               </div>
-
-              {/* Auditoria Automática (Baseada nas Chamadas) */}
-              <div className="bg-blue-600/5 p-4 rounded-2xl border border-blue-500/20 space-y-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <Activity size={14} className="text-blue-500" />
-                  <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest">Auditoria Automática (Checklist)</p>
+              <div className="space-y-4">
+                <div className="p-4 bg-blue-600/5 rounded-2xl border border-blue-500/10">
+                  <p className="text-[9px] font-black uppercase text-blue-500 mb-3 tracking-[0.2em]">Culto da Manhã</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <InputCompact label="PESSOAS" value={reportForm.morning_people} onChange={val => setReportForm({ ...reportForm, morning_people: val })} dark={darkMode} />
+                    <InputCompact label="VISIT." value={reportForm.morning_visitors} onChange={val => setReportForm({ ...reportForm, morning_visitors: val })} dark={darkMode} />
+                    <InputCompact label="CRIAN." value={reportForm.morning_kids} onChange={val => setReportForm({ ...reportForm, morning_kids: val })} dark={darkMode} />
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="text-center">
-                    <p className="text-sm font-black text-white">{reportForm.members}</p>
-                    <p className="text-[7px] text-slate-500 font-bold uppercase">Total Membros</p>
-                  </div>
-                  <div className="text-center border-x border-white/5">
-                    <p className="text-sm font-black text-emerald-500">{reportForm.frequenters}</p>
-                    <p className="text-[7px] text-slate-500 font-bold uppercase">Presentes</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm font-black text-blue-400">{reportForm.visitors}</p>
-                    <p className="text-[7px] text-slate-500 font-bold uppercase">Visitantes</p>
+
+                <div className="p-4 bg-purple-600/5 rounded-2xl border border-purple-500/10">
+                  <p className="text-[9px] font-black uppercase text-purple-500 mb-3 tracking-[0.2em]">Culto da Noite</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <InputCompact label="PESSOAS" value={reportForm.night_people} onChange={val => setReportForm({ ...reportForm, night_people: val })} dark={darkMode} />
+                    <InputCompact label="VISIT." value={reportForm.night_visitors} onChange={val => setReportForm({ ...reportForm, night_visitors: val })} dark={darkMode} />
+                    <InputCompact label="CRIAN." value={reportForm.night_kids} onChange={val => setReportForm({ ...reportForm, night_kids: val })} dark={darkMode} />
                   </div>
                 </div>
               </div>
-
-              {/* Culto Manhã */}
-              <div className="space-y-3 p-4 bg-white/5 rounded-2xl border border-white/5">
-                <p className="text-[10px] font-black text-white uppercase italic border-l-2 border-blue-500 pl-2">Culto da Manhã</p>
-                <div className="grid grid-cols-3 gap-3">
-                  <InputCompact label="PESSOAS" value={reportForm.m_total} onChange={val => setReportForm({ ...reportForm, m_total: val })} dark={darkMode} />
-                  <InputCompact label="VISIT." value={reportForm.m_visitors} onChange={val => setReportForm({ ...reportForm, m_visitors: val })} dark={darkMode} />
-                  <InputCompact label="CRIANÇAS" value={reportForm.m_children} onChange={val => setReportForm({ ...reportForm, m_children: val })} dark={darkMode} />
-                </div>
-              </div>
-
-              {/* Culto Noite */}
-              <div className="space-y-3 p-4 bg-white/5 rounded-2xl border border-white/5">
-                <p className="text-[10px] font-black text-white uppercase italic border-l-2 border-indigo-500 pl-2">Culto da Noite</p>
-                <div className="grid grid-cols-3 gap-3">
-                  <InputCompact label="PESSOAS" value={reportForm.e_total} onChange={val => setReportForm({ ...reportForm, e_total: val })} dark={darkMode} />
-                  <InputCompact label="VISIT." value={reportForm.e_visitors} onChange={val => setReportForm({ ...reportForm, e_visitors: val })} dark={darkMode} />
-                  <InputCompact label="CRIANÇAS" value={reportForm.e_children} onChange={val => setReportForm({ ...reportForm, e_children: val })} dark={darkMode} />
-                </div>
-              </div>
-
               <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}>
-                <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">OBSERVAÇÕES ADICIONAIS</p>
-                <textarea value={reportForm.notes} onChange={e => setReportForm({ ...reportForm, notes: e.target.value })} className="w-full bg-transparent font-bold text-xs outline-none h-16 resize-none" placeholder="Ex: Evento especial, batismos, etc..." />
+                <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">OBSERVAÇÕES</p>
+                <textarea value={reportForm.notes} onChange={e => setReportForm({ ...reportForm, notes: e.target.value })} className="w-full bg-transparent font-bold text-xs outline-none h-20 resize-none" />
               </div>
             </div>
 
