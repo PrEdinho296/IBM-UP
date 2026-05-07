@@ -524,19 +524,25 @@ function ChurchMembershipSystem() {
   });
 
   const openReportForm = () => {
-    if (!activeCell) return;
-    const cellMembers = members.filter(m => Number(m.cell_id) === Number(activeCell.id));
+    // Se estiver no modo líder, filtra pela célula. Se for pastor, pega tudo.
+    const targetMembers = (isLeaderMode && activeCell) 
+      ? members.filter(m => Number(m.cell_id) === Number(activeCell.id))
+      : members;
     
-    const stats = cellMembers.reduce((acc, m) => {
-      const { isPresentCell } = getMemberEngagement(m);
-      if (isPresentCell) acc.frequenters++;
-      if (m.outros && isPresentCell) acc.visitors++;
+    const stats = targetMembers.reduce((acc, m) => {
+      const { isPresentCell, isPresentCult } = getMemberEngagement(m);
+      // Para o relatório de CULTO (que é o que o pastor costuma preencher aqui), 
+      // usamos isPresentCult ou m.attended_cult
+      const attended = isLeaderMode ? isPresentCell : isPresentCult;
+      
+      if (attended) acc.frequenters++;
+      if (m.outros && attended) acc.visitors++;
       return acc;
     }, { frequenters: 0, visitors: 0 });
     
     setReportForm({
       ...reportForm,
-      members: cellMembers.length.toString(),
+      members: targetMembers.length.toString(),
       frequenters: stats.frequenters.toString(),
       visitors: stats.visitors.toString(),
       date: new Date().toISOString().split('T')[0]
