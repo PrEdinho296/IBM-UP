@@ -500,9 +500,25 @@ function ChurchMembershipSystem() {
     return {
       date: r.date,
       displayDate: d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }).replace('.', ''),
-      total: r.total
+        total: r.total
     };
   });
+
+  const openReportForm = () => {
+    if (!activeCell) return;
+    const cellMembers = members.filter(m => Number(m.cell_id) === Number(activeCell.id));
+    const frequenters = cellMembers.filter(m => m.attended_cell).length;
+    const visitors = cellMembers.filter(m => m.outros && m.attended_cell).length;
+    
+    setReportForm({
+      ...reportForm,
+      members: cellMembers.length.toString(),
+      frequenters: frequenters.toString(),
+      visitors: visitors.toString(),
+      date: new Date().toISOString().split('T')[0]
+    });
+    setShowReportForm(true);
+  };
 
   // Verificação de "Segurança Máxima" para garantir que o celular detecte o link
   const getRawCellId = () => {
@@ -598,6 +614,7 @@ function ChurchMembershipSystem() {
               <MenuBtn icon={<Home size={18} />} label="Células" active={activeTab === 'cells'} onClick={() => setActiveTab('cells')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Sun size={18} />} label="Cultos" active={activeTab === 'culto-geral'} onClick={() => setActiveTab('culto-geral')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Map size={18} />} label="Setores" active={activeTab === 'sectors'} onClick={() => setActiveTab('sectors')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<Activity size={18} />} label="Relatório Presença" active={activeTab === 'attendance-report'} onClick={() => setActiveTab('attendance-report')} open={sidebarOpen} dark={darkMode} />
             </>
           )}
         </nav>
@@ -1026,7 +1043,10 @@ function ChurchMembershipSystem() {
                   >
                     <FileDown size={16} /> EXCEL
                   </button>
-                  <button onClick={() => setShowReportForm(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg shadow-blue-900/20 hover:bg-blue-500 transition-all">+ NOVO REGISTRO</button>
+                  <button onClick={openReportForm} className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg shadow-emerald-900/20 transition-all flex items-center gap-2 group">
+                    <ClipboardList size={20} className="group-hover:scale-110 transition-transform" />
+                    <span>+ NOVO REGISTRO (AUTO)</span>
+                  </button>
                 </div>
               </header>
 
@@ -1517,6 +1537,82 @@ function MenuBtn({ icon, label, active, onClick, open, dark }) {
     <button onClick={onClick} className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${active ? 'bg-blue-600 text-white shadow-lg' : `${dark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-50'}`}`}>
       <div className={`${active ? 'scale-110' : ''}`}>{icon}</div> {open && <span className="font-bold tracking-tight italic uppercase text-[10px]">{label}</span>}
     </button>
+  );
+}
+
+function AttendanceReport({ members, cells, sectors }) {
+  const [selectedCell, setSelectedCell] = useState('all');
+  
+  const filteredMembers = members.filter(m => selectedCell === 'all' ? true : Number(m.cell_id) === Number(selectedCell));
+  
+  return (
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight italic uppercase">Relatório de Presença</h1>
+          <p className="text-slate-500 mt-1">Auditória detalhada de frequência da semana</p>
+        </div>
+        <select 
+          value={selectedCell} 
+          onChange={(e) => setSelectedCell(e.target.value)}
+          className="bg-white border border-slate-200 p-3 rounded-2xl font-black text-[10px] uppercase italic outline-none shadow-sm"
+        >
+          <option value="all">TODAS AS CÉLULAS</option>
+          {cells.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-3xl">
+          <p className="text-emerald-600 font-black text-[10px] uppercase mb-1">PRESENÇA TOTAL</p>
+          <p className="text-3xl font-black text-emerald-700 italic">{members.filter(m => m.attended_cell).length} <span className="text-sm opacity-50">Membros na Célula</span></p>
+        </div>
+        <div className="bg-blue-500/10 border border-blue-500/20 p-6 rounded-3xl">
+          <p className="text-blue-600 font-black text-[10px] uppercase mb-1">PRESENÇA NO CULTO</p>
+          <p className="text-3xl font-black text-blue-700 italic">{members.filter(m => m.attended_cult).length} <span className="text-sm opacity-50">Membros no Culto</span></p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="bg-slate-50 border-b border-slate-200">
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Membro / Célula</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Célula</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Culto</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {filteredMembers.map(m => (
+              <tr key={m.id} className="hover:bg-slate-50 transition-colors">
+                <td className="px-6 py-4">
+                  <p className="font-black text-slate-900 text-sm uppercase italic">{m.name}</p>
+                  <p className="text-[8px] font-black text-slate-400 uppercase">{cells.find(c => Number(c.id) === Number(m.cell_id))?.name || 'Sem Célula'}</p>
+                </td>
+                <td className="px-6 py-4 text-center">
+                  {m.attended_cell ? 
+                    <div className="inline-flex p-1 bg-emerald-100 text-emerald-600 rounded-lg"><Check size={16} /></div> : 
+                    <div className="inline-flex p-1 bg-red-100 text-red-600 rounded-lg"><X size={16} /></div>
+                  }
+                </td>
+                <td className="px-6 py-4 text-center">
+                  {m.attended_cult ? 
+                    <div className="inline-flex p-1 bg-emerald-100 text-emerald-600 rounded-lg"><Check size={16} /></div> : 
+                    <div className="inline-flex p-1 bg-red-100 text-red-600 rounded-lg"><X size={16} /></div>
+                  }
+                </td>
+                <td className="px-6 py-4">
+                  <span className={`text-[8px] font-black uppercase px-2 py-1 rounded-full ${m.attended_cell && m.attended_cult ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
+                    {m.attended_cell && m.attended_cult ? 'ENGANJADO' : 'PENDENTE'}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 
