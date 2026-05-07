@@ -1261,7 +1261,7 @@ function ChurchMembershipSystem() {
                   {cells.filter(c => Number(c.sector_id) === s.id).length} Células
                 </button>
               </td><td className="px-6 py-4 text-right"><button onClick={() => deleteItem('sectors', s.id)} className="text-red-500/20 hover:text-red-500 p-1"><Trash2 size={16} /></button></td></tr>))}</tbody></table></div></div>)}
-          {activeTab === 'attendance-report' && <AttendanceReport members={members} cells={cells} getMemberEngagement={getMemberEngagement} />}
+          {activeTab === 'attendance-report' && <AttendanceReport members={members} cells={cells} getMemberEngagement={getMemberEngagement} darkMode={darkMode} />}
         </div>
       </main>
       {showMemberForm && (
@@ -1584,81 +1584,93 @@ function MenuBtn({ icon, label, active, onClick, open, dark }) {
   );
 }
 
-function AttendanceReport({ members, cells, getMemberEngagement }) {
+function AttendanceReport({ members, cells, getMemberEngagement, darkMode }) {
   const [selectedCell, setSelectedCell] = useState('all');
   
+  const t = {
+    card: darkMode ? 'bg-[#0f172a]/40 border-white/5' : 'bg-white border-slate-200 shadow-sm',
+    text: darkMode ? 'text-white' : 'text-slate-900',
+    subText: darkMode ? 'text-slate-500' : 'text-slate-400',
+    header: darkMode ? 'bg-white/5' : 'bg-slate-50',
+    row: darkMode ? 'hover:bg-white/5' : 'hover:bg-slate-50'
+  };
+
   const filteredMembers = members.filter(m => selectedCell === 'all' ? true : Number(m.cell_id) === Number(selectedCell));
   
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 text-left">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight italic uppercase">Relatório de Presença</h1>
-          <p className="text-slate-500 mt-1">Auditória detalhada de frequência da semana</p>
+          <h1 className={`text-4xl font-black ${t.text} tracking-tight italic uppercase`}>Relatório de Presença</h1>
+          <p className={t.subText}>Auditória detalhada de frequência da semana</p>
         </div>
         <select 
           value={selectedCell} 
           onChange={(e) => setSelectedCell(e.target.value)}
-          className="bg-white border border-slate-200 p-3 rounded-2xl font-black text-[10px] uppercase italic outline-none shadow-sm"
+          className="bg-blue-600 text-white border-none p-3 px-6 rounded-2xl font-black text-[10px] uppercase italic outline-none shadow-xl shadow-blue-600/20 cursor-pointer hover:bg-blue-500 transition-all"
         >
-          <option value="all">TODAS AS CÉLULAS</option>
-          {cells.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          <option value="all" className="bg-slate-900">TODAS AS CÉLULAS</option>
+          {cells.map(c => <option key={c.id} value={c.id} className="bg-slate-900">{c.name}</option>)}
         </select>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-3xl">
           <p className="text-emerald-600 font-black text-[10px] uppercase mb-1">PRESENÇA TOTAL</p>
-          <p className="text-3xl font-black text-emerald-700 italic">{members.filter(m => m.attended_cell).length} <span className="text-sm opacity-50">Membros na Célula</span></p>
+          <p className="text-3xl font-black text-emerald-500 italic">{members.filter(m => m.attended_cell).length} <span className="text-sm opacity-50">Membros na Célula</span></p>
         </div>
         <div className="bg-blue-500/10 border border-blue-500/20 p-6 rounded-3xl">
           <p className="text-blue-600 font-black text-[10px] uppercase mb-1">PRESENÇA NO CULTO</p>
-          <p className="text-3xl font-black text-blue-700 italic">{members.filter(m => m.attended_cult).length} <span className="text-sm opacity-50">Membros no Culto</span></p>
+          <p className="text-3xl font-black text-blue-500 italic">{members.filter(m => m.attended_cult).length} <span className="text-sm opacity-50">Membros no Culto</span></p>
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Membro / Célula</th>
-              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Célula</th>
-              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Culto</th>
-              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredMembers.map(m => {
-              const { isPresentCell, isPresentCult } = getMemberEngagement(m);
-              return (
-              <tr key={m.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-4">
-                  <p className="font-black text-slate-900 text-sm uppercase italic">{m.name}</p>
-                  <p className="text-[8px] font-black text-slate-400 uppercase">{cells.find(c => Number(c.id) === Number(m.cell_id))?.name || 'Sem Célula'}</p>
-                </td>
-                <td className="px-6 py-4 text-center">
-                  {isPresentCell ? 
-                    <div className="inline-flex p-1 bg-emerald-100 text-emerald-600 rounded-lg"><Check size={16} /></div> : 
-                    <div className="inline-flex p-1 bg-red-100 text-red-600 rounded-lg"><X size={16} /></div>
-                  }
-                </td>
-                <td className="px-6 py-4 text-center">
-                  {isPresentCult ? 
-                    <div className="inline-flex p-1 bg-emerald-100 text-emerald-600 rounded-lg"><Check size={16} /></div> : 
-                    <div className="inline-flex p-1 bg-red-100 text-red-600 rounded-lg"><X size={16} /></div>
-                  }
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`text-[8px] font-black uppercase px-2 py-1 rounded-full ${isPresentCell && isPresentCult ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
-                    {isPresentCell && isPresentCult ? 'ENGANJADO' : 'PENDENTE'}
-                  </span>
-                </td>
+      <div className={`${t.card} rounded-3xl overflow-hidden`}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className={`${t.header} border-b ${darkMode ? 'border-white/5' : 'border-slate-200'}`}>
+                <th className={`px-6 py-4 text-[10px] font-black ${t.subText} uppercase tracking-widest`}>Membro / Célula</th>
+                <th className={`px-6 py-4 text-[10px] font-black ${t.subText} uppercase tracking-widest text-center`}>Célula</th>
+                <th className={`px-6 py-4 text-[10px] font-black ${t.subText} uppercase tracking-widest text-center`}>Culto</th>
+                <th className={`px-6 py-4 text-[10px] font-black ${t.subText} uppercase tracking-widest`}>Status</th>
               </tr>
-            )})}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className={`divide-y ${darkMode ? 'divide-white/5' : 'divide-slate-100'}`}>
+              {filteredMembers.map(m => {
+                const { isPresentCell, isPresentCult } = getMemberEngagement(m);
+                return (
+                <tr key={m.id} className={`${t.row} transition-colors`}>
+                  <td className="px-6 py-4">
+                    <p className={`font-black ${t.text} text-sm uppercase italic`}>{m.name}</p>
+                    <p className={`text-[8px] font-black ${t.subText} uppercase`}>{cells.find(c => Number(c.id) === Number(m.cell_id))?.name || 'Sem Célula'}</p>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    {isPresentCell ? 
+                      <div className="inline-flex p-1 bg-emerald-500/20 text-emerald-500 rounded-lg"><Check size={16} /></div> : 
+                      <div className="inline-flex p-1 bg-red-500/20 text-red-500 rounded-lg"><X size={16} /></div>
+                    }
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    {isPresentCult ? 
+                      <div className="inline-flex p-1 bg-emerald-500/20 text-emerald-500 rounded-lg"><Check size={16} /></div> : 
+                      <div className="inline-flex p-1 bg-red-500/20 text-red-500 rounded-lg"><X size={16} /></div>
+                    }
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`text-[8px] font-black uppercase px-2 py-1 rounded-full ${isPresentCell && isPresentCult ? 'bg-emerald-500/20 text-emerald-500' : 'bg-orange-500/20 text-orange-500'}`}>
+                      {isPresentCell && isPresentCult ? 'ENGANJADO' : 'PENDENTE'}
+                    </span>
+                  </td>
+                </tr>
+              )})}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
+  );
+}
   );
 }
 
