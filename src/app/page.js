@@ -5,10 +5,11 @@ import { useSearchParams } from 'next/navigation';
 import { Plus, Trash2, Users, Menu, X, Activity, LayoutDashboard, Map, Home, ClipboardList, Star, Calendar, Clock, Copy, Check, MapPin, Loader2, Sun, Moon, ShieldCheck, UserMinus, Eye, Download, Upload, Power, Edit2, FileDown, ArrowLeft, LineChart as LineIcon, PieChart as PieIcon } from 'lucide-react';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, BarChart, Bar } from 'recharts';
 import { supabase } from '../lib/supabase';
+import * as XLSX from 'xlsx';
 
 function ChurchAppWrapper() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#020617] flex items-center justify-center text-white italic font-bold text-xl animate-pulse">IBMRP...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[#020617] flex items-center justify-center text-white italic font-bold text-xl animate-pulse">IBM-UP...</div>}>
       <ChurchMembershipSystem />
     </Suspense>
   );
@@ -88,6 +89,7 @@ function ChurchMembershipSystem() {
   const [analyticsFilter, setAnalyticsFilter] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [timeFilter, setTimeFilter] = useState('Tudo');
+  const [selectedSectors, setSelectedSectors] = useState([]);
 
   const [showMemberForm, setShowMemberForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -437,7 +439,7 @@ function ChurchMembershipSystem() {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `RELATORIO_IBM_UP_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.csv`);
+    link.setAttribute("download", `RELATORIO_IBM-UP_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -610,7 +612,7 @@ function ChurchMembershipSystem() {
   } else {
     if (authLoading) return (
       <div className="min-h-screen bg-[#020617] flex items-center justify-center text-white italic font-bold text-xl animate-pulse">
-        IBM UP...
+        IBM-UP...
       </div>
     );
   }
@@ -623,7 +625,7 @@ function ChurchMembershipSystem() {
             <div className="w-20 h-20 bg-blue-600 rounded-3xl mx-auto flex items-center justify-center text-white shadow-2xl shadow-blue-600/20 mb-6 rotate-3 hover:rotate-0 transition-all duration-500">
               <Users size={40} />
             </div>
-            <h1 className="text-5xl font-black italic uppercase tracking-tighter text-white">IBMUP</h1>
+            <h1 className="text-5xl font-black italic uppercase tracking-tighter text-white">IBM-UP</h1>
             <p className="text-blue-500 font-black uppercase text-[10px] tracking-[0.3em] mt-2">Acesso Pastoral</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4 bg-white/5 p-8 rounded-3xl border border-white/10 backdrop-blur-md">
@@ -659,7 +661,7 @@ function ChurchMembershipSystem() {
       <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} ${t.sidebar} border-r ${t.border} transition-all flex flex-col z-50 overflow-hidden`}>
         <div className="p-6 flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg shrink-0"><Users size={18} /></div>
-          {sidebarOpen && <span className={`font-black text-lg tracking-tighter ${t.text} italic`}>IBM <span className="text-blue-500 uppercase">UP</span></span>}
+          {sidebarOpen && <span className={`font-black text-lg tracking-tighter ${t.text} italic`}>IBM-<span className="text-blue-500 uppercase">UP</span></span>}
         </div>
         <nav className="flex-1 px-3 space-y-1">
           {isLeaderMode ? (
@@ -674,8 +676,9 @@ function ChurchMembershipSystem() {
               <MenuBtn icon={<ClipboardList size={18} />} label="Relatórios" active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Users size={18} />} label="Membros" active={activeTab === 'members'} onClick={() => { setActiveTab('members'); setFilterCellId(null); setSearchTerm(''); }} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Home size={18} />} label="Células" active={activeTab === 'cells'} onClick={() => setActiveTab('cells')} open={sidebarOpen} dark={darkMode} />
-              <MenuBtn icon={<Sun size={18} />} label="Cultos" active={activeTab === 'culto-geral'} onClick={() => setActiveTab('culto-geral')} open={sidebarOpen} dark={darkMode} />
+               <MenuBtn icon={<Sun size={18} />} label="Cultos" active={activeTab === 'culto-geral'} onClick={() => setActiveTab('culto-geral')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Map size={18} />} label="Setores" active={activeTab === 'sectors'} onClick={() => setActiveTab('sectors')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<ClipboardList size={18} />} label="Relatório Pastoral" active={activeTab === 'pastoral-report'} onClick={() => setActiveTab('pastoral-report')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Activity size={18} />} label="Relatório Presença" active={activeTab === 'attendance-report'} onClick={() => setActiveTab('attendance-report')} open={sidebarOpen} dark={darkMode} />
             </>
           )}
@@ -695,7 +698,7 @@ function ChurchMembershipSystem() {
           <div className="flex items-center gap-4">
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className={`p-2 border rounded-lg ${t.subText} hover:text-white transition-all`}><Menu size={18} /></button>
             <div>
-              <h1 className={`text-base font-black ${t.text} italic uppercase tracking-tighter`}>IBMRP</h1>
+              <h1 className={`text-base font-black ${t.text} italic uppercase tracking-tighter`}>IBM-UP</h1>
               <div className="flex items-center gap-2">
                 <p className={`${t.subText} text-[8px] font-bold uppercase tracking-widest`}>{isLeaderMode ? `Líder: ${activeCell?.name || ''}` : 'Gestão Estratégica'}</p>
                 {isLeaderMode && session && (
@@ -1294,6 +1297,18 @@ function ChurchMembershipSystem() {
                 </button>
               </td><td className="px-6 py-4 text-right"><button onClick={() => deleteItem('sectors', s.id)} className="text-red-500/20 hover:text-red-500 p-1"><Trash2 size={16} /></button></td></tr>))}</tbody></table></div></div>)}
           {activeTab === 'attendance-report' && <AttendanceReport members={members} cells={cells} getMemberEngagement={getMemberEngagement} darkMode={darkMode} />}
+          {activeTab === 'pastoral-report' && (
+            <PastoralReport 
+              members={members} 
+              cells={cells} 
+              sectors={sectors} 
+              attendance={attendance}
+              getMemberEngagement={getMemberEngagement} 
+              darkMode={darkMode} 
+              selectedSectors={selectedSectors}
+              setSelectedSectors={setSelectedSectors}
+            />
+          )}
         </div>
       </main>
       {showMemberForm && (
@@ -1728,6 +1743,168 @@ function CustomTooltip({ active, payload, label, dark }) {
     );
   }
   return null;
+}
+
+function PastoralReport({ members, cells, sectors, attendance, getMemberEngagement, darkMode, selectedSectors, setSelectedSectors }) {
+  const t = {
+    card: darkMode ? 'bg-[#0f172a]/40 border-white/5' : 'bg-white border-slate-200 shadow-sm',
+    text: darkMode ? 'text-white' : 'text-slate-900',
+    subText: darkMode ? 'text-slate-500' : 'text-slate-400',
+    border: darkMode ? 'border-white/5' : 'border-slate-100',
+    tableHead: darkMode ? 'bg-white/5' : 'bg-slate-50',
+    hover: darkMode ? 'hover:bg-white/5' : 'hover:bg-slate-50'
+  };
+
+  const toggleSector = (id) => {
+    setSelectedSectors(prev => 
+      prev.includes(id) ? prev.filter(sId => sId !== id) : [...prev, id]
+    );
+  };
+
+  const filteredCells = cells.filter(c => selectedSectors.length === 0 || selectedSectors.includes(Number(c.sector_id)));
+  const filteredCellIds = filteredCells.map(c => c.id);
+  const filteredMembers = members.filter(m => filteredCellIds.includes(Number(m.cell_id)));
+
+  const stats = filteredMembers.reduce((acc, m) => {
+    const { isPresentCell, isPresentCult } = getMemberEngagement(m);
+    acc.total++;
+    if (isPresentCell) acc.cellPresent++;
+    if (isPresentCult) acc.cultPresent++;
+    if (isPresentCell && isPresentCult) acc.both++;
+    return acc;
+  }, { total: 0, cellPresent: 0, cultPresent: 0, both: 0 });
+
+  const exportExcel = () => {
+    const data = filteredMembers.map(m => {
+      const { isPresentCell, isPresentCult } = getMemberEngagement(m);
+      const cell = cells.find(c => c.id === m.cell_id);
+      const sector = sectors.find(s => s.id === Number(cell?.sector_id));
+      
+      return {
+        'NOME': m.name,
+        'TELEFONE': m.phone || '',
+        'SETOR': sector?.name || 'Sem Setor',
+        'CÉLULA': cell?.name || 'Sem Célula',
+        'LÍDER': cell?.leader || '',
+        'PRESENÇA CÉLULA': isPresentCell ? 'SIM' : 'NÃO',
+        'PRESENÇA CULTO': isPresentCult ? 'SIM' : 'NÃO',
+        'STATUS': isPresentCell && isPresentCult ? 'ENGAJADO' : (isPresentCell || isPresentCult ? 'PARCIAL' : 'AUSENTE')
+      };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Relatório");
+    
+    // Auto-size columns
+    const max_width = data.reduce((w, r) => Math.max(w, r.NOME.length), 10);
+    ws['!cols'] = [{ wch: max_width + 5 }];
+
+    XLSX.writeFile(wb, `RELATORIO_PASTORAL_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 text-left">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className={`text-4xl font-black ${t.text} italic uppercase tracking-tighter`}>Relatório Pastoral</h2>
+          <p className={t.subText}>Visão semanal estratégica por setor</p>
+        </div>
+        <button 
+          onClick={exportExcel}
+          disabled={filteredMembers.length === 0}
+          className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-900/20 transition-all flex items-center gap-2 group"
+        >
+          <FileDown size={20} className="group-hover:scale-110 transition-transform" />
+          <span>Baixar Excel</span>
+        </button>
+      </header>
+
+      <div className={`${t.card} p-6 border rounded-3xl`}>
+        <h3 className="text-[10px] font-black uppercase text-slate-500 mb-4 tracking-widest">Selecionar Setores</h3>
+        <div className="flex flex-wrap gap-3">
+          <button 
+            onClick={() => setSelectedSectors([])}
+            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${selectedSectors.length === 0 ? 'bg-blue-600 text-white shadow-lg' : 'bg-white/5 text-slate-500 border border-white/5'}`}
+          >
+            Todos os Setores
+          </button>
+          {sectors.map(s => (
+            <button
+              key={s.id}
+              onClick={() => toggleSector(s.id)}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${selectedSectors.includes(s.id) ? 'bg-blue-600 text-white shadow-lg' : 'bg-white/5 text-slate-500 border border-white/5'}`}
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <StatCard label="Total de Membros" value={stats.total} icon={<Users size={16}/>} color="blue" dark={darkMode} />
+        <StatCard label="Presença Célula" value={stats.cellPresent} icon={<Home size={16}/>} color="emerald" dark={darkMode} />
+        <StatCard label="Presença Culto" value={stats.cultPresent} icon={<Star size={16}/>} color="purple" dark={darkMode} />
+        <StatCard label="Engajamento 100%" value={`${Math.round((stats.both / stats.total) * 100 || 0)}%`} icon={<Activity size={16}/>} color="blue" dark={darkMode} />
+      </div>
+
+      <div className={`${t.card} border rounded-3xl overflow-hidden`}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className={`${t.tableHead} border-b ${t.border}`}>
+              <tr>
+                <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest">Membro</th>
+                <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest">Célula / Setor</th>
+                <th className="px-6 py-4 text-center text-[9px] font-black uppercase tracking-widest">Célula</th>
+                <th className="px-6 py-4 text-center text-[9px] font-black uppercase tracking-widest">Culto</th>
+                <th className="px-6 py-4 text-right text-[9px] font-black uppercase tracking-widest">Status</th>
+              </tr>
+            </thead>
+            <tbody className={`divide-y ${t.border}`}>
+              {filteredMembers.sort((a, b) => a.name.localeCompare(b.name)).map(m => {
+                const { isPresentCell, isPresentCult } = getMemberEngagement(m);
+                const cell = cells.find(c => c.id === m.cell_id);
+                const sector = sectors.find(s => s.id === Number(cell?.sector_id));
+                
+                return (
+                  <tr key={m.id} className={t.hover}>
+                    <td className="px-6 py-4">
+                      <p className="text-sm font-black italic uppercase tracking-tighter">{m.name}</p>
+                      <p className="text-[9px] text-slate-500 font-bold">{m.phone || 'Sem Telefone'}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-[10px] font-black uppercase italic">{cell?.name || '---'}</p>
+                      <p className="text-[8px] font-black text-blue-500 uppercase">{sector?.name || 'Sem Setor'}</p>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className={`inline-flex p-1 rounded-lg ${isPresentCell ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
+                        {isPresentCell ? <Check size={14} /> : <X size={14} />}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className={`inline-flex p-1 rounded-lg ${isPresentCult ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
+                        {isPresentCult ? <Check size={14} /> : <X size={14} />}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <span className={`text-[8px] font-black uppercase px-2 py-1 rounded-full ${isPresentCell && isPresentCult ? 'bg-emerald-500/20 text-emerald-500' : (isPresentCell || isPresentCult ? 'bg-blue-500/20 text-blue-500' : 'bg-red-500/20 text-red-500')}`}>
+                        {isPresentCell && isPresentCult ? 'ENGAJADO' : (isPresentCell || isPresentCult ? 'PARCIAL' : 'AUSENTE')}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filteredMembers.length === 0 && (
+                <tr>
+                  <td colSpan="5" className="px-6 py-12 text-center text-slate-500 font-black italic uppercase text-xs">Nenhum membro encontrado nos setores selecionados</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function App() { return <ChurchAppWrapper />; }

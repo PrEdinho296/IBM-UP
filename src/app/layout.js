@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "IBM UP - Dashboard",
+  title: "IBM-UP - Dashboard",
   description: "Gestão Estratégica de Células e Membros",
 };
 
