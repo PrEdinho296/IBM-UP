@@ -477,14 +477,14 @@ function ChurchMembershipSystem() {
   const courseStats = React.useMemo(() => {
     const activeMembers = members.filter(m => isLeaderMode && activeCell ? Number(m.cell_id) === Number(activeCell.id) : true);
     return [
-      { name: 'ECC', value: activeMembers.filter(m => m.ecc).length, color: '#3b82f6' },
-      { name: 'BAT', value: activeMembers.filter(m => m.bat).length, color: '#10b981' },
-      { name: 'FCC', value: activeMembers.filter(m => m.integracao).length, color: '#f59e0b' },
-      { name: 'CON', value: activeMembers.filter(m => m.con).length, color: '#ef4444' },
-      { name: 'TMC', value: activeMembers.filter(m => m.maturidade).length, color: '#a855f7' },
-      { name: 'MSD', value: activeMembers.filter(m => m.ctl).length, color: '#64748b' },
-      { name: 'PL', value: activeMembers.filter(m => m.pl).length, color: '#6366f1' },
-      { name: 'VS', value: activeMembers.filter(m => m.outros).length, color: '#ec4899' },
+      { name: 'CASAIS COM CRISTO', value: activeMembers.filter(m => m.ecc).length, color: '#3b82f6', short: 'ECC' },
+      { name: 'BATISMO', value: activeMembers.filter(m => m.bat).length, color: '#10b981', short: 'BAT' },
+      { name: 'INTEGRAÇÃO', value: activeMembers.filter(m => m.integracao).length, color: '#f59e0b', short: 'FCC' },
+      { name: 'CONSOLIDAÇÃO', value: activeMembers.filter(m => m.con).length, color: '#ef4444', short: 'CON' },
+      { name: 'MATURIDADE', value: activeMembers.filter(m => m.maturidade).length, color: '#a855f7', short: 'TMC' },
+      { name: 'DISCIPULADO', value: activeMembers.filter(m => m.ctl).length, color: '#64748b', short: 'MSD' },
+      { name: 'POTENCIAL LÍDER', value: activeMembers.filter(m => m.pl).length, color: '#6366f1', short: 'PL' },
+      { name: 'VISITANTE', value: activeMembers.filter(m => m.outros).length, color: '#ec4899', short: 'VS' },
     ].sort((a, b) => b.value - a.value);
   }, [members, isLeaderMode, activeCell]);
 
@@ -766,14 +766,14 @@ function ChurchMembershipSystem() {
 
                   <div className={`${t.card} p-6 border rounded-3xl flex flex-col`}>
                     <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest flex items-center gap-2"><Activity size={12} /> Conclusão de Cursos</h3>
-                    <div className="w-full h-[200px]">
+                    <div className="w-full h-[250px]">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={courseStats} layout="vertical" margin={{ left: -20, right: 20 }}>
+                        <BarChart data={courseStats} layout="vertical" margin={{ left: 0, right: 20 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" horizontal={true} vertical={false} />
                           <XAxis type="number" hide />
-                          <YAxis dataKey="name" type="category" stroke="#475569" fontSize={9} axisLine={false} tickLine={false} width={40} />
+                          <YAxis dataKey="name" type="category" stroke="#475569" fontSize={8} axisLine={false} tickLine={false} width={90} />
                           <Tooltip content={<CustomTooltip dark={darkMode} />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
-                          <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={12}>
+                          <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={10}>
                             {courseStats.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={entry.color} />
                             ))}
@@ -781,11 +781,14 @@ function ChurchMembershipSystem() {
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
-                    <div className="mt-auto pt-4 border-t border-white/5 grid grid-cols-4 gap-2">
-                      {courseStats.slice(0, 8).map((s, i) => (
-                        <div key={i} className="text-center">
-                          <p className="text-[10px] font-black italic" style={{ color: s.color }}>{s.value}</p>
-                          <p className="text-[7px] font-black uppercase text-slate-500">{s.name}</p>
+                    <div className="mt-auto pt-4 border-t border-white/5 grid grid-cols-2 gap-x-4 gap-y-2">
+                      {courseStats.map((s, i) => (
+                        <div key={i} className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 overflow-hidden">
+                            <div className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                            <p className="text-[7px] font-black uppercase text-slate-500 truncate" title={s.name}>{s.name}</p>
+                          </div>
+                          <p className="text-[9px] font-black italic ml-2" style={{ color: s.color }}>{s.value}</p>
                         </div>
                       ))}
                     </div>
