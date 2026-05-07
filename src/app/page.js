@@ -1262,6 +1262,8 @@ function ChurchMembershipSystem() {
                 </button>
               </td><td className="px-6 py-4 text-right"><button onClick={() => deleteItem('sectors', s.id)} className="text-red-500/20 hover:text-red-500 p-1"><Trash2 size={16} /></button></td></tr>))}</tbody></table></div></div>)}
           {activeTab === 'attendance-report' && <AttendanceReport members={members} cells={cells} getMemberEngagement={getMemberEngagement} />}
+        </div>
+      </main>
       {showMemberForm && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-2 sm:p-4 overflow-hidden">
           <div className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-2xl max-h-[95vh] rounded-2xl border ${t.border} shadow-2xl flex flex-col relative`}>
