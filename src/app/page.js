@@ -1185,18 +1185,28 @@ function ChurchMembershipSystem() {
                   <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Registros de Culto</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {reports.map(r => (
-                      <div key={r.id} className={`${t.card} border rounded-2xl p-6 relative group hover:border-blue-500/30 transition-all`}>
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="bg-blue-600/10 p-2 rounded-lg text-blue-500"><Calendar size={18} /></div>
-                          <div className="text-right">
-                            <p className="text-xl font-black tracking-tighter">{r.total}</p>
-                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Total</p>
+                      <div key={r.id} className={`${t.card} border rounded-2xl p-5 relative group hover:border-blue-500/30 transition-all overflow-hidden`}>
+                        <div className="flex justify-between items-center mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-blue-600/10 p-2 rounded-lg text-blue-500"><Calendar size={18} /></div>
+                            <p className="text-xs font-black italic tracking-tighter uppercase">{new Date(r.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</p>
+                          </div>
+                          <div className="bg-white/5 px-3 py-1 rounded-lg border border-white/5">
+                            <p className="text-lg font-black tracking-tighter text-blue-500">{r.total || 0}</p>
+                            <p className="text-[6px] font-black uppercase tracking-[0.2em] text-slate-500 text-center">TOTAL</p>
                           </div>
                         </div>
-                        <p className="text-sm font-black italic tracking-tighter uppercase mb-2">{new Date(r.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</p>
+                        
+                        <div className="grid grid-cols-3 gap-2 border-t border-white/5 pt-4">
+                          <div className="text-center"><p className="text-[10px] font-black">{r.frequenters || 0}</p><p className="text-[6px] text-slate-500 uppercase font-bold">Freq.</p></div>
+                          <div className="text-center border-x border-white/5"><p className="text-[10px] font-black">{r.visitors || 0}</p><p className="text-[6px] text-slate-500 uppercase font-bold">Visit.</p></div>
+                          <div className="text-center"><p className="text-[10px] font-black">{r.members || 0}</p><p className="text-[6px] text-slate-500 uppercase font-bold">Memb.</p></div>
+                        </div>
+
                         <button
                           onClick={() => deleteItem('reports', r.id)}
-                          className="text-red-500 opacity-20 group-hover:opacity-100 absolute top-4 right-4 p-2 bg-red-500/10 rounded-lg hover:bg-red-500 hover:text-white transition-all"
+                          className="absolute -right-10 group-hover:right-2 top-2 p-2 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all"
+                          title="Excluir Registro"
                         >
                           <Trash2 size={14} />
                         </button>
