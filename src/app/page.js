@@ -266,7 +266,26 @@ function ChurchMembershipSystem() {
     const member = members.find(m => m.id === memberId);
     if (!member) return;
     const newValue = !member[type];
+    
+    // Atualiza estado local do membro
     setMembers(members.map(m => m.id === memberId ? { ...m, [type]: newValue } : m));
+    
+    // Se for presença na célula, atualizamos também o histórico para a data atual da reunião
+    if (type === 'attended_cell' && activeCell) {
+      const dates = getMeetingDates(activeCell.day_of_week);
+      const currentMeetingDate = dates[dates.length - 1]; // Data mais recente
+      
+      const payload = { member_id: memberId, cell_id: activeCell.id, date: currentMeetingDate, status: newValue ? 'P' : 'F' };
+      
+      // Atualiza estado local da frequência
+      setAttendance(prev => {
+        const other = prev.filter(a => !(a.member_id === memberId && a.date === currentMeetingDate));
+        return [...other, { ...payload, id: Date.now() }];
+      });
+      
+      await supabase.from('cell_attendance').upsert([payload], { onConflict: 'member_id,date' });
+    }
+    
     await supabase.from('members').update({ [type]: newValue }).eq('id', memberId);
   };
 
@@ -507,14 +526,19 @@ function ChurchMembershipSystem() {
   const openReportForm = () => {
     if (!activeCell) return;
     const cellMembers = members.filter(m => Number(m.cell_id) === Number(activeCell.id));
-    const frequenters = cellMembers.filter(m => m.attended_cell).length;
-    const visitors = cellMembers.filter(m => m.outros && m.attended_cell).length;
+    
+    const stats = cellMembers.reduce((acc, m) => {
+      const { isPresentCell } = getMemberEngagement(m);
+      if (isPresentCell) acc.frequenters++;
+      if (m.outros && isPresentCell) acc.visitors++;
+      return acc;
+    }, { frequenters: 0, visitors: 0 });
     
     setReportForm({
       ...reportForm,
       members: cellMembers.length.toString(),
-      frequenters: frequenters.toString(),
-      visitors: visitors.toString(),
+      frequenters: stats.frequenters.toString(),
+      visitors: stats.visitors.toString(),
       date: new Date().toISOString().split('T')[0]
     });
     setShowReportForm(true);
@@ -1584,31 +1608,33 @@ function AttendanceReport({ members, cells, sectors }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {filteredMembers.map(m => (
+            {filteredMembers.map(m => {
+              const { isPresentCell, isPresentCult } = getMemberEngagement(m);
+              return (
               <tr key={m.id} className="hover:bg-slate-50 transition-colors">
                 <td className="px-6 py-4">
                   <p className="font-black text-slate-900 text-sm uppercase italic">{m.name}</p>
                   <p className="text-[8px] font-black text-slate-400 uppercase">{cells.find(c => Number(c.id) === Number(m.cell_id))?.name || 'Sem Célula'}</p>
                 </td>
                 <td className="px-6 py-4 text-center">
-                  {m.attended_cell ? 
+                  {isPresentCell ? 
                     <div className="inline-flex p-1 bg-emerald-100 text-emerald-600 rounded-lg"><Check size={16} /></div> : 
                     <div className="inline-flex p-1 bg-red-100 text-red-600 rounded-lg"><X size={16} /></div>
                   }
                 </td>
                 <td className="px-6 py-4 text-center">
-                  {m.attended_cult ? 
+                  {isPresentCult ? 
                     <div className="inline-flex p-1 bg-emerald-100 text-emerald-600 rounded-lg"><Check size={16} /></div> : 
                     <div className="inline-flex p-1 bg-red-100 text-red-600 rounded-lg"><X size={16} /></div>
                   }
                 </td>
                 <td className="px-6 py-4">
-                  <span className={`text-[8px] font-black uppercase px-2 py-1 rounded-full ${m.attended_cell && m.attended_cult ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
-                    {m.attended_cell && m.attended_cult ? 'ENGANJADO' : 'PENDENTE'}
+                  <span className={`text-[8px] font-black uppercase px-2 py-1 rounded-full ${isPresentCell && isPresentCult ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
+                    {isPresentCell && isPresentCult ? 'ENGANJADO' : 'PENDENTE'}
                   </span>
                 </td>
               </tr>
-            ))}
+            )})}
           </tbody>
         </table>
       </div>
