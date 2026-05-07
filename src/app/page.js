@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Plus, Trash2, Users, Menu, X, Activity, LayoutDashboard, Map, Home, ClipboardList, Star, Calendar, Clock, Copy, Check, MapPin, Loader2, Sun, Moon, ShieldCheck, UserMinus, Eye, Download, Upload, Power, Edit2, FileDown, ArrowLeft, LineChart as LineIcon, PieChart as PieIcon } from 'lucide-react';
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, BarChart, Bar } from 'recharts';
 import { supabase } from '../lib/supabase';
 
 function ChurchAppWrapper() {
@@ -474,6 +474,20 @@ function ChurchMembershipSystem() {
     { name: 'Inativos', value: stats.none, color: '#ef4444' },
   ];
 
+  const courseStats = React.useMemo(() => {
+    const activeMembers = members.filter(m => isLeaderMode && activeCell ? Number(m.cell_id) === Number(activeCell.id) : true);
+    return [
+      { name: 'ECC', value: activeMembers.filter(m => m.ecc).length, color: '#3b82f6' },
+      { name: 'BAT', value: activeMembers.filter(m => m.bat).length, color: '#10b981' },
+      { name: 'FCC', value: activeMembers.filter(m => m.integracao).length, color: '#f59e0b' },
+      { name: 'CON', value: activeMembers.filter(m => m.con).length, color: '#ef4444' },
+      { name: 'TMC', value: activeMembers.filter(m => m.maturidade).length, color: '#a855f7' },
+      { name: 'MSD', value: activeMembers.filter(m => m.ctl).length, color: '#64748b' },
+      { name: 'PL', value: activeMembers.filter(m => m.pl).length, color: '#6366f1' },
+      { name: 'VS', value: activeMembers.filter(m => m.outros).length, color: '#ec4899' },
+    ].sort((a, b) => b.value - a.value);
+  }, [members, isLeaderMode, activeCell]);
+
   const filteredMembers = members.filter(m => {
     const matchesSearch = m.name.toLowerCase().includes(searchTerm.toLowerCase());
     if (isLeaderMode && activeCell) return Number(m.cell_id) === Number(activeCell.id) && matchesSearch;
@@ -706,46 +720,75 @@ function ChurchMembershipSystem() {
               </header>
 
               {isLeaderMode && activeCell && (
-                <div className={`${t.card} p-6 border rounded-2xl flex flex-col items-center mb-6`}>
-                  <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest self-start">Engajamento (Célula vs Culto)</h3>
-                  <div className="w-full h-[180px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={[
-                            { name: 'Ambos', value: stats.both, color: '#3b82f6' },
-                            { name: 'Só Célula', value: stats.onlyCell, color: '#10b981' },
-                            { name: 'Só Culto', value: stats.onlyCult, color: '#f59e0b' },
-                            { name: 'Nenhum', value: stats.none, color: '#475569' },
-                          ].filter(d => d.value > 0)}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={50}
-                          outerRadius={70}
-                          paddingAngle={5}
-                          dataKey="value"
-                        >
-                          <Cell fill="#3b82f6" stroke="none" />
-                          <Cell fill="#10b981" stroke="none" />
-                          <Cell fill="#f59e0b" stroke="none" />
-                          <Cell fill="#475569" stroke="none" />
-                        </Pie>
-                        <Tooltip content={<CustomTooltip dark={darkMode} />} />
-                      </PieChart>
-                    </ResponsiveContainer>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                  <div className={`${t.card} p-6 border rounded-3xl flex flex-col items-center`}>
+                    <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest self-start flex items-center gap-2"><PieIcon size={12} /> Engajamento (Célula vs Culto)</h3>
+                    <div className="w-full h-[200px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: 'Ambos', value: stats.both, color: '#3b82f6' },
+                              { name: 'Só Célula', value: stats.onlyCell, color: '#10b981' },
+                              { name: 'Só Culto', value: stats.onlyCult, color: '#f59e0b' },
+                              { name: 'Nenhum', value: stats.none, color: '#475569' },
+                            ].filter(d => d.value > 0)}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={55}
+                            outerRadius={75}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            <Cell fill="#3b82f6" stroke="none" />
+                            <Cell fill="#10b981" stroke="none" />
+                            <Cell fill="#f59e0b" stroke="none" />
+                            <Cell fill="#475569" stroke="none" />
+                          </Pie>
+                          <Tooltip content={<CustomTooltip dark={darkMode} />} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-4 mt-6">
+                      {[
+                        { label: 'Ambos', color: 'bg-blue-500' },
+                        { label: 'Só Célula', color: 'bg-emerald-500' },
+                        { label: 'Só Culto', color: 'bg-amber-500' },
+                        { label: 'Nenhum', color: 'bg-slate-600' }
+                      ].map(item => (
+                        <div key={item.label} className="flex items-center gap-1.5">
+                          <div className={`w-2 h-2 rounded-full ${item.color}`}></div>
+                          <span className="text-[8px] font-black uppercase text-slate-400">{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap justify-center gap-4 mt-4">
-                    {[
-                      { label: 'Ambos', color: 'bg-blue-500' },
-                      { label: 'Só Célula', color: 'bg-emerald-500' },
-                      { label: 'Só Culto', color: 'bg-amber-500' },
-                      { label: 'Nenhum', color: 'bg-slate-600' }
-                    ].map(item => (
-                      <div key={item.label} className="flex items-center gap-1.5">
-                        <div className={`w-2 h-2 rounded-full ${item.color}`}></div>
-                        <span className="text-[8px] font-black uppercase text-slate-400">{item.label}</span>
-                      </div>
-                    ))}
+
+                  <div className={`${t.card} p-6 border rounded-3xl flex flex-col`}>
+                    <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest flex items-center gap-2"><Activity size={12} /> Conclusão de Cursos</h3>
+                    <div className="w-full h-[200px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={courseStats} layout="vertical" margin={{ left: -20, right: 20 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" horizontal={true} vertical={false} />
+                          <XAxis type="number" hide />
+                          <YAxis dataKey="name" type="category" stroke="#475569" fontSize={9} axisLine={false} tickLine={false} width={40} />
+                          <Tooltip content={<CustomTooltip dark={darkMode} />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
+                          <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={12}>
+                            {courseStats.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="mt-auto pt-4 border-t border-white/5 grid grid-cols-4 gap-2">
+                      {courseStats.slice(0, 8).map((s, i) => (
+                        <div key={i} className="text-center">
+                          <p className="text-[10px] font-black italic" style={{ color: s.color }}>{s.value}</p>
+                          <p className="text-[7px] font-black uppercase text-slate-500">{s.name}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
