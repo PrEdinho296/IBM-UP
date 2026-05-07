@@ -1671,8 +1671,6 @@ function AttendanceReport({ members, cells, getMemberEngagement, darkMode }) {
     </div>
   );
 }
-  );
-}
 
 function CustomTooltip({ active, payload, label, dark }) {
   if (active && payload && payload.length) {
