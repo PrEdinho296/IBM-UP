@@ -1263,10 +1263,6 @@ function ChurchMembershipSystem() {
           </div>
         </div>
       )}
-ed-xl font-black text-sm uppercase">Salvar {activeCell?.id || ''}</button></div>
-          </div>
-        </div>
-      )}
 
       {showCellForm && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-2 sm:p-4 overflow-hidden">
@@ -1296,8 +1292,8 @@ ed-xl font-black text-sm uppercase">Salvar {activeCell?.id || ''}</button></div>
 
             {/* Footer */}
             <div className="p-6 border-t border-white/5 flex gap-4 shrink-0 bg-inherit rounded-b-2xl">
-              <button onClick={() => setShowCellForm(false)} className="flex-1 py-3 text-slate-500 font-black uppercase text-[10px] hover:bg-white/5 rounded-xl transition-all">Cancelar</button>
-              <button onClick={addCell} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl font-black text-[10px] uppercase italic transition-all shadow-lg shadow-indigo-600/20 active:scale-95">Salvar Célula</button>
+              <button onClick={() => setShowCellForm(false)} className="flex-1 py-4 text-slate-500 font-black uppercase text-xs hover:bg-white/5 rounded-xl transition-all">Cancelar</button>
+              <button onClick={addCell} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-xl font-black text-sm uppercase italic transition-all shadow-lg shadow-indigo-600/20 active:scale-95">Salvar Célula</button>
             </div>
           </div>
         </div>
@@ -1314,8 +1310,8 @@ ed-xl font-black text-sm uppercase">Salvar {activeCell?.id || ''}</button></div>
               <InputCompact label="NOME DO SETOR" value={sectorForm.name} onChange={val => setSectorForm({ ...sectorForm, name: val })} dark={darkMode} />
             </div>
             <div className="p-6 border-t border-white/5 flex gap-4 shrink-0 bg-inherit rounded-b-2xl">
-              <button onClick={() => setShowSectorForm(false)} className="flex-1 text-slate-500 font-black uppercase text-[10px] hover:bg-white/5 rounded-xl transition-all">Cancelar</button>
-              <button onClick={addSector} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl font-black text-[10px] uppercase italic transition-all shadow-lg active:scale-95">Criar Setor</button>
+              <button onClick={() => setShowSectorForm(false)} className="flex-1 py-4 text-slate-500 font-black uppercase text-xs hover:bg-white/5 rounded-xl transition-all">Cancelar</button>
+              <button onClick={addSector} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-4 rounded-xl font-black text-sm uppercase italic transition-all shadow-lg active:scale-95">Criar Setor</button>
             </div>
           </div>
         </div>
@@ -1368,7 +1364,7 @@ ed-xl font-black text-sm uppercase">Salvar {activeCell?.id || ''}</button></div>
 
             {/* Footer */}
             <div className="p-6 border-t border-white/5 shrink-0 bg-inherit rounded-b-2xl">
-              <button onClick={addReport} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl font-black text-xs uppercase shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">Gravar Relatório</button>
+              <button onClick={addReport} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl font-black text-sm uppercase shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">Gravar Relatório</button>
             </div>
           </div>
         </div>
