@@ -735,8 +735,8 @@ function ChurchMembershipSystem() {
               <p className="text-blue-500 font-black uppercase text-[10px] tracking-[0.3em] mt-2">Acesso Restrito</p>
             </div>
             <form onSubmit={handleLogin} className="space-y-4 bg-white/5 p-8 rounded-3xl border border-white/10 backdrop-blur-md">
-              <InputCompact label="E-MAIL" value={authForm.email} onChange={val => setAuthForm({ ...authForm, email: val })} dark={true} />
-              <InputCompact label="SENHA" value={authForm.password} onChange={val => setAuthForm({ ...authForm, password: val })} dark={true} />
+              <InputCompact label="E-MAIL" value={authForm.email} onChange={val => setAuthForm({ ...authForm, email: val })} dark={true} type="email" autoCapitalize="off" />
+              <InputCompact label="SENHA" value={authForm.password} onChange={val => setAuthForm({ ...authForm, password: val })} dark={true} type="password" autoCapitalize="off" />
               <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-blue-900/20 active:scale-95">Entrar no Painel</button>
               
               {hasCellParam && !cells.find(c => String(c.id) === String(currentCellId))?.login_email && (
@@ -784,8 +784,8 @@ function ChurchMembershipSystem() {
                 <p className="text-[10px] text-slate-500 font-bold uppercase leading-relaxed">
                   {activeCell ? `Configurando acesso para a célula: ${activeCell.name}` : 'Defina o e-mail e a senha que você usará para acessar o painel da sua célula sem precisar de links.'}
                 </p>
-                <InputCompact label="E-MAIL DE ACESSO" value={leaderConfigForm.email} onChange={val => setLeaderConfigForm({...leaderConfigForm, email: val})} dark={darkMode} />
-                <InputCompact label="SENHA DE ACESSO" value={leaderConfigForm.password} onChange={val => setLeaderConfigForm({...leaderConfigForm, password: val})} dark={darkMode} />
+                <InputCompact label="E-MAIL DE ACESSO" value={leaderConfigForm.email} onChange={val => setLeaderConfigForm({...leaderConfigForm, email: val})} dark={darkMode} type="email" autoCapitalize="off" />
+                <InputCompact label="SENHA DE ACESSO" value={leaderConfigForm.password} onChange={val => setLeaderConfigForm({...leaderConfigForm, password: val})} dark={darkMode} type="password" autoCapitalize="off" />
               </div>
               <div className="p-6 border-t border-white/5 flex gap-3">
                 <button type="button" onClick={() => setShowLeaderConfig(false)} className="flex-1 py-3 text-slate-500 font-black uppercase text-[10px] hover:bg-white/5 rounded-xl transition-all">Cancelar</button>
@@ -1808,11 +1808,18 @@ function ChurchMembershipSystem() {
   );
 }
 
-function InputCompact({ label, value, onChange, dark }) {
+function InputCompact({ label, value, onChange, dark, type = "text", autoCapitalize = "on" }) {
   return (
     <div className={`${dark ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${dark ? 'border-white/10' : 'border-slate-200'} transition-all`}>
       <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">{label}</p>
-      <input value={value} onChange={e => onChange(e.target.value)} className={`w-full bg-transparent ${dark ? 'text-white' : 'text-slate-900'} font-black text-sm outline-none italic uppercase`} />
+      <input 
+        type={type}
+        value={value} 
+        onChange={e => onChange(e.target.value)} 
+        autoCapitalize={autoCapitalize}
+        autoCorrect={autoCapitalize === 'off' ? 'off' : 'on'}
+        className={`w-full bg-transparent ${dark ? 'text-white' : 'text-slate-900'} font-black text-sm outline-none italic`} 
+      />
     </div>
   );
 }
