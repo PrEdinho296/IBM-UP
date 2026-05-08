@@ -216,18 +216,25 @@ function ChurchMembershipSystem() {
 
     // 2. Tentar Login de Líder (Tabela cells)
     const cellData = cells.find(c => 
-      c.login_email && authForm.email && 
-      c.login_email.toLowerCase() === authForm.email.toLowerCase() && 
-      c.login_password === authForm.password
+      (c.login_email && authForm.email && 
+       c.login_email.toLowerCase() === authForm.email.toLowerCase() && 
+       c.login_password === authForm.password) ||
+      (c.trainee_login_email && authForm.email && 
+       c.trainee_login_email.toLowerCase() === authForm.email.toLowerCase() && 
+       c.trainee_login_password === authForm.password)
     );
 
     if (cellData) {
-      setLeaderCell(cellData);
-      setActiveCell(cellData);
+      const isTrainee = cellData.trainee_login_email && authForm.email && 
+                       cellData.trainee_login_email.toLowerCase() === authForm.email.toLowerCase();
+      
+      const leaderData = { ...cellData, isTraineeLogin: isTrainee };
+      setLeaderCell(leaderData);
+      setActiveCell(leaderData);
       setIsLeaderMode(true);
       setActiveTab('leader-members');
-      localStorage.setItem('ibm_up_leader_cell', JSON.stringify(cellData));
-      alert(`Bem-vindo, líder da célula ${cellData.name}!`);
+      localStorage.setItem('ibm_up_leader_cell', JSON.stringify(leaderData));
+      alert(`Bem-vindo, ${isTrainee ? 'Líder em Treinamento' : 'Líder'} da célula ${cellData.name}!`);
     } else {
       alert('Credenciais inválidas. Verifique o e-mail e senha.');
     }
@@ -465,15 +472,22 @@ function ChurchMembershipSystem() {
 
   const saveLeaderConfig = async (e) => {
     e.preventDefault();
+    const isTraineeMode = searchParams.get('role') === 'trainee';
     const cellId = leaderCell?.id || activeCell?.id;
     if (!cellId) return;
 
+    const payload = isTraineeMode ? {
+      trainee_login_email: leaderConfigForm.email,
+      trainee_login_password: leaderConfigForm.password,
+      trainee_leader_name: leaderConfigForm.name || ''
+    } : {
+      login_email: leaderConfigForm.email,
+      login_password: leaderConfigForm.password
+    };
+
     const { error } = await supabase
       .from('cells')
-      .update({ 
-        login_email: leaderConfigForm.email, 
-        login_password: leaderConfigForm.password 
-      })
+      .update(payload)
       .eq('id', cellId);
 
     if (error) {
@@ -481,8 +495,12 @@ function ChurchMembershipSystem() {
     } else {
       alert('Acesso configurado com sucesso!');
       setShowLeaderConfig(false);
-      // Atualizar o estado local se necessário
-      if (leaderCell) setLeaderCell({ ...leaderCell, login_email: leaderConfigForm.email, login_password: leaderConfigForm.password });
+      // Atualizar o estado local
+      const updatedCell = { ...activeCell, ...payload };
+      if (leaderCell) setLeaderCell(updatedCell);
+      setActiveCell(updatedCell);
+      // Recarregar dados para garantir que a lista de células esteja atualizada
+      fetchData();
     }
   };
 
@@ -756,7 +774,7 @@ function ChurchMembershipSystem() {
                   className="w-full mt-4 border border-blue-600/30 text-blue-500 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600/10 transition-all flex flex-col items-center gap-1"
                 >
                   <span className="opacity-50 text-[7px]">Link detectado</span>
-                  PRIMEIRO ACESSO? CADASTRE SUA SENHA
+                  {searchParams.get('role') === 'trainee' ? 'PRIMEIRO ACESSO (LÍDER EM TREINAMENTO)' : 'PRIMEIRO ACESSO? CADASTRE SUA SENHA'}
                 </button>
               )}
 
@@ -777,13 +795,18 @@ function ChurchMembershipSystem() {
           <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto">
             <form onSubmit={saveLeaderConfig} className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-md rounded-3xl border ${t.border} shadow-2xl flex flex-col relative text-left my-auto`}>
               <div className="p-6 border-b border-white/5 flex justify-between items-center">
-                <h2 className="text-xl font-black italic uppercase tracking-tighter text-blue-500">Configurar Meu Acesso</h2>
+                <h2 className="text-xl font-black italic uppercase tracking-tighter text-blue-500">
+                  {searchParams.get('role') === 'trainee' ? 'Configurar Acesso Treinamento' : 'Configurar Meu Acesso'}
+                </h2>
                 <button type="button" onClick={() => setShowLeaderConfig(false)} className="p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={20}/></button>
               </div>
               <div className="p-6 space-y-4">
                 <p className="text-[10px] text-slate-500 font-bold uppercase leading-relaxed">
-                  {activeCell ? `Configurando acesso para a célula: ${activeCell.name}` : 'Defina o e-mail e a senha que você usará para acessar o painel da sua célula sem precisar de links.'}
+                  {searchParams.get('role') === 'trainee' ? 'Defina seus dados como Líder em Treinamento para acessar o painel desta célula.' : (activeCell ? `Configurando acesso para a célula: ${activeCell.name}` : 'Defina o e-mail e a senha que você usará para acessar o painel da sua célula sem precisar de links.')}
                 </p>
+                {searchParams.get('role') === 'trainee' && (
+                  <InputCompact label="SEU NOME COMPLETO" value={leaderConfigForm.name || ''} onChange={val => setLeaderConfigForm({...leaderConfigForm, name: val})} dark={darkMode} />
+                )}
                 <InputCompact label="E-MAIL DE ACESSO" value={leaderConfigForm.email} onChange={val => setLeaderConfigForm({...leaderConfigForm, email: val})} dark={darkMode} type="email" autoCapitalize="off" />
                 <InputCompact label="SENHA DE ACESSO" value={leaderConfigForm.password} onChange={val => setLeaderConfigForm({...leaderConfigForm, password: val})} dark={darkMode} type="password" autoCapitalize="off" />
               </div>
@@ -819,14 +842,27 @@ function ChurchMembershipSystem() {
               <MenuBtn icon={<Users size={18} />} label="Membros" active={activeTab === 'leader-members'} onClick={() => setActiveTab('leader-members')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Calendar size={18} />} label="Frequência" active={activeTab === 'leader-attendance'} onClick={() => setActiveTab('leader-attendance')} open={sidebarOpen} dark={darkMode} />
                <MenuBtn icon={<Sun size={18} />} label="Cultos" active={activeTab === 'leader-culto'} onClick={() => setActiveTab('leader-culto')} open={sidebarOpen} dark={darkMode} />
-               <div className="pt-4 mt-4 border-t border-white/5">
+               <div className="pt-4 mt-4 border-t border-white/5 space-y-1">
+                 <p className="text-[7px] font-black text-slate-500 uppercase px-3 mb-2 tracking-widest">Equipe da Célula</p>
+                 <MenuBtn 
+                   icon={<Plus size={18} />} 
+                   label="Convidar Treinee" 
+                   onClick={() => {
+                     const link = `${window.location.origin}${window.location.pathname}?cellId=${activeCell.id}&role=trainee`;
+                     navigator.clipboard.writeText(link);
+                     alert('Link de convite para Líder em Treinamento copiado!\nEnvie para o seu auxiliar.');
+                   }} 
+                   open={sidebarOpen} 
+                   dark={darkMode} 
+                 />
                  <MenuBtn 
                    icon={<ShieldCheck size={18} />} 
                    label="Configurar Acesso" 
                    onClick={() => {
                      setLeaderConfigForm({ 
-                       email: leaderCell?.login_email || activeCell?.login_email || '', 
-                       password: leaderCell?.login_password || activeCell?.login_password || '' 
+                       email: leaderCell?.isTraineeLogin ? leaderCell?.trainee_login_email : (leaderCell?.login_email || activeCell?.login_email || ''), 
+                       password: leaderCell?.isTraineeLogin ? leaderCell?.trainee_login_password : (leaderCell?.login_password || activeCell?.login_password || ''),
+                       name: leaderCell?.isTraineeLogin ? leaderCell?.trainee_leader_name : ''
                      });
                      setShowLeaderConfig(true);
                    }} 
@@ -864,7 +900,9 @@ function ChurchMembershipSystem() {
             <div>
               <h1 className={`text-base font-black ${t.text} italic uppercase tracking-tighter`}>IBM-UP</h1>
               <div className="flex items-center gap-2">
-                <p className={`${t.subText} text-[8px] font-bold uppercase tracking-widest`}>{isLeaderMode ? `Líder: ${activeCell?.name || ''}` : 'Gestão Estratégica'}</p>
+                <p className={`${t.subText} text-[8px] font-bold uppercase tracking-widest`}>
+                  {isLeaderMode ? (leaderCell?.isTraineeLogin ? `Líder em Treinamento: ${activeCell?.name || ''}` : `Líder: ${activeCell?.name || ''}`) : 'Gestão Estratégica'}
+                </p>
                 {isLeaderMode && session && (
                   <button 
                     onClick={() => window.location.href = '/'} 
