@@ -98,6 +98,8 @@ function ChurchMembershipSystem() {
   const [editingCellId, setEditingCellId] = useState(null);
   const [showSectorForm, setShowSectorForm] = useState(false);
   const [showReportForm, setShowReportForm] = useState(false);
+  const [showLeaderConfig, setShowLeaderConfig] = useState(false);
+  const [leaderConfigForm, setLeaderConfigForm] = useState({ email: '', password: '' });
 
   const [memberForm, setMemberForm] = useState({
     name: '', email: '', phone: '', cell_id: '', status: 'active',
@@ -462,6 +464,29 @@ function ChurchMembershipSystem() {
     }
   };
 
+  const saveLeaderConfig = async (e) => {
+    e.preventDefault();
+    const cellId = leaderCell?.id || activeCell?.id;
+    if (!cellId) return;
+
+    const { error } = await supabase
+      .from('cells')
+      .update({ 
+        login_email: leaderConfigForm.email, 
+        login_password: leaderConfigForm.password 
+      })
+      .eq('id', cellId);
+
+    if (error) {
+      alert('Erro ao salvar configuração: ' + error.message);
+    } else {
+      alert('Acesso configurado com sucesso!');
+      setShowLeaderConfig(false);
+      // Atualizar o estado local se necessário
+      if (leaderCell) setLeaderCell({ ...leaderCell, login_email: leaderConfigForm.email, login_password: leaderConfigForm.password });
+    }
+  };
+
   const addVisitor = async (e) => {
     e.preventDefault();
     if (!visitorForm.name) return;
@@ -711,6 +736,15 @@ function ChurchMembershipSystem() {
             <InputCompact label="E-MAIL" value={authForm.email} onChange={val => setAuthForm({ ...authForm, email: val })} dark={true} />
             <InputCompact label="SENHA" value={authForm.password} onChange={val => setAuthForm({ ...authForm, password: val })} dark={true} />
             <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-blue-900/20 active:scale-95">Entrar no Painel</button>
+            <div className="text-center pt-2">
+              <button 
+                type="button"
+                onClick={() => alert('Para recuperar sua senha, entre em contato com o Pastor ou Administrador do sistema.')}
+                className="text-[10px] font-black uppercase text-slate-500 hover:text-blue-500 transition-all tracking-widest"
+              >
+                Esqueci minha senha
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -747,7 +781,22 @@ function ChurchMembershipSystem() {
             <>
               <MenuBtn icon={<Users size={18} />} label="Membros" active={activeTab === 'leader-members'} onClick={() => setActiveTab('leader-members')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Calendar size={18} />} label="Frequência" active={activeTab === 'leader-attendance'} onClick={() => setActiveTab('leader-attendance')} open={sidebarOpen} dark={darkMode} />
-              <MenuBtn icon={<Sun size={18} />} label="Cultos" active={activeTab === 'leader-culto'} onClick={() => setActiveTab('leader-culto')} open={sidebarOpen} dark={darkMode} />
+               <MenuBtn icon={<Sun size={18} />} label="Cultos" active={activeTab === 'leader-culto'} onClick={() => setActiveTab('leader-culto')} open={sidebarOpen} dark={darkMode} />
+               <div className="pt-4 mt-4 border-t border-white/5">
+                 <MenuBtn 
+                   icon={<ShieldCheck size={18} />} 
+                   label="Configurar Acesso" 
+                   onClick={() => {
+                     setLeaderConfigForm({ 
+                       email: leaderCell?.login_email || activeCell?.login_email || '', 
+                       password: leaderCell?.login_password || activeCell?.login_password || '' 
+                     });
+                     setShowLeaderConfig(true);
+                   }} 
+                   open={sidebarOpen} 
+                   dark={darkMode} 
+                 />
+               </div>
             </>
           ) : (
             <>
@@ -1596,6 +1645,26 @@ function ChurchMembershipSystem() {
               <InputCompact label="NOVA SENHA" value={authForm.newPassword} onChange={val => setAuthForm({ ...authForm, newPassword: val })} dark={darkMode} />
             </div>
             <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-xl font-black text-xs uppercase mt-6">Confirmar Nova Senha</button>
+          </form>
+        </div>
+      )}
+
+      {showLeaderConfig && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4 overflow-hidden">
+          <form onSubmit={saveLeaderConfig} className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-md rounded-2xl border ${t.border} shadow-2xl flex flex-col relative text-left`}>
+            <div className="p-6 border-b border-white/5 flex justify-between items-center">
+              <h2 className="text-xl font-black italic uppercase tracking-tighter text-blue-500">Configurar Meu Acesso</h2>
+              <button type="button" onClick={() => setShowLeaderConfig(false)} className="p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={20}/></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-[10px] text-slate-500 font-bold uppercase leading-relaxed">Defina o e-mail e a senha que você usará para acessar o painel da sua célula sem precisar de links.</p>
+              <InputCompact label="E-MAIL DE ACESSO" value={leaderConfigForm.email} onChange={val => setLeaderConfigForm({...leaderConfigForm, email: val})} dark={darkMode} />
+              <InputCompact label="SENHA DE ACESSO" value={leaderConfigForm.password} onChange={val => setLeaderConfigForm({...leaderConfigForm, password: val})} dark={darkMode} />
+            </div>
+            <div className="p-6 border-t border-white/5 flex gap-3">
+              <button type="button" onClick={() => setShowLeaderConfig(false)} className="flex-1 py-3 text-slate-500 font-black uppercase text-[10px] hover:bg-white/5 rounded-xl transition-all">Cancelar</button>
+              <button type="submit" className="flex-[2] bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-blue-600/20 transition-all">Salvar Acesso</button>
+            </div>
           </form>
         </div>
       )}
