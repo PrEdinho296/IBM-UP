@@ -278,8 +278,8 @@ function ChurchMembershipSystem() {
         const cell = data.cells.find(c => String(c.id) === String(cellId));
         if (cell) {
           setActiveCell(cell);
-          setIsLeaderMode(true);
-          setActiveTab('leader-members');
+          // Não ativamos mais o modo líder automaticamente via URL.
+          // O usuário deve logar ou clicar em "Primeiro Acesso" na tela de login.
         }
       }
       setIsInitialized(true);
