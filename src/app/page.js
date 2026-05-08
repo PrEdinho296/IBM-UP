@@ -83,6 +83,7 @@ function ChurchMembershipSystem() {
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [activeCell, setActiveCell] = useState(null);
+  const [leaderCell, setLeaderCell] = useState(null);
   const [searchingCep, setSearchingCep] = useState(false);
   const [filterCellId, setFilterCellId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -106,7 +107,12 @@ function ChurchMembershipSystem() {
     attended_cell: false, attended_cult: false
   });
 
-  const [cellForm, setCellForm] = useState({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30' });
+  const [cellForm, setCellForm] = useState({ 
+    name: '', sector_id: '', leader: '', leader_phone: '', 
+    cep: '', address: '', number: '', neighborhood: '', city: '', 
+    day_of_week: 'quarta', meeting_time: '19:30',
+    login_email: '', login_password: ''
+  });
   const [visitorForm, setVisitorForm] = useState({ 
     name: '', phone: '', email: '', cep: '', address: '', number: '', neighborhood: '', city: '', 
     ministerios: '', suggested_cell: null 
@@ -173,23 +179,63 @@ function ChurchMembershipSystem() {
       setSession(session);
     });
 
+    // Check for leader session in localStorage
+    const savedLeader = localStorage.getItem('ibm_up_leader_cell');
+    if (savedLeader) {
+      const cell = JSON.parse(savedLeader);
+      setLeaderCell(cell);
+      setActiveCell(cell);
+      setIsLeaderMode(true);
+      setActiveTab('leader-members');
+    }
+
     return () => subscription.unsubscribe();
   }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setAuthLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    
+    // 1. Tentar Login Administrativo (Pastor)
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: authForm.email,
       password: authForm.password,
     });
-    if (error) alert('Erro no login: ' + error.message);
+
+    if (!authError && authData.session) {
+      setAuthLoading(false);
+      return;
+    }
+
+    // 2. Tentar Login de Líder (Tabela cells)
+    const { data: cellData, error: cellError } = await supabase
+      .from('cells')
+      .select('*')
+      .eq('login_email', authForm.email)
+      .eq('login_password', authForm.password)
+      .single();
+
+    if (cellData) {
+      setLeaderCell(cellData);
+      setActiveCell(cellData);
+      setIsLeaderMode(true);
+      setActiveTab('leader-members');
+      localStorage.setItem('ibm_up_leader_cell', JSON.stringify(cellData));
+      alert(`Bem-vindo, líder da célula ${cellData.name}!`);
+    } else {
+      alert('Credenciais inválidas. Verifique o e-mail e senha.');
+    }
+    
     setAuthLoading(false);
   };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setSession(null);
+    setLeaderCell(null);
+    setIsLeaderMode(false);
+    setActiveCell(null);
+    localStorage.removeItem('ibm_up_leader_cell');
   };
 
   const handleChangePassword = async (e) => {
@@ -390,7 +436,7 @@ function ChurchMembershipSystem() {
       if (data) {
         setCells(cells.map(c => c.id === editingCellId ? data[0] : c));
         setEditingCellId(null);
-        setCellForm({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30' });
+        setCellForm({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30', login_email: '', login_password: '' });
         setShowCellForm(false);
       }
     } else {
@@ -402,7 +448,7 @@ function ChurchMembershipSystem() {
       }
       if (data) {
         setCells([...cells, data[0]]);
-        setCellForm({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30' });
+        setCellForm({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30', login_email: '', login_password: '' });
         setShowCellForm(false);
       }
     }
@@ -642,7 +688,7 @@ function ChurchMembershipSystem() {
     );
   }
   
-  if (!session && !hasCellParam) {
+  if (!session && !hasCellParam && !leaderCell) {
     return (
       <div className="min-h-screen bg-[#020617] flex items-center justify-center p-4">
         <div className="w-full max-w-md space-y-8 animate-in fade-in duration-500">
@@ -651,7 +697,7 @@ function ChurchMembershipSystem() {
               <Users size={40} />
             </div>
             <h1 className="text-5xl font-black italic uppercase tracking-tighter text-white">IBM-UP</h1>
-            <p className="text-blue-500 font-black uppercase text-[10px] tracking-[0.3em] mt-2">Acesso Pastoral</p>
+            <p className="text-blue-500 font-black uppercase text-[10px] tracking-[0.3em] mt-2">Acesso Restrito</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4 bg-white/5 p-8 rounded-3xl border border-white/10 backdrop-blur-md">
             <InputCompact label="E-MAIL" value={authForm.email} onChange={val => setAuthForm({ ...authForm, email: val })} dark={true} />
@@ -1412,7 +1458,7 @@ function ChurchMembershipSystem() {
             {/* Header */}
             <div className="p-6 border-b border-white/5 flex justify-between items-center shrink-0">
               <h2 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter">{editingCellId ? 'Editar' : 'Nova'} Célula</h2>
-              <button onClick={() => { setShowCellForm(false); setEditingCellId(null); setCellForm({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30' }); }} className="p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24} /></button>
+              <button onClick={() => { setShowCellForm(false); setEditingCellId(null); setCellForm({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30', login_email: '', login_password: '' }); }} className="p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24} /></button>
             </div>
 
             {/* Body */}
@@ -1429,6 +1475,13 @@ function ChurchMembershipSystem() {
               <div className="grid grid-cols-2 gap-4">
                 <InputCompact label="Nº" value={cellForm.number} onChange={val => setCellForm({ ...cellForm, number: val })} dark={darkMode} />
                 <InputCompact label="BAIRRO" value={cellForm.neighborhood} onChange={val => setCellForm({ ...cellForm, neighborhood: val })} dark={darkMode} />
+              </div>
+              <div className="p-4 bg-blue-600/5 border border-blue-500/10 rounded-2xl space-y-4">
+                <p className="text-[10px] font-black uppercase text-blue-500 tracking-[0.2em] mb-2">Acesso do Líder (Login)</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <InputCompact label="E-MAIL DE ACESSO" value={cellForm.login_email} onChange={val => setCellForm({ ...cellForm, login_email: val })} dark={darkMode} />
+                  <InputCompact label="SENHA DE ACESSO" value={cellForm.login_password} onChange={val => setCellForm({ ...cellForm, login_password: val })} dark={darkMode} />
+                </div>
               </div>
             </div>
 
