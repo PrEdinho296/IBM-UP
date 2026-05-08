@@ -170,6 +170,9 @@ function ChurchMembershipSystem() {
   };
   const [authForm, setAuthForm] = useState({ email: '', password: '', newPassword: '' });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isRecoveringPassword, setIsRecoveringPassword] = useState(false);
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [showResetForm, setShowResetForm] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -254,14 +257,38 @@ function ChurchMembershipSystem() {
     window.location.href = window.location.origin + window.location.pathname;
   };
 
-  const handleChangePassword = async (e) => {
-    e.preventDefault();
     const { error } = await supabase.auth.updateUser({ password: authForm.newPassword });
     if (error) alert('Erro ao alterar senha: ' + error.message);
     else {
-      alert('Senha alterada com sucesso!');
+      // Se estiver no modo de recuperação, precisamos atualizar também na tabela cells
+      const user = (await supabase.auth.getUser()).data.user;
+      if (user?.email) {
+        await supabase.from('cells').update({ login_password: authForm.newPassword }).eq('login_email', user.email);
+        await supabase.from('cells').update({ trainee_login_password: authForm.newPassword }).eq('trainee_login_email', user.email);
+      }
+      
+      alert('Senha alterada com sucesso! Você já pode logar.');
       setIsChangingPassword(false);
+      setShowResetForm(false);
       setAuthForm({ ...authForm, newPassword: '' });
+      // Limpar a URL
+      window.location.href = window.location.origin + window.location.pathname;
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (!recoveryEmail) return;
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(recoveryEmail, {
+      redirectTo: window.location.origin + window.location.pathname + '?mode=reset',
+    });
+    
+    if (error) {
+      alert('Erro ao enviar e-mail: ' + error.message);
+    } else {
+      alert('E-mail de recuperação enviado! Verifique sua caixa de entrada.');
+      setIsRecoveringPassword(false);
     }
   };
   const [sectorForm, setSectorForm] = useState({ name: '' });
@@ -274,8 +301,12 @@ function ChurchMembershipSystem() {
 
   useEffect(() => {
     const initFetch = async () => {
-      // Forçar leitura do parâmetro mesmo que o hook do Next falhe (comum em mobile)
+      // Detectar modo de recuperação
       const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('mode') === 'reset' || window.location.hash.includes('type=recovery')) {
+        setShowResetForm(true);
+      }
+
       const cellId = urlParams.get('cellId') || cellIdParam;
       
       const fetchedData = await fetchData();
@@ -493,6 +524,12 @@ function ChurchMembershipSystem() {
     if (error) {
       alert('Erro ao salvar configuração: ' + error.message);
     } else {
+      // Tentar criar o usuário no Supabase Auth para permitir recuperação de senha futura
+      await supabase.auth.signUp({
+        email: leaderConfigForm.email,
+        password: leaderConfigForm.password,
+      });
+
       alert('Acesso configurado com sucesso!');
       setShowLeaderConfig(false);
       // Atualizar o estado local
@@ -781,7 +818,7 @@ function ChurchMembershipSystem() {
               <div className="text-center pt-2">
                 <button 
                   type="button"
-                  onClick={() => alert('Para recuperar sua senha, entre em contato com o Pastor ou Administrador do sistema.')}
+                  onClick={() => setIsRecoveringPassword(true)}
                   className="text-[10px] font-black uppercase text-slate-500 hover:text-blue-500 transition-all tracking-widest"
                 >
                   Esqueci minha senha
@@ -790,6 +827,29 @@ function ChurchMembershipSystem() {
             </form>
           </div>
         </div>
+
+        {isRecoveringPassword && (
+          <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
+            <form onSubmit={handleForgotPassword} className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-md rounded-3xl p-8 border ${t.border} shadow-2xl relative text-left`}>
+              <button type="button" onClick={() => setIsRecoveringPassword(false)} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24} /></button>
+              <h2 className="text-3xl font-black mb-4 italic uppercase tracking-tighter text-blue-500">Recuperar Senha</h2>
+              <p className="text-[10px] text-slate-500 font-bold uppercase mb-6 leading-relaxed">Enviaremos um link de redefinição para o seu e-mail cadastrado.</p>
+              <InputCompact label="SEU E-MAIL CADASTRADO" value={recoveryEmail} onChange={val => setRecoveryEmail(val)} dark={darkMode} type="email" autoCapitalize="off" />
+              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-black text-xs uppercase mt-6 transition-all">Enviar E-mail de Recuperação</button>
+            </form>
+          </div>
+        )}
+
+        {showResetForm && (
+          <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
+            <form onSubmit={handleChangePassword} className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-md rounded-3xl p-8 border ${t.border} shadow-2xl relative text-left`}>
+              <h2 className="text-3xl font-black mb-4 italic uppercase tracking-tighter text-blue-500">Nova Senha</h2>
+              <p className="text-[10px] text-slate-500 font-bold uppercase mb-6 leading-relaxed">Digite sua nova senha abaixo para recuperar o acesso.</p>
+              <InputCompact label="NOVA SENHA" value={authForm.newPassword} onChange={val => setAuthForm({ ...authForm, newPassword: val })} dark={darkMode} type="password" autoCapitalize="off" />
+              <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl font-black text-xs uppercase mt-6 transition-all">Definir Nova Senha</button>
+            </form>
+          </div>
+        )}
 
         {showLeaderConfig && (
           <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto">
