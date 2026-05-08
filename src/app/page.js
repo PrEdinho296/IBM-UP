@@ -706,22 +706,13 @@ function ChurchMembershipSystem() {
   const currentCellId = cellIdParam || getRawCellId();
   const hasCellParam = !!currentCellId;
 
-  // Se for um link de célula, JAMAIS mostra a tela de login, mesmo que demore a carregar
-  if (hasCellParam) {
-    if (authLoading || !isInitialized) return (
-      <div className="min-h-screen bg-[#020617] flex items-center justify-center text-white italic font-bold text-xl animate-pulse">
-        CARREGANDO CÉLULA...
-      </div>
-    );
-  } else {
-    if (authLoading) return (
-      <div className="min-h-screen bg-[#020617] flex items-center justify-center text-white italic font-bold text-xl animate-pulse">
-        IBM-UP...
-      </div>
-    );
-  }
+  if (authLoading || !isInitialized) return (
+    <div className="min-h-screen bg-[#020617] flex items-center justify-center text-white italic font-bold text-xl animate-pulse">
+      IBM-UP...
+    </div>
+  );
   
-  if (!session && !hasCellParam && !leaderCell) {
+  if (!session && !leaderCell) {
     return (
       <div className="min-h-screen bg-[#020617] flex items-center justify-center p-4">
         <div className="w-full max-w-md space-y-8 animate-in fade-in duration-500">
@@ -736,6 +727,24 @@ function ChurchMembershipSystem() {
             <InputCompact label="E-MAIL" value={authForm.email} onChange={val => setAuthForm({ ...authForm, email: val })} dark={true} />
             <InputCompact label="SENHA" value={authForm.password} onChange={val => setAuthForm({ ...authForm, password: val })} dark={true} />
             <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-blue-900/20 active:scale-95">Entrar no Painel</button>
+            
+            {hasCellParam && !cells.find(c => c.id.toString() === currentCellId)?.login_email && (
+              <button 
+                type="button" 
+                onClick={() => {
+                  const cell = cells.find(c => c.id.toString() === currentCellId);
+                  if (cell) {
+                    setLeaderConfigForm({ email: '', password: '' });
+                    setShowLeaderConfig(true);
+                  }
+                }}
+                className="w-full mt-4 border border-blue-600/30 text-blue-500 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600/10 transition-all flex flex-col items-center gap-1"
+              >
+                <span className="opacity-50 text-[7px]">Link detectado</span>
+                PRIMEIRO ACESSO? CADASTRE SUA SENHA
+              </button>
+            )}
+
             <div className="text-center pt-2">
               <button 
                 type="button"
