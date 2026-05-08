@@ -712,8 +712,7 @@ function ChurchMembershipSystem() {
            {isLeaderMode && (
              <button onClick={() => window.location.href = '/'} className="w-full flex items-center gap-3 p-3 text-[10px] text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest mb-2"><LayoutDashboard size={16}/> {sidebarOpen && 'Painel Geral'}</button>
            )}
-           <button onClick={() => setIsChangingPassword(true)} className={`w-full flex items-center gap-3 p-3 text-[10px] ${t.subText} hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest`}><ShieldCheck size={16}/> {sidebarOpen && 'Mudar Senha'}</button>
-           <button onClick={() => fetchData()} className={`w-full flex items-center gap-3 p-3 text-[10px] ${t.subText} hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest`}><Activity size={16}/> {sidebarOpen && 'Atualizar'}</button>
+
            <button onClick={handleLogout} className="w-full flex items-center gap-3 p-3 text-[10px] text-red-500/70 hover:text-red-500 hover:bg-red-400/5 rounded-xl transition-all font-black uppercase tracking-widest"><Power size={16}/> {sidebarOpen && 'Encerrar Sessão'}</button>
         </div>
       </aside>
