@@ -424,6 +424,7 @@ function ChurchMembershipSystem() {
       ministerios: !!visitorForm.ministerios,
       cell_id: visitorForm.suggested_cell?.id || null,
       status: 'active',
+      outros: true,
       attended_cult: true 
     };
 
@@ -531,6 +532,7 @@ function ChurchMembershipSystem() {
       if (isLeaderMode && activeCell && m.cell_id !== activeCell.id) return acc;
       const { isPresentCell, isPresentCult } = getMemberEngagement(m);
       acc.total++;
+      if (m.outros) acc.visitors++;
       if (isPresentCell && isPresentCult) acc.both++;
       else if (isPresentCell && !isPresentCult) acc.onlyCell++;
       else if (!isPresentCell && isPresentCult) acc.onlyCult++;
@@ -540,7 +542,7 @@ function ChurchMembershipSystem() {
       if (!isPresentCell) acc.absentCell++;
 
       return acc;
-    }, { total: 0, both: 0, onlyCell: 0, onlyCult: 0, none: 0, absentCult: 0, absentCell: 0 });
+    }, { total: 0, both: 0, onlyCell: 0, onlyCult: 0, none: 0, absentCult: 0, absentCell: 0, visitors: 0 });
   }, [members, attendance, isLeaderMode, activeCell, cells]);
 
   const loyaltyData = [
@@ -758,6 +760,7 @@ function ChurchMembershipSystem() {
                 <StatCard label="Faltou Culto" value={stats.absentCult} icon={<Activity size={16} />} color="red" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-culto'); }} />
                 <StatCard label="Faltou Célula" value={stats.absentCell} icon={<Clock size={16} />} color="orange" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-cell'); }} />
                 <StatCard label="Ausente Ambos" value={stats.none} icon={<UserMinus size={16} />} color="red" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('none'); }} />
+                <StatCard label="Visitantes" value={stats.visitors} icon={<Star size={16} />} color="pink" dark={darkMode} onClick={() => { setActiveTab('members'); setFilterCellId(null); setSearchTerm(''); }} />
                 <StatCard label="Células" value={cells.length} icon={<MapPin size={16} />} color="indigo" dark={darkMode} />
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
