@@ -215,12 +215,11 @@ function ChurchMembershipSystem() {
     }
 
     // 2. Tentar Login de Líder (Tabela cells)
-    const { data: cellData, error: cellError } = await supabase
-      .from('cells')
-      .select('*')
-      .eq('login_email', authForm.email)
-      .eq('login_password', authForm.password)
-      .single();
+    const cellData = cells.find(c => 
+      c.login_email && authForm.email && 
+      c.login_email.toLowerCase() === authForm.email.toLowerCase() && 
+      c.login_password === authForm.password
+    );
 
     if (cellData) {
       setLeaderCell(cellData);
@@ -726,8 +725,8 @@ function ChurchMembershipSystem() {
   if (!session && !leaderCell) {
     return (
       <>
-        <div className="min-h-screen bg-[#020617] flex items-center justify-center p-4">
-          <div className="w-full max-w-md space-y-8 animate-in fade-in duration-500">
+        <div className="min-h-screen bg-[#020617] flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-md space-y-6 animate-in fade-in duration-500 my-auto">
             <div className="text-center">
               <div className="w-20 h-20 bg-blue-600 rounded-3xl mx-auto flex items-center justify-center text-white shadow-2xl shadow-blue-600/20 mb-6 rotate-3 hover:rotate-0 transition-all duration-500">
                 <Users size={40} />
@@ -740,7 +739,7 @@ function ChurchMembershipSystem() {
               <InputCompact label="SENHA" value={authForm.password} onChange={val => setAuthForm({ ...authForm, password: val })} dark={true} />
               <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-blue-900/20 active:scale-95">Entrar no Painel</button>
               
-              {hasCellParam && !cells.find(c => c.id.toString() === currentCellId)?.login_email && (
+              {hasCellParam && !cells.find(c => String(c.id) === String(currentCellId))?.login_email && (
                 <button 
                   type="button" 
                   onClick={(e) => {
@@ -775,8 +774,8 @@ function ChurchMembershipSystem() {
         </div>
 
         {showLeaderConfig && (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4 overflow-hidden">
-            <form onSubmit={saveLeaderConfig} className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-md rounded-2xl border ${t.border} shadow-2xl flex flex-col relative text-left`}>
+          <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto">
+            <form onSubmit={saveLeaderConfig} className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-md rounded-3xl border ${t.border} shadow-2xl flex flex-col relative text-left my-auto`}>
               <div className="p-6 border-b border-white/5 flex justify-between items-center">
                 <h2 className="text-xl font-black italic uppercase tracking-tighter text-blue-500">Configurar Meu Acesso</h2>
                 <button type="button" onClick={() => setShowLeaderConfig(false)} className="p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={20}/></button>
