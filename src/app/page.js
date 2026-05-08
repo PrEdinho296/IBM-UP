@@ -745,6 +745,9 @@ function ChurchMembershipSystem() {
               <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
               <span className="text-[8px] font-black uppercase text-emerald-500 tracking-widest">Cloud Sync</span>
             </div>
+            <button onClick={() => setIsChangingPassword(true)} className="p-2 text-slate-500 hover:text-blue-500 transition-all rounded-lg ml-2" title="Mudar Senha">
+              <ShieldCheck size={18} />
+            </button>
           </div>
         </header>
 
