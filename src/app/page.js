@@ -196,6 +196,11 @@ function ChurchMembershipSystem() {
     e.preventDefault();
     setAuthLoading(true);
     
+    // Garantir que começamos do zero (limpa qualquer rastro de login anterior)
+    await supabase.auth.signOut();
+    localStorage.removeItem('ibm_up_leader_cell');
+    setLeaderCell(null);
+    
     // 1. Tentar Login Administrativo (Pastor)
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: authForm.email,
@@ -236,6 +241,9 @@ function ChurchMembershipSystem() {
     setIsLeaderMode(false);
     setActiveCell(null);
     localStorage.removeItem('ibm_up_leader_cell');
+    
+    // Redirecionar para a página limpa (sem parâmetros de URL) para evitar entrar no modo líder público
+    window.location.href = window.location.origin + window.location.pathname;
   };
 
   const handleChangePassword = async (e) => {
