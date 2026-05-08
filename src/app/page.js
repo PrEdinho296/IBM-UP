@@ -272,10 +272,10 @@ function ChurchMembershipSystem() {
       const urlParams = new URLSearchParams(window.location.search);
       const cellId = urlParams.get('cellId') || cellIdParam;
       
-      const data = await fetchData();
+      const fetchedData = await fetchData();
       
-      if (cellId && data?.cells) {
-        const cell = data.cells.find(c => String(c.id) === String(cellId));
+      if (cellId && fetchedData?.cells) {
+        const cell = fetchedData.cells.find(c => String(c.id) === String(cellId));
         if (cell) {
           setActiveCell(cell);
           // Não ativamos mais o modo líder automaticamente via URL.
@@ -303,8 +303,8 @@ function ChurchMembershipSystem() {
       if (att) setAttendance(att);
 
       return { sectors: s, cells: c, members: m, reports: r, attendance: att };
-    } catch (error) {
-      console.error('Erro ao buscar dados:', error);
+    } catch (err) {
+      console.error("Erro ao buscar dados", err);
       return null;
     } finally {
       setLoading(false);
@@ -706,60 +706,6 @@ function ChurchMembershipSystem() {
   const currentCellId = cellIdParam || getRawCellId();
   const hasCellParam = !!currentCellId;
 
-  if (authLoading || !isInitialized) return (
-    <div className="min-h-screen bg-[#020617] flex items-center justify-center text-white italic font-bold text-xl animate-pulse">
-      IBM-UP...
-    </div>
-  );
-  
-  if (!session && !leaderCell) {
-    return (
-      <div className="min-h-screen bg-[#020617] flex items-center justify-center p-4">
-        <div className="w-full max-w-md space-y-8 animate-in fade-in duration-500">
-          <div className="text-center">
-            <div className="w-20 h-20 bg-blue-600 rounded-3xl mx-auto flex items-center justify-center text-white shadow-2xl shadow-blue-600/20 mb-6 rotate-3 hover:rotate-0 transition-all duration-500">
-              <Users size={40} />
-            </div>
-            <h1 className="text-5xl font-black italic uppercase tracking-tighter text-white">IBM-UP</h1>
-            <p className="text-blue-500 font-black uppercase text-[10px] tracking-[0.3em] mt-2">Acesso Restrito</p>
-          </div>
-          <form onSubmit={handleLogin} className="space-y-4 bg-white/5 p-8 rounded-3xl border border-white/10 backdrop-blur-md">
-            <InputCompact label="E-MAIL" value={authForm.email} onChange={val => setAuthForm({ ...authForm, email: val })} dark={true} />
-            <InputCompact label="SENHA" value={authForm.password} onChange={val => setAuthForm({ ...authForm, password: val })} dark={true} />
-            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-blue-900/20 active:scale-95">Entrar no Painel</button>
-            
-            {hasCellParam && !cells.find(c => c.id.toString() === currentCellId)?.login_email && (
-              <button 
-                type="button" 
-                onClick={() => {
-                  const cell = cells.find(c => c.id.toString() === currentCellId);
-                  if (cell) {
-                    setLeaderConfigForm({ email: '', password: '' });
-                    setShowLeaderConfig(true);
-                  }
-                }}
-                className="w-full mt-4 border border-blue-600/30 text-blue-500 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600/10 transition-all flex flex-col items-center gap-1"
-              >
-                <span className="opacity-50 text-[7px]">Link detectado</span>
-                PRIMEIRO ACESSO? CADASTRE SUA SENHA
-              </button>
-            )}
-
-            <div className="text-center pt-2">
-              <button 
-                type="button"
-                onClick={() => alert('Para recuperar sua senha, entre em contato com o Pastor ou Administrador do sistema.')}
-                className="text-[10px] font-black uppercase text-slate-500 hover:text-blue-500 transition-all tracking-widest"
-              >
-                Esqueci minha senha
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
   const t = {
     bg: darkMode ? 'bg-[#020617]' : 'bg-[#f8fafc]',
     card: darkMode ? 'bg-[#0f172a]/40 border-white/5' : 'bg-white border-slate-200 shadow-sm',
@@ -770,6 +716,89 @@ function ChurchMembershipSystem() {
     hover: darkMode ? 'hover:bg-white/5' : 'hover:bg-slate-50',
     tableHead: darkMode ? 'bg-white/5' : 'bg-slate-50',
   };
+
+  if (authLoading || !isInitialized) return (
+    <div className="min-h-screen bg-[#020617] flex items-center justify-center text-white italic font-bold text-xl animate-pulse">
+      IBM-UP...
+    </div>
+  );
+  
+  if (!session && !leaderCell) {
+    return (
+      <>
+        <div className="min-h-screen bg-[#020617] flex items-center justify-center p-4">
+          <div className="w-full max-w-md space-y-8 animate-in fade-in duration-500">
+            <div className="text-center">
+              <div className="w-20 h-20 bg-blue-600 rounded-3xl mx-auto flex items-center justify-center text-white shadow-2xl shadow-blue-600/20 mb-6 rotate-3 hover:rotate-0 transition-all duration-500">
+                <Users size={40} />
+              </div>
+              <h1 className="text-5xl font-black italic uppercase tracking-tighter text-white">IBM-UP</h1>
+              <p className="text-blue-500 font-black uppercase text-[10px] tracking-[0.3em] mt-2">Acesso Restrito</p>
+            </div>
+            <form onSubmit={handleLogin} className="space-y-4 bg-white/5 p-8 rounded-3xl border border-white/10 backdrop-blur-md">
+              <InputCompact label="E-MAIL" value={authForm.email} onChange={val => setAuthForm({ ...authForm, email: val })} dark={true} />
+              <InputCompact label="SENHA" value={authForm.password} onChange={val => setAuthForm({ ...authForm, password: val })} dark={true} />
+              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-blue-900/20 active:scale-95">Entrar no Painel</button>
+              
+              {hasCellParam && !cells.find(c => c.id.toString() === currentCellId)?.login_email && (
+                <button 
+                  type="button" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const cell = activeCell || cells.find(c => String(c.id) === String(currentCellId));
+                    if (cell) {
+                      setLeaderConfigForm({ email: '', password: '' });
+                      setShowLeaderConfig(true);
+                    } else {
+                      alert('Célula não encontrada. Por favor, verifique o link.');
+                    }
+                  }}
+                  className="w-full mt-4 border border-blue-600/30 text-blue-500 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600/10 transition-all flex flex-col items-center gap-1"
+                >
+                  <span className="opacity-50 text-[7px]">Link detectado</span>
+                  PRIMEIRO ACESSO? CADASTRE SUA SENHA
+                </button>
+              )}
+
+              <div className="text-center pt-2">
+                <button 
+                  type="button"
+                  onClick={() => alert('Para recuperar sua senha, entre em contato com o Pastor ou Administrador do sistema.')}
+                  className="text-[10px] font-black uppercase text-slate-500 hover:text-blue-500 transition-all tracking-widest"
+                >
+                  Esqueci minha senha
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        {showLeaderConfig && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4 overflow-hidden">
+            <form onSubmit={saveLeaderConfig} className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-md rounded-2xl border ${t.border} shadow-2xl flex flex-col relative text-left`}>
+              <div className="p-6 border-b border-white/5 flex justify-between items-center">
+                <h2 className="text-xl font-black italic uppercase tracking-tighter text-blue-500">Configurar Meu Acesso</h2>
+                <button type="button" onClick={() => setShowLeaderConfig(false)} className="p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={20}/></button>
+              </div>
+              <div className="p-6 space-y-4">
+                <p className="text-[10px] text-slate-500 font-bold uppercase leading-relaxed">
+                  {activeCell ? `Configurando acesso para a célula: ${activeCell.name}` : 'Defina o e-mail e a senha que você usará para acessar o painel da sua célula sem precisar de links.'}
+                </p>
+                <InputCompact label="E-MAIL DE ACESSO" value={leaderConfigForm.email} onChange={val => setLeaderConfigForm({...leaderConfigForm, email: val})} dark={darkMode} />
+                <InputCompact label="SENHA DE ACESSO" value={leaderConfigForm.password} onChange={val => setLeaderConfigForm({...leaderConfigForm, password: val})} dark={darkMode} />
+              </div>
+              <div className="p-6 border-t border-white/5 flex gap-3">
+                <button type="button" onClick={() => setShowLeaderConfig(false)} className="flex-1 py-3 text-slate-500 font-black uppercase text-[10px] hover:bg-white/5 rounded-xl transition-all">Cancelar</button>
+                <button type="submit" className="flex-[2] bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-blue-600/20 transition-all">Salvar Acesso</button>
+              </div>
+            </form>
+          </div>
+        )}
+      </>
+    );
+  }
+
 
   if (loading) return (
     <div className={`flex flex-col h-screen ${t.bg} items-center justify-center`}>
@@ -1662,7 +1691,9 @@ function ChurchMembershipSystem() {
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4 overflow-hidden">
           <form onSubmit={saveLeaderConfig} className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-md rounded-2xl border ${t.border} shadow-2xl flex flex-col relative text-left`}>
             <div className="p-6 border-b border-white/5 flex justify-between items-center">
-              <h2 className="text-xl font-black italic uppercase tracking-tighter text-blue-500">Configurar Meu Acesso</h2>
+              <h2 className="text-xl font-black italic uppercase tracking-tighter text-blue-500">
+                {activeCell ? `Configurar Acesso: ${activeCell.name}` : 'Configurar Meu Acesso'}
+              </h2>
               <button type="button" onClick={() => setShowLeaderConfig(false)} className="p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={20}/></button>
             </div>
             <div className="p-6 space-y-4">
