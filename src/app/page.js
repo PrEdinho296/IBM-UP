@@ -320,18 +320,24 @@ function ChurchMembershipSystem() {
     if (!memberForm.name || !cId) return;
 
     // Enviar APENAS os campos válidos da tabela members
-    const validFields = [
+    const booleanFields = [
+      'pl', 'ecc', 'bat', 'con', 'maturidade', 'ctl',
+      'integracao', 'outros', 'attended_cell', 'attended_cult'
+    ];
+    const textFields = [
       'name', 'email', 'phone', 'status',
       'cep', 'address', 'number', 'neighborhood', 'city',
-      'pl', 'ecc', 'bat', 'con', 'maturidade', 'ctl',
-      'ministerios', 'integracao', 'outros',
-      'attended_cell', 'attended_cult'
+      'ministerios'
     ];
     const finalData = { cell_id: Number(cId) };
-    validFields.forEach(field => {
+    textFields.forEach(field => {
       if (memberForm[field] !== undefined) {
-        finalData[field] = memberForm[field];
+        finalData[field] = memberForm[field] || '';
       }
+    });
+    booleanFields.forEach(field => {
+      // Converter qualquer valor para boolean puro (evita "" que quebra o Supabase)
+      finalData[field] = memberForm[field] === true || memberForm[field] === 'true' ? true : false;
     });
 
     console.log('Dados enviados ao Supabase:', JSON.stringify(finalData, null, 2));
