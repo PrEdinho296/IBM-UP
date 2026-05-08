@@ -102,7 +102,7 @@ function ChurchMembershipSystem() {
     name: '', email: '', phone: '', cell_id: '', status: 'active',
     cep: '', address: '', number: '', neighborhood: '', city: '',
     pl: false, ecc: false, bat: false, con: false,
-    maturidade: false, ctl: false, ministerios: '', integracao: false, outros: false,
+    maturidade: false, ctl: false, ministerios: false, integracao: false, outros: false,
     attended_cell: false, attended_cult: false
   });
 
@@ -320,24 +320,28 @@ function ChurchMembershipSystem() {
     if (!memberForm.name || !cId) return;
 
     // Enviar APENAS os campos válidos da tabela members
+    // TODOS estes campos são BOOLEAN no banco (verificado via schema)
     const booleanFields = [
       'pl', 'ecc', 'bat', 'con', 'maturidade', 'ctl',
-      'integracao', 'outros', 'attended_cell', 'attended_cult'
+      'integracao', 'outros', 'attended_cell', 'attended_cult',
+      'ministerios'
     ];
     const textFields = [
       'name', 'email', 'phone', 'status',
-      'cep', 'address', 'number', 'neighborhood', 'city',
-      'ministerios'
+      'cep', 'address', 'number', 'neighborhood', 'city'
     ];
     const finalData = { cell_id: Number(cId) };
     textFields.forEach(field => {
-      if (memberForm[field] !== undefined) {
-        finalData[field] = memberForm[field] || '';
-      }
+      const val = memberForm[field];
+      // Enviar null para campos vazios (compatível com o schema do Supabase)
+      finalData[field] = (val && val.toString().trim() !== '') ? val : null;
     });
+    // Garantir que name nunca seja null
+    finalData.name = memberForm.name || '';
+    finalData.status = memberForm.status || 'active';
     booleanFields.forEach(field => {
       // Converter qualquer valor para boolean puro (evita "" que quebra o Supabase)
-      finalData[field] = memberForm[field] === true || memberForm[field] === 'true' ? true : false;
+      finalData[field] = !!memberForm[field];
     });
 
     console.log('Dados enviados ao Supabase:', JSON.stringify(finalData, null, 2));
@@ -352,7 +356,7 @@ function ChurchMembershipSystem() {
       if (data) {
         setMembers(members.map(m => m.id === editingId ? data[0] : m));
         setEditingId(null);
-        setMemberForm({ name: '', email: '', phone: '', cell_id: '', status: 'active', cep: '', address: '', number: '', neighborhood: '', city: '', pl: false, ecc: false, bat: false, con: false, maturidade: false, ctl: false, ministerios: '', integracao: false, outros: false, attended_cell: false, attended_cult: false });
+        setMemberForm({ name: '', email: '', phone: '', cell_id: '', status: 'active', cep: '', address: '', number: '', neighborhood: '', city: '', pl: false, ecc: false, bat: false, con: false, maturidade: false, ctl: false, ministerios: false, integracao: false, outros: false, attended_cell: false, attended_cult: false });
         setShowMemberForm(false);
       }
     } else {
@@ -364,7 +368,7 @@ function ChurchMembershipSystem() {
       }
       if (data) {
         setMembers([...members, data[0]]);
-        setMemberForm({ name: '', email: '', phone: '', cell_id: '', status: 'active', cep: '', address: '', number: '', neighborhood: '', city: '', pl: false, ecc: false, bat: false, con: false, maturidade: false, ctl: false, ministerios: '', integracao: false, outros: false, attended_cell: false, attended_cult: false });
+        setMemberForm({ name: '', email: '', phone: '', cell_id: '', status: 'active', cep: '', address: '', number: '', neighborhood: '', city: '', pl: false, ecc: false, bat: false, con: false, maturidade: false, ctl: false, ministerios: false, integracao: false, outros: false, attended_cell: false, attended_cult: false });
         setShowMemberForm(false);
       }
     }
@@ -410,14 +414,14 @@ function ChurchMembershipSystem() {
     
     const payload = {
       name: visitorForm.name,
-      phone: visitorForm.phone,
-      email: visitorForm.email,
-      cep: visitorForm.cep,
-      address: visitorForm.address,
-      number: visitorForm.number,
-      neighborhood: visitorForm.neighborhood,
-      city: visitorForm.city,
-      ministerios: visitorForm.ministerios,
+      phone: visitorForm.phone || null,
+      email: visitorForm.email || null,
+      cep: visitorForm.cep || null,
+      address: visitorForm.address || null,
+      number: visitorForm.number || null,
+      neighborhood: visitorForm.neighborhood || null,
+      city: visitorForm.city || null,
+      ministerios: !!visitorForm.ministerios,
       cell_id: visitorForm.suggested_cell?.id || null,
       status: 'active',
       attended_cult: true 
@@ -451,7 +455,7 @@ function ChurchMembershipSystem() {
         m.maturidade && 'TMC', m.ctl && 'MSD', m.pl && 'PL'
       ].filter(Boolean).join(', ');
 
-      return `${m.name};${m.phone || ''};${cellName};${m.ministerios || ''};${courses};${isPresentCult ? 'PRESENTE' : 'FALTOU'};${isPresentCell ? 'PRESENTE' : 'FALTOU'};${eng}`;
+      return `${m.name};${m.phone || ''};${cellName};${m.ministerios ? 'SIM' : 'NÃO'};${courses};${isPresentCult ? 'PRESENTE' : 'FALTOU'};${isPresentCell ? 'PRESENTE' : 'FALTOU'};${eng}`;
     }).join('\n');
 
     const blob = new Blob(["\ufeff" + header + rows], { type: 'text/csv;charset=utf-8;' });
@@ -933,7 +937,7 @@ function ChurchMembershipSystem() {
                           </div>
                           <div className="flex items-center gap-3 mt-0.5">
                             <p className="text-[9px] text-slate-500 font-bold">{m.phone || 'Sem Telefone'}</p>
-                            {m.ministerios && <p className="text-[9px] text-blue-500 font-black uppercase italic">D: {m.ministerios}</p>}
+                            {m.ministerios && <span className="text-[8px] bg-blue-600/20 text-blue-400 px-1.5 py-0.5 rounded font-black uppercase">DISC</span>}
                           </div>
                           <div className="flex flex-wrap gap-1 mt-1.5">
                             {m.ecc && <span className="text-[7px] border border-blue-500/30 text-blue-500 px-1 rounded font-black uppercase">ECC</span>}
@@ -1336,7 +1340,7 @@ function ChurchMembershipSystem() {
             {/* Header */}
             <div className="p-6 border-b border-white/5 flex justify-between items-center shrink-0">
               <h2 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter">{editingId ? 'EDITAR' : 'NOVO'} ; {activeCell?.name || 'MEMBRO'}</h2>
-              <button onClick={() => { setShowMemberForm(false); setEditingId(null); setMemberForm({ name: '', email: '', phone: '', cell_id: '', status: 'active', cep: '', address: '', number: '', neighborhood: '', city: '', pl: false, ecc: false, bat: false, con: false, maturidade: false, ctl: false, ministerios: '', integracao: false, outros: false, attended_cell: false, attended_cult: false }); }} className="p-2 text-slate-500 hover:text-white hover:bg-white/5 rounded-full transition-all"><X size={24} /></button>
+              <button onClick={() => { setShowMemberForm(false); setEditingId(null); setMemberForm({ name: '', email: '', phone: '', cell_id: '', status: 'active', cep: '', address: '', number: '', neighborhood: '', city: '', pl: false, ecc: false, bat: false, con: false, maturidade: false, ctl: false, ministerios: false, integracao: false, outros: false, attended_cell: false, attended_cult: false }); }} className="p-2 text-slate-500 hover:text-white hover:bg-white/5 rounded-full transition-all"><X size={24} /></button>
             </div>
 
             {/* Body */}
@@ -1349,7 +1353,7 @@ function ChurchMembershipSystem() {
                   <InputCompact label="ENDEREÇO" value={memberForm.address} onChange={val => setMemberForm({ ...memberForm, address: val })} dark={darkMode} />
                   <div className="grid grid-cols-2 gap-4"><InputCompact label="Nº" value={memberForm.number} onChange={val => setMemberForm({ ...memberForm, number: val })} dark={darkMode} /><InputCompact label="BAIRRO" value={memberForm.neighborhood} onChange={val => setMemberForm({ ...memberForm, neighborhood: val })} dark={darkMode} /></div>
                   <InputCompact label="CIDADE" value={memberForm.city} onChange={val => setMemberForm({ ...memberForm, city: val })} dark={darkMode} />
-                  <InputCompact label="DISCIPULADOR" value={memberForm.ministerios} onChange={val => setMemberForm({ ...memberForm, ministerios: val })} dark={darkMode} />
+                  <CourseCheckCompact label="TEM DISCIPULADOR" checked={memberForm.ministerios} onChange={val => setMemberForm({ ...memberForm, ministerios: val })} dark={darkMode} />
                 </div>
                 <div className="space-y-6">
                   {/* Frequência Rápida */}
