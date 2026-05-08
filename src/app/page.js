@@ -752,7 +752,7 @@ function ChurchMembershipSystem() {
         <div className="p-6 md:p-10 space-y-6 md:space-y-10 animate-in fade-in duration-500 max-w-[1600px] mx-auto w-full">
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-3">
                 <StatCard label="Membros" value={stats.total} icon={<Users size={16} />} color="blue" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('all'); }} />
                 <StatCard label="Ambos" value={stats.both} icon={<ShieldCheck size={16} />} color="emerald" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('both'); }} />
                 <StatCard label="Só Célula" value={stats.onlyCell} icon={<Home size={16} />} color="blue" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('only-cell'); }} />
@@ -760,7 +760,7 @@ function ChurchMembershipSystem() {
                 <StatCard label="Faltou Culto" value={stats.absentCult} icon={<Activity size={16} />} color="red" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-culto'); }} />
                 <StatCard label="Faltou Célula" value={stats.absentCell} icon={<Clock size={16} />} color="orange" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-cell'); }} />
                 <StatCard label="Ausente Ambos" value={stats.none} icon={<UserMinus size={16} />} color="red" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('none'); }} />
-                <StatCard label="Visitantes" value={stats.visitors} icon={<Star size={16} />} color="pink" dark={darkMode} onClick={() => { setActiveTab('members'); setFilterCellId(null); setSearchTerm(''); }} />
+                <StatCard label="Visitantes" value={stats.visitors} icon={<Star size={16} />} color="pink" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('visitors'); }} />
                 <StatCard label="Células" value={cells.length} icon={<MapPin size={16} />} color="indigo" dark={darkMode} />
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -1141,7 +1141,7 @@ function ChurchMembershipSystem() {
                 </div>
               </header>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-3">
                 {[
                   { label: 'Membros', value: stats.total, color: 'text-white', filter: 'all' },
                   { label: 'Ambos', value: stats.both, color: 'text-emerald-500', filter: 'both' },
@@ -1150,6 +1150,7 @@ function ChurchMembershipSystem() {
                   { label: 'Faltou Culto', value: stats.absentCult, color: 'text-red-400', filter: 'absent-culto' },
                   { label: 'Faltou Célula', value: stats.absentCell, color: 'text-orange-400', filter: 'absent-cell' },
                   { label: 'Ausente Ambos', value: stats.none, color: 'text-red-600', filter: 'none' },
+                  { label: 'Visitantes', value: stats.visitors, color: 'text-pink-400', filter: 'visitors' },
                   { label: 'Células', value: cells.length, color: 'text-indigo-400', filter: null },
                 ].map(kpi => (
                   <button
@@ -1175,7 +1176,8 @@ function ChurchMembershipSystem() {
                               analyticsFilter === 'only-culto' ? 'Frequentes apenas no Culto' :
                                 analyticsFilter === 'absent-culto' ? 'Ausentes no Culto' :
                                   analyticsFilter === 'absent-cell' ? 'Ausentes na Célula' :
-                                    'Inativos (Ausentes em Ambos)'
+                                    analyticsFilter === 'visitors' ? 'Visitantes Cadastrados' :
+                                      'Inativos (Ausentes em Ambos)'
                       }
                     </h3>
                     <button onClick={() => setAnalyticsFilter(null)} className="text-[8px] font-black uppercase text-slate-500 hover:text-white">Fechar ×</button>
@@ -1195,6 +1197,7 @@ function ChurchMembershipSystem() {
                             if (analyticsFilter === 'none') return !isPresentCell && !isPresentCult;
                             if (analyticsFilter === 'absent-culto') return !isPresentCult;
                             if (analyticsFilter === 'absent-cell') return !isPresentCell;
+                            if (analyticsFilter === 'visitors') return m.outros;
                             return true;
                           })
                           .sort((a, b) => a.name.localeCompare(b.name))
