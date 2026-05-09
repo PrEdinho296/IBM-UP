@@ -100,6 +100,7 @@ function ChurchMembershipSystem() {
   const [showReportForm, setShowReportForm] = useState(false);
   const [showLeaderConfig, setShowLeaderConfig] = useState(false);
   const [leaderConfigForm, setLeaderConfigForm] = useState({ email: '', password: '' });
+  const [selectedCellForConfig, setSelectedCellForConfig] = useState(null);
 
   const [memberForm, setMemberForm] = useState({
     name: '', email: '', phone: '', cell_id: '', status: 'active',
@@ -257,6 +258,8 @@ function ChurchMembershipSystem() {
     window.location.href = window.location.origin + window.location.pathname;
   };
 
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
     const { error } = await supabase.auth.updateUser({ password: authForm.newPassword });
     if (error) alert('Erro ao alterar senha: ' + error.message);
     else {
@@ -504,8 +507,15 @@ function ChurchMembershipSystem() {
   const saveLeaderConfig = async (e) => {
     e.preventDefault();
     const isTraineeMode = searchParams.get('role') === 'trainee';
-    const cellId = leaderCell?.id || activeCell?.id;
-    if (!cellId) return;
+    const cellId = leaderCell?.id || activeCell?.id || selectedCellForConfig?.id;
+    if (!cellId) {
+      alert('Por favor, selecione uma célula.');
+      return;
+    }
+    if (!leaderConfigForm.email || !leaderConfigForm.password) {
+      alert('Por favor, preencha o e-mail e a senha.');
+      return;
+    }
 
     const payload = isTraineeMode ? {
       trainee_login_email: leaderConfigForm.email,
@@ -530,10 +540,12 @@ function ChurchMembershipSystem() {
         password: leaderConfigForm.password,
       });
 
-      alert('Acesso configurado com sucesso!');
+      alert('Acesso configurado com sucesso! Agora use seu e-mail e senha para entrar.');
       setShowLeaderConfig(false);
+      setSelectedCellForConfig(null);
       // Atualizar o estado local
-      const updatedCell = { ...activeCell, ...payload };
+      const targetCell = activeCell || selectedCellForConfig;
+      const updatedCell = { ...targetCell, ...payload };
       if (leaderCell) setLeaderCell(updatedCell);
       setActiveCell(updatedCell);
       // Recarregar dados para garantir que a lista de células esteja atualizada
@@ -794,26 +806,29 @@ function ChurchMembershipSystem() {
               <InputCompact label="SENHA" value={authForm.password} onChange={val => setAuthForm({ ...authForm, password: val })} dark={true} type="password" autoCapitalize="off" />
               <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-blue-900/20 active:scale-95">Entrar no Painel</button>
               
-              {hasCellParam && !cells.find(c => String(c.id) === String(currentCellId))?.login_email && (
-                <button 
-                  type="button" 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
+              <button 
+                type="button" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  // Se tem cellId na URL, usar essa célula diretamente
+                  if (hasCellParam) {
                     const cell = activeCell || cells.find(c => String(c.id) === String(currentCellId));
                     if (cell) {
-                      setLeaderConfigForm({ email: '', password: '' });
-                      setShowLeaderConfig(true);
-                    } else {
-                      alert('Célula não encontrada. Por favor, verifique o link.');
+                      setSelectedCellForConfig(cell);
+                      setActiveCell(cell);
                     }
-                  }}
-                  className="w-full mt-4 border border-blue-600/30 text-blue-500 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600/10 transition-all flex flex-col items-center gap-1"
-                >
-                  <span className="opacity-50 text-[7px]">Link detectado</span>
-                  {searchParams.get('role') === 'trainee' ? 'PRIMEIRO ACESSO (LÍDER EM TREINAMENTO)' : 'PRIMEIRO ACESSO? CADASTRE SUA SENHA'}
-                </button>
-              )}
+                  } else {
+                    setSelectedCellForConfig(null);
+                  }
+                  setLeaderConfigForm({ email: '', password: '' });
+                  setShowLeaderConfig(true);
+                }}
+                className="w-full mt-4 border border-emerald-600/30 text-emerald-500 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-600/10 transition-all flex flex-col items-center gap-1"
+              >
+                <span className="opacity-50 text-[7px]">Líder de Célula</span>
+                PRIMEIRO ACESSO? CADASTRE SUA SENHA
+              </button>
 
               <div className="text-center pt-2">
                 <button 
@@ -855,15 +870,64 @@ function ChurchMembershipSystem() {
           <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[9999] flex items-center justify-center p-4 overflow-y-auto">
             <form onSubmit={saveLeaderConfig} className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-md rounded-3xl border ${t.border} shadow-2xl flex flex-col relative text-left my-auto`}>
               <div className="p-6 border-b border-white/5 flex justify-between items-center">
-                <h2 className="text-xl font-black italic uppercase tracking-tighter text-blue-500">
-                  {searchParams.get('role') === 'trainee' ? 'Configurar Acesso Treinamento' : 'Configurar Meu Acesso'}
+                <h2 className="text-xl font-black italic uppercase tracking-tighter text-emerald-500">
+                  {searchParams.get('role') === 'trainee' ? 'Acesso Treinamento' : 'Primeiro Acesso'}
                 </h2>
-                <button type="button" onClick={() => setShowLeaderConfig(false)} className="p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={20}/></button>
+                <button type="button" onClick={() => { setShowLeaderConfig(false); setSelectedCellForConfig(null); }} className="p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={20}/></button>
               </div>
               <div className="p-6 space-y-4">
                 <p className="text-[10px] text-slate-500 font-bold uppercase leading-relaxed">
-                  {searchParams.get('role') === 'trainee' ? 'Defina seus dados como Líder em Treinamento para acessar o painel desta célula.' : (activeCell ? `Configurando acesso para a célula: ${activeCell.name}` : 'Defina o e-mail e a senha que você usará para acessar o painel da sua célula sem precisar de links.')}
+                  {searchParams.get('role') === 'trainee' 
+                    ? 'Defina seus dados como Líder em Treinamento para acessar o painel desta célula.' 
+                    : 'Selecione sua célula e defina o e-mail e senha que você usará para acessar o painel.'}
                 </p>
+                
+                {/* Seletor de célula — mostra todas as células sem login configurado */}
+                {!activeCell && (
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Selecione sua Célula</label>
+                    <select
+                      value={selectedCellForConfig?.id || ''}
+                      onChange={(e) => {
+                        const cell = cells.find(c => String(c.id) === String(e.target.value));
+                        setSelectedCellForConfig(cell || null);
+                      }}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 appearance-none"
+                      required
+                    >
+                      <option value="" className="bg-slate-900">-- Escolha sua célula --</option>
+                      {(() => {
+                        // Agrupar células por setor
+                        const grouped = {};
+                        cells.forEach(c => {
+                          const sectorName = sectors.find(s => s.id === c.sector_id)?.name || 'Sem Setor';
+                          if (!grouped[sectorName]) grouped[sectorName] = [];
+                          grouped[sectorName].push(c);
+                        });
+                        return Object.entries(grouped).map(([sectorName, sectorCells]) => (
+                          <optgroup key={sectorName} label={sectorName}>
+                            {sectorCells.sort((a, b) => a.name.localeCompare(b.name)).map(c => (
+                              <option key={c.id} value={c.id} className="bg-slate-900">
+                                {c.name} {c.login_email ? '✓' : ''}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ));
+                      })()}
+                    </select>
+                    {selectedCellForConfig?.login_email && (
+                      <p className="text-[9px] text-amber-400 font-bold uppercase mt-2 flex items-center gap-1">
+                        ⚠ Esta célula já tem acesso configurado. Ao salvar, as credenciais serão substituídas.
+                      </p>
+                    )}
+                  </div>
+                )}
+                {activeCell && (
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
+                    <p className="text-[10px] text-emerald-400 font-black uppercase">Célula: {activeCell.name}</p>
+                  </div>
+                )}
+
                 {searchParams.get('role') === 'trainee' && (
                   <InputCompact label="SEU NOME COMPLETO" value={leaderConfigForm.name || ''} onChange={val => setLeaderConfigForm({...leaderConfigForm, name: val})} dark={darkMode} />
                 )}
@@ -871,8 +935,8 @@ function ChurchMembershipSystem() {
                 <InputCompact label="SENHA DE ACESSO" value={leaderConfigForm.password} onChange={val => setLeaderConfigForm({...leaderConfigForm, password: val})} dark={darkMode} type="password" autoCapitalize="off" />
               </div>
               <div className="p-6 border-t border-white/5 flex gap-3">
-                <button type="button" onClick={() => setShowLeaderConfig(false)} className="flex-1 py-3 text-slate-500 font-black uppercase text-[10px] hover:bg-white/5 rounded-xl transition-all">Cancelar</button>
-                <button type="submit" className="flex-[2] bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-blue-600/20 transition-all">Salvar Acesso</button>
+                <button type="button" onClick={() => { setShowLeaderConfig(false); setSelectedCellForConfig(null); }} className="flex-1 py-3 text-slate-500 font-black uppercase text-[10px] hover:bg-white/5 rounded-xl transition-all">Cancelar</button>
+                <button type="submit" className="flex-[2] bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-emerald-600/20 transition-all">Salvar Acesso</button>
               </div>
             </form>
           </div>
