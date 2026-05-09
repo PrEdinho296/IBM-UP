@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Plus, Trash2, Users, Menu, X, Activity, LayoutDashboard, Map, Home, ClipboardList, Star, Calendar, Clock, Copy, Check, MapPin, Loader2, Sun, Moon, ShieldCheck, UserMinus, Eye, Download, Upload, Power, Edit2, FileDown, ArrowLeft, LineChart as LineIcon, PieChart as PieIcon } from 'lucide-react';
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, BarChart, Bar } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, BarChart, Bar, Legend } from 'recharts';
 import { supabase } from '../lib/supabase';
 import * as XLSX from 'xlsx';
 
@@ -29,6 +29,7 @@ function ChurchMembershipSystem() {
   const [sectors, setSectors] = useState([]);
   const [reports, setReports] = useState([]);
   const [attendance, setAttendance] = useState([]);
+  const [selectedMeetingDate, setSelectedMeetingDate] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -99,7 +100,7 @@ function ChurchMembershipSystem() {
   const [showSectorForm, setShowSectorForm] = useState(false);
   const [showReportForm, setShowReportForm] = useState(false);
   const [showLeaderConfig, setShowLeaderConfig] = useState(false);
-  const [leaderConfigForm, setLeaderConfigForm] = useState({ email: '', password: '' });
+  const [leaderConfigForm, setLeaderConfigForm] = useState({ email: '', password: '', day_of_week: 'quarta', meeting_time: '19:30' });
   const [selectedCellForConfig, setSelectedCellForConfig] = useState(null);
 
   const [memberForm, setMemberForm] = useState({
@@ -193,10 +194,25 @@ function ChurchMembershipSystem() {
       setActiveCell(cell);
       setIsLeaderMode(true);
       setActiveTab('leader-members');
+      
+      const dates = getMeetingDates(cell.day_of_week);
+      if (dates.length > 0) setSelectedMeetingDate(dates[dates.length - 1]);
     }
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (isLeaderMode && activeCell?.day_of_week) {
+      const dates = getMeetingDates(activeCell.day_of_week);
+      if (dates.length > 0) {
+        // Só mudar se a data atual não estiver na nova lista (ou for nula)
+        if (!selectedMeetingDate || !dates.includes(selectedMeetingDate)) {
+          setSelectedMeetingDate(dates[dates.length - 1]);
+        }
+      }
+    }
+  }, [activeCell?.day_of_week, isLeaderMode]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -238,6 +254,10 @@ function ChurchMembershipSystem() {
       setIsLeaderMode(true);
       setActiveTab('leader-members');
       localStorage.setItem('ibm_up_leader_cell', JSON.stringify(leaderData));
+      
+      const dates = getMeetingDates(cellData.day_of_week);
+      if (dates.length > 0) setSelectedMeetingDate(dates[dates.length - 1]);
+      
       alert(`Bem-vindo, ${isTrainee ? 'Líder em Treinamento' : 'Líder'} da célula ${cellData.name}!`);
     } else {
       alert('Credenciais inválidas. Verifique o e-mail e senha.');
@@ -318,6 +338,8 @@ function ChurchMembershipSystem() {
         const cell = fetchedData.cells.find(c => String(c.id) === String(cellId));
         if (cell) {
           setActiveCell(cell);
+          const dates = getMeetingDates(cell.day_of_week);
+          if (dates.length > 0) setSelectedMeetingDate(dates[dates.length - 1]);
           // Não ativamos mais o modo líder automaticamente via URL.
           // O usuário deve logar ou clicar em "Primeiro Acesso" na tela de login.
         }
@@ -373,10 +395,9 @@ function ChurchMembershipSystem() {
     // Atualiza estado local do membro
     setMembers(members.map(m => m.id === memberId ? { ...m, [type]: newValue } : m));
     
-    // Se for presença na célula, atualizamos também o histórico para a data atual da reunião
+    // Se for presença na célula, atualizamos também o histórico para a data selecionada
     if (type === 'attended_cell' && activeCell) {
-      const dates = getMeetingDates(activeCell.day_of_week);
-      const currentMeetingDate = dates[dates.length - 1]; // Data mais recente
+      const currentMeetingDate = selectedMeetingDate || getMeetingDates(activeCell.day_of_week).pop();
       
       const payload = { member_id: memberId, cell_id: activeCell.id, date: currentMeetingDate, status: newValue ? 'P' : 'F' };
       
@@ -523,7 +544,9 @@ function ChurchMembershipSystem() {
       trainee_leader_name: leaderConfigForm.name || ''
     } : {
       login_email: leaderConfigForm.email,
-      login_password: leaderConfigForm.password
+      login_password: leaderConfigForm.password,
+      day_of_week: leaderConfigForm.day_of_week,
+      meeting_time: leaderConfigForm.meeting_time
     };
 
     const { error } = await supabase
@@ -718,14 +741,70 @@ function ChurchMembershipSystem() {
     return matchesSearch;
   });
 
-  const chartData = [...reports].reverse().map(r => {
-    const d = new Date(r.date);
-    return {
-      date: r.date,
-      displayDate: d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }).replace('.', ''),
-        total: r.total
-    };
-  });
+  const chartData = React.useMemo(() => {
+    if (!reports || reports.length === 0) return [];
+    
+    // 1. Agrupar e somar por data e por tipo de culto
+    const processedData = {};
+    [...reports].forEach(r => {
+      if (!processedData[r.date]) {
+        processedData[r.date] = { 
+          date: r.date, 
+          manha: 0, 
+          noite: 0, 
+          sabado: 0,
+          geral: 0 
+        };
+      }
+
+      const d = new Date(r.date + 'T12:00:00');
+      const isSabado = d.getDay() === 6;
+
+      // Tentar extrair Manhã e Noite das notas estruturadas (robusto a acentos e espaços)
+      const notesStr = String(r.notes || '');
+      const manhaMatch = notesStr.match(/(?:MANH[ÃA]):\s*P:(\d+),\s*V:(\d+),\s*C:(\d+)/i);
+      const noiteMatch = notesStr.match(/(?:NOITE):\s*P:(\d+),\s*V:(\d+),\s*C:(\d+)/i);
+
+      const valManha = manhaMatch ? (Number(manhaMatch[1]) + Number(manhaMatch[2]) + Number(manhaMatch[3])) : 0;
+      const valNoite = noiteMatch ? (Number(noiteMatch[1]) + Number(noiteMatch[2]) + Number(noiteMatch[3])) : 0;
+
+      if (isSabado) {
+        processedData[r.date].sabado += (valManha + valNoite || Number(r.total) || 0);
+      } else {
+        processedData[r.date].manha += valManha;
+        processedData[r.date].noite += valNoite;
+      }
+      
+      processedData[r.date].geral += (Number(r.total) || 0);
+    });
+
+    // 2. Converter para array e ordenar por data
+    const sorted = Object.values(processedData).sort((a, b) => a.date.localeCompare(b.date));
+
+    // 3. Aplicar filtro de tempo
+    let filtered = sorted;
+    const now = new Date();
+    if (timeFilter === 'Este Mês') {
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+      filtered = sorted.filter(r => r.date >= monthStart);
+    } else if (timeFilter === '12m') {
+      const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()).toISOString().split('T')[0];
+      filtered = sorted.filter(r => r.date >= yearAgo);
+    } else if (timeFilter === '24m') {
+      const twoYearsAgo = new Date(now.getFullYear() - 2, now.getMonth(), now.getDate()).toISOString().split('T')[0];
+      filtered = sorted.filter(r => r.date >= twoYearsAgo);
+    }
+
+    // 4. Mapear para o formato do Recharts
+    return filtered.map(r => {
+      const d = new Date(r.date + 'T12:00:00');
+      return {
+        ...r,
+        displayDate: d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', ''),
+        fullDate: d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+      };
+    });
+  }, [reports, timeFilter]);
 
   const openReportForm = () => {
     const targetMembers = (isLeaderMode && activeCell) 
@@ -1110,12 +1189,37 @@ function ChurchMembershipSystem() {
                             <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
                             <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                           </linearGradient>
+                          <linearGradient id="colorManha" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#fbbf24" stopOpacity={0.2} />
+                            <stop offset="95%" stopColor="#fbbf24" stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="colorNoite" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2} />
+                            <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="colorSabado" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                          </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
-                        <XAxis dataKey="displayDate" stroke="#475569" fontSize={9} axisLine={false} tickLine={false} tick={{ angle: -45, textAnchor: 'end' }} dy={10} interval={0} />
-                        <YAxis stroke="#475569" fontSize={9} axisLine={false} tickLine={false} width={30} />
+                        <XAxis dataKey="displayDate" stroke="#475569" fontSize={9} axisLine={false} tickLine={false} dy={10} interval={Math.ceil(chartData.length / 12)} />
+                        <YAxis stroke="#475569" fontSize={9} axisLine={false} tickLine={false} width={30} domain={[0, 'auto']} />
                         <Tooltip content={<CustomTooltip dark={darkMode} />} />
-                        <Area type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={3} fill="url(#colorTotal)" dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: darkMode ? '#0f172a' : '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
+                        <Legend verticalAlign="top" height={36} content={({ payload }) => (
+                          <div className="flex justify-center gap-4 mb-4">
+                            {payload.map((entry, index) => (
+                              <div key={index} className="flex items-center gap-1.5">
+                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">{entry.value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )} />
+                        <Area name="Manhã" type="linear" dataKey="manha" stroke="#fbbf24" strokeWidth={2} fill="url(#colorManha)" fillOpacity={0.1} dot={{ r: 3, fill: '#fbbf24' }} />
+                        <Area name="Noite" type="linear" dataKey="noite" stroke="#8b5cf6" strokeWidth={2} fill="url(#colorNoite)" fillOpacity={0.1} dot={{ r: 3, fill: '#8b5cf6' }} />
+                        <Area name="Sábado" type="linear" dataKey="sabado" stroke="#10b981" strokeWidth={2} fill="url(#colorSabado)" fillOpacity={0.1} dot={{ r: 3, fill: '#10b981' }} />
+                        <Area name="Total" type="linear" dataKey="geral" stroke="#3b82f6" strokeWidth={3} fill="url(#colorTotal)" fillOpacity={0.2} dot={{ r: 4, fill: '#3b82f6', stroke: darkMode ? '#0f172a' : '#fff' }} activeDot={{ r: 6 }} />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -1127,7 +1231,23 @@ function ChurchMembershipSystem() {
           {(activeTab === 'members' || activeTab === 'leader-members') && (
             <div className="space-y-6">
               <header className="flex justify-between items-center">
-                <h2 className="text-2xl font-black italic uppercase tracking-tighter">Membros</h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-2xl font-black italic uppercase tracking-tighter">Membros</h2>
+                  {isLeaderMode && activeCell && (
+                    <div className="flex items-center gap-2 bg-blue-600/10 border border-blue-500/20 px-3 py-1.5 rounded-xl">
+                      <Calendar size={14} className="text-blue-500" />
+                      <select 
+                        value={selectedMeetingDate || ''} 
+                        onChange={(e) => setSelectedMeetingDate(e.target.value)}
+                        className="bg-transparent text-[10px] font-black uppercase italic text-blue-500 outline-none cursor-pointer"
+                      >
+                        {getMeetingDates(activeCell.day_of_week).map(d => (
+                          <option key={d} value={d} className="bg-slate-900">{formatDate(d)}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
                 {isLeaderMode && <button onClick={() => setShowMemberForm(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVO MEMBRO</button>}
               </header>
 
@@ -1257,12 +1377,22 @@ function ChurchMembershipSystem() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() => toggleAttendance(m.id, 'attended_cell')}
-                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${m.attended_cell ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
-                          >
-                            {m.attended_cell ? 'Presente' : 'Faltou'}
-                          </button>
+                          {(() => {
+                            const attStatus = isLeaderMode && selectedMeetingDate 
+                              ? attendance.find(a => a.member_id === m.id && a.date === selectedMeetingDate)?.status
+                              : (m.attended_cell ? 'P' : 'F');
+                            
+                            const isPresent = attStatus === 'P';
+                            
+                            return (
+                              <button
+                                onClick={() => toggleAttendance(m.id, 'attended_cell')}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${isPresent ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
+                              >
+                                {isPresent ? 'Presente' : 'Faltou'}
+                              </button>
+                            );
+                          })()}
                         </td>
                         <td className="px-4 py-3 text-center">
                           <button
@@ -1295,8 +1425,8 @@ function ChurchMembershipSystem() {
                     <tr>
                       <th className="px-6 py-4 text-[9px] font-black uppercase sticky left-0 z-10 bg-inherit border-r border-white/5">Nome do Membro</th>
                       {getMeetingDates(activeCell?.day_of_week).map(date => (
-                        <th key={date} className="px-2 py-3 text-center text-[8px] font-black uppercase text-slate-500 border-x border-white/5 italic">
-                          <div className="text-blue-500 mb-0.5">{new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short' })}</div>
+                        <th key={date} className="px-2 py-3 text-center text-[8px] font-black uppercase text-slate-300 border-x border-white/5 italic">
+                          <div className="text-blue-400 mb-0.5">{new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short' })}</div>
                           {new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                         </th>
                       ))}
@@ -1855,6 +1985,28 @@ function ChurchMembershipSystem() {
               <p className="text-[10px] text-slate-500 font-bold uppercase leading-relaxed">Defina o e-mail e a senha que você usará para acessar o painel da sua célula sem precisar de links.</p>
               <InputCompact label="E-MAIL DE ACESSO" value={leaderConfigForm.email} onChange={val => setLeaderConfigForm({...leaderConfigForm, email: val})} dark={darkMode} />
               <InputCompact label="SENHA DE ACESSO" value={leaderConfigForm.password} onChange={val => setLeaderConfigForm({...leaderConfigForm, password: val})} dark={darkMode} />
+              
+              {!searchParams.get('role') && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-4 border-t border-white/5">
+                  <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}>
+                    <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">Dia da Reunião</p>
+                    <select 
+                      value={leaderConfigForm.day_of_week} 
+                      onChange={e => setLeaderConfigForm({...leaderConfigForm, day_of_week: e.target.value})} 
+                      className="w-full bg-transparent font-black text-sm outline-none text-white italic"
+                    >
+                      <option value="segunda" className="bg-slate-900">Segunda</option>
+                      <option value="terça" className="bg-slate-900">Terça</option>
+                      <option value="quarta" className="bg-slate-900">Quarta</option>
+                      <option value="quinta" className="bg-slate-900">Quinta</option>
+                      <option value="sexta" className="bg-slate-900">Sexta</option>
+                      <option value="sábado" className="bg-slate-900">Sábado</option>
+                      <option value="domingo" className="bg-slate-900">Domingo</option>
+                    </select>
+                  </div>
+                  <InputCompact label="Horário" value={leaderConfigForm.meeting_time} onChange={val => setLeaderConfigForm({...leaderConfigForm, meeting_time: val})} dark={darkMode} />
+                </div>
+              )}
             </div>
             <div className="p-6 border-t border-white/5 flex gap-3">
               <button type="button" onClick={() => setShowLeaderConfig(false)} className="flex-1 py-3 text-slate-500 font-black uppercase text-[10px] hover:bg-white/5 rounded-xl transition-all">Cancelar</button>
@@ -2099,9 +2251,19 @@ function AttendanceReport({ members, cells, getMemberEngagement, darkMode }) {
 function CustomTooltip({ active, payload, label, dark }) {
   if (active && payload && payload.length) {
     return (
-      <div className={`${dark ? 'bg-slate-900 border-white/10' : 'bg-white shadow-xl border-slate-100'} p-3 rounded-xl border`}>
-        <p className="text-[8px] font-black mb-1 uppercase tracking-widest">{label || payload[0].name}</p>
-        {payload.map((p, i) => <p key={i} className="text-sm font-black" style={{ color: p.color || p.fill }}>{p.value}</p>)}
+      <div className={`${dark ? 'bg-slate-900 border-white/10 shadow-2xl' : 'bg-white shadow-xl border-slate-100'} p-4 rounded-2xl border backdrop-blur-md min-w-[140px]`}>
+        <p className="text-[9px] font-black mb-3 uppercase tracking-widest text-slate-500 pb-2 border-b border-white/5">{payload[0].payload.fullDate || label}</p>
+        <div className="space-y-2">
+          {payload.sort((a, b) => b.value - a.value).map((p, i) => (
+            <div key={i} className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: p.color || p.fill }} />
+                <span className="text-[9px] font-black uppercase text-slate-400">{p.name}</span>
+              </div>
+              <span className="text-sm font-black italic tracking-tighter" style={{ color: p.color || p.fill }}>{p.value}</span>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
