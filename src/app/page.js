@@ -1732,13 +1732,7 @@ function ChurchMembershipSystem() {
                 <InputCompact label="Nº" value={cellForm.number} onChange={val => setCellForm({ ...cellForm, number: val })} dark={darkMode} />
                 <InputCompact label="BAIRRO" value={cellForm.neighborhood} onChange={val => setCellForm({ ...cellForm, neighborhood: val })} dark={darkMode} />
               </div>
-              <div className="p-4 bg-blue-600/5 border border-blue-500/10 rounded-2xl space-y-4">
-                <p className="text-[10px] font-black uppercase text-blue-500 tracking-[0.2em] mb-2">Acesso do Líder (Login)</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <InputCompact label="E-MAIL DE ACESSO" value={cellForm.login_email} onChange={val => setCellForm({ ...cellForm, login_email: val })} dark={darkMode} />
-                  <InputCompact label="SENHA DE ACESSO" value={cellForm.login_password} onChange={val => setCellForm({ ...cellForm, login_password: val })} dark={darkMode} />
-                </div>
-              </div>
+
             </div>
 
             {/* Footer */}
