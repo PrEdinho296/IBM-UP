@@ -98,6 +98,14 @@ function ChurchMembershipSystem() {
   const [showCellForm, setShowCellForm] = useState(false);
   const [editingCellId, setEditingCellId] = useState(null);
   const [showSectorForm, setShowSectorForm] = useState(false);
+  const [showQuickEntry, setShowQuickEntry] = useState(false);
+  const [quickEntryForm, setQuickEntryForm] = useState({
+    date: new Date().toISOString().split('T')[0],
+    type: 'manha',
+    total: '',
+    visitors: '0',
+    kids: '0'
+  });
   const [showReportForm, setShowReportForm] = useState(false);
   const [showLeaderConfig, setShowLeaderConfig] = useState(false);
   const [leaderConfigForm, setLeaderConfigForm] = useState({ email: '', password: '', day_of_week: 'quarta', meeting_time: '19:30' });
@@ -806,6 +814,84 @@ function ChurchMembershipSystem() {
     });
   }, [reports, timeFilter]);
 
+  const saveQuickEntry = async () => {
+    if (!quickEntryForm.total) return alert('Informe o total de pessoas.');
+
+    const date = quickEntryForm.date;
+    const existing = reports.find(r => r.date === date);
+    
+    // Preparar dados com base no tipo
+    const valP = Number(quickEntryForm.total);
+    const valV = Number(quickEntryForm.visitors || 0);
+    const valK = Number(quickEntryForm.kids || 0);
+
+    let payload = {};
+    let notes = '';
+
+    if (existing) {
+      // Se já existe, vamos atualizar apenas a parte correspondente
+      // Tentamos extrair os valores atuais das notas ou colunas
+      const manhaMatch = existing.notes?.match(/MANHÃ: P:(\d+), V:(\d+), C:(\d+)/);
+      const noiteMatch = existing.notes?.match(/NOITE: P:(\d+), V:(\d+), C:(\d+)/);
+
+      let pM = manhaMatch ? Number(manhaMatch[1]) : 0;
+      let vM = manhaMatch ? Number(manhaMatch[2]) : 0;
+      let kM = manhaMatch ? Number(manhaMatch[3]) : 0;
+      let pN = noiteMatch ? Number(noiteMatch[1]) : 0;
+      let vN = noiteMatch ? Number(noiteMatch[2]) : 0;
+      let kN = noiteMatch ? Number(noiteMatch[3]) : 0;
+
+      if (quickEntryForm.type === 'manha') { pM = valP; vM = valV; kM = valK; }
+      else if (quickEntryForm.type === 'noite') { pN = valP; vN = valV; kN = valK; }
+      else if (quickEntryForm.type === 'sabado') { pM = valP; vM = valV; kM = valK; pN = 0; vN = 0; kN = 0; }
+
+      const totalMembers = pM + pN;
+      const totalVisitors = vM + vN;
+      const totalKids = kM + kN;
+      const grandTotal = totalMembers + totalVisitors + totalKids;
+      
+      notes = `[MANHÃ: P:${pM}, V:${vM}, C:${kM}] [NOITE: P:${pN}, V:${vN}, C:${kN}] ${existing.notes?.split('] ').pop() || ''}`;
+
+      payload = {
+        members: totalMembers,
+        visitors: totalVisitors,
+        frequenters: totalKids,
+        total: grandTotal,
+        notes: notes
+      };
+
+      const { error } = await supabase.from('reports').update(payload).eq('id', existing.id);
+      if (error) throw error;
+    } else {
+      // Novo registro
+      let pM = 0, vM = 0, kM = 0, pN = 0, vN = 0, kN = 0;
+      if (quickEntryForm.type === 'manha' || quickEntryForm.type === 'sabado') { pM = valP; vM = valV; kM = valK; }
+      else { pN = valP; vN = valV; kN = valK; }
+
+      const totalMembers = pM + pN;
+      const totalVisitors = vM + vN;
+      const totalKids = kM + kN;
+      const grandTotal = totalMembers + totalVisitors + totalKids;
+      notes = `[MANHÃ: P:${pM}, V:${vM}, C:${kM}] [NOITE: P:${pN}, V:${vN}, C:${kN}] `;
+
+      payload = {
+        date,
+        members: totalMembers,
+        visitors: totalVisitors,
+        frequenters: totalKids,
+        total: grandTotal,
+        notes: notes
+      };
+
+      const { error } = await supabase.from('reports').insert(payload);
+      if (error) throw error;
+    }
+
+    await fetchReports();
+    setShowQuickEntry(false);
+    alert('Contagem salva com sucesso!');
+  };
+
   const openReportForm = () => {
     const targetMembers = (isLeaderMode && activeCell) 
       ? members.filter(m => Number(m.cell_id) === Number(activeCell.id))
@@ -1080,7 +1166,7 @@ function ChurchMembershipSystem() {
               <MenuBtn icon={<ClipboardList size={18} />} label="Relatórios" active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Users size={18} />} label="Membros" active={activeTab === 'members'} onClick={() => { setActiveTab('members'); setFilterCellId(null); setSearchTerm(''); }} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Home size={18} />} label="Células" active={activeTab === 'cells'} onClick={() => setActiveTab('cells')} open={sidebarOpen} dark={darkMode} />
-               <MenuBtn icon={<Sun size={18} />} label="Cultos" active={activeTab === 'culto-geral'} onClick={() => setActiveTab('culto-geral')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<Sun size={18} />} label="Cultos" active={activeTab === 'cultos' || activeTab === 'leader-culto'} onClick={() => setActiveTab(isLeaderMode ? 'leader-culto' : 'cultos')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Map size={18} />} label="Setores" active={activeTab === 'sectors'} onClick={() => setActiveTab('sectors')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<ClipboardList size={18} />} label="Relatório Pastoral" active={activeTab === 'pastoral-report'} onClick={() => setActiveTab('pastoral-report')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Activity size={18} />} label="Relatório Presença" active={activeTab === 'attendance-report'} onClick={() => setActiveTab('attendance-report')} open={sidebarOpen} dark={darkMode} />
@@ -1133,6 +1219,79 @@ function ChurchMembershipSystem() {
         </header>
 
         <div className="p-6 md:p-10 space-y-6 md:space-y-10 animate-in fade-in duration-500 max-w-[1600px] mx-auto w-full">
+          {(activeTab === 'cultos' || activeTab === 'leader-culto') && (
+            <div className="space-y-8">
+              <header className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-3xl font-black italic uppercase tracking-tighter">Gestão de Cultos</h2>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-1">Lançamento Rápido e Análise de Frequência</p>
+                </div>
+                <button 
+                  onClick={() => setShowQuickEntry(true)} 
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase italic tracking-widest shadow-xl shadow-blue-600/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-3"
+                >
+                  <Activity size={18} /> LANÇAMENTO RÁPIDO
+                </button>
+              </header>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div className={`${t.card} lg:col-span-12 border rounded-3xl p-8`}>
+                  <div className="flex justify-between items-center mb-10">
+                    <h3 className="text-[12px] font-black uppercase tracking-widest flex items-center gap-2 text-slate-500"><LineIcon size={16} /> Evolução Detalhada por Culto</h3>
+                    <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/5">
+                      {['Este Mês', '12m', '24m', 'Tudo'].map(f => (
+                        <button key={f} onClick={() => setTimeFilter(f)} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${timeFilter === f ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>{f}</button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="h-[400px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={chartData}>
+                        <defs>
+                          <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="colorManha" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#fbbf24" stopOpacity={0.2} />
+                            <stop offset="95%" stopColor="#fbbf24" stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="colorNoite" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2} />
+                            <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="colorSabado" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+                        <XAxis dataKey="displayDate" stroke="#475569" fontSize={9} axisLine={false} tickLine={false} dy={10} interval={Math.ceil(chartData.length / 15)} />
+                        <YAxis stroke="#475569" fontSize={9} axisLine={false} tickLine={false} width={30} domain={[0, 'auto']} />
+                        <Tooltip content={<CustomTooltip dark={darkMode} />} />
+                        <Legend verticalAlign="top" height={36} content={({ payload }) => (
+                          <div className="flex justify-center gap-6 mb-8">
+                            {payload.map((entry, index) => (
+                              <div key={index} className="flex items-center gap-2">
+                                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{entry.value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )} />
+                        <Area name="Manhã" type="linear" dataKey="manha" stroke="#fbbf24" strokeWidth={3} fill="url(#colorManha)" fillOpacity={0.1} dot={{ r: 4, fill: '#fbbf24' }} />
+                        <Area name="Noite" type="linear" dataKey="noite" stroke="#8b5cf6" strokeWidth={3} fill="url(#colorNoite)" fillOpacity={0.1} dot={{ r: 4, fill: '#8b5cf6' }} />
+                        <Area name="Sábado" type="linear" dataKey="sabado" stroke="#10b981" strokeWidth={3} fill="url(#colorSabado)" fillOpacity={0.1} dot={{ r: 4, fill: '#10b981' }} />
+                        <Area name="Geral" type="linear" dataKey="geral" stroke="#3b82f6" strokeWidth={4} fill="url(#colorTotal)" fillOpacity={0.2} dot={{ r: 5, fill: '#3b82f6', stroke: darkMode ? '#0f172a' : '#fff' }} activeDot={{ r: 7 }} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-3">
@@ -2013,6 +2172,50 @@ function ChurchMembershipSystem() {
               <button type="submit" className="flex-[2] bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black text-xs uppercase shadow-lg shadow-blue-600/20 transition-all">Salvar Acesso</button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Modal de Lançamento Rápido de Cultos */}
+      {showQuickEntry && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-black/60">
+          <div className={`${darkMode ? 'bg-[#0f172a] border-white/10' : 'bg-white border-slate-200'} w-full max-w-md rounded-[2.5rem] border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200`}>
+            <header className="p-8 border-b border-white/5 flex justify-between items-center bg-gradient-to-r from-blue-600/10 to-transparent text-left">
+              <div>
+                <h3 className="text-2xl font-black italic uppercase tracking-tighter">Lançamento Rápido</h3>
+                <p className="text-[9px] text-blue-500 font-black uppercase tracking-widest mt-1">Contagem Direta de Culto</p>
+              </div>
+              <button onClick={() => setShowQuickEntry(false)} className="p-2 hover:bg-white/5 rounded-full text-slate-500 transition-all"><X size={24} /></button>
+            </header>
+            
+            <div className="p-8 space-y-6 text-left">
+              <InputCompact type="date" label="Data do Culto" value={quickEntryForm.date} onChange={val => setQuickEntryForm({...quickEntryForm, date: val})} dark={darkMode} />
+              
+              <div className="grid grid-cols-3 gap-3">
+                {['manha', 'noite', 'sabado'].map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setQuickEntryForm({...quickEntryForm, type})}
+                    className={`py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border ${quickEntryForm.type === type ? 'bg-blue-600 text-white border-blue-500 shadow-xl shadow-blue-600/20 scale-105' : 'bg-white/5 text-slate-500 border-white/5 hover:bg-white/10'}`}
+                  >
+                    {type === 'manha' ? 'Manhã' : type === 'noite' ? 'Noite' : 'Sábado'}
+                  </button>
+                ))}
+              </div>
+
+              <div className="pt-6 border-t border-white/5 space-y-6">
+                <InputCompact label="Total de Pessoas" value={quickEntryForm.total} onChange={val => setQuickEntryForm({...quickEntryForm, total: val})} dark={darkMode} placeholder="Ex: 150" />
+                <div className="grid grid-cols-2 gap-4">
+                  <InputCompact label="Visitantes" value={quickEntryForm.visitors} onChange={val => setQuickEntryForm({...quickEntryForm, visitors: val})} dark={darkMode} />
+                  <InputCompact label="Crianças" value={quickEntryForm.kids} onChange={val => setQuickEntryForm({...quickEntryForm, kids: val})} dark={darkMode} />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-8 border-t border-white/5 flex gap-4">
+              <button onClick={() => setShowQuickEntry(false)} className="flex-1 py-4 text-slate-500 font-black uppercase text-[10px] tracking-widest hover:bg-white/5 rounded-2xl transition-all">Cancelar</button>
+              <button onClick={saveQuickEntry} className="flex-[2] py-4 bg-blue-600 text-white font-black uppercase text-[11px] tracking-widest rounded-2xl shadow-xl shadow-blue-600/20 hover:scale-105 active:scale-95 transition-all">Salvar Contagem</button>
+            </div>
+          </div>
         </div>
       )}
 
