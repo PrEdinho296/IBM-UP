@@ -1395,38 +1395,8 @@ function ChurchMembershipSystem() {
                   </div>
                   
                   <div className="h-[400px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      {isLeaderMode ? (
-                        <AreaChart data={leaderChartData}>
-                          <defs>
-                            <linearGradient id="colorPresente" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                              <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                            </linearGradient>
-                            <linearGradient id="colorAusente" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2} />
-                              <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
-                          <XAxis dataKey="displayDate" stroke="#475569" fontSize={9} axisLine={false} tickLine={false} dy={10} interval={Math.ceil(leaderChartData.length / 15)} />
-                          <YAxis stroke="#475569" fontSize={9} axisLine={false} tickLine={false} width={30} domain={[0, 'auto']} />
-                          <Tooltip content={<CustomTooltip dark={darkMode} />} />
-                          <Legend verticalAlign="top" height={36} content={({ payload }) => (
-                            <div className="flex justify-center gap-6 mb-8">
-                              {payload.map((entry, index) => (
-                                <div key={index} className="flex items-center gap-2">
-                                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
-                                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{entry.value}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )} />
-                          <Area name="Presentes" type="monotone" dataKey="culto" stroke="#10b981" strokeWidth={3} fill="url(#colorPresente)" fillOpacity={0.1} dot={{ r: 4, fill: '#10b981' }} />
-                          <Area name="Ausentes" type="monotone" dataKey="ausentes" stroke="#ef4444" strokeWidth={3} fill="url(#colorAusente)" fillOpacity={0.1} dot={{ r: 4, fill: '#ef4444' }} />
-                          <Area name="Total de Membros" type="monotone" dataKey="total_members" stroke="#3b82f6" strokeWidth={4} fillOpacity={0} dot={{ r: 5, fill: '#3b82f6' }} />
-                        </AreaChart>
-                      ) : (
+                    {!isLeaderMode && (
+                      <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={chartData}>
                           <defs>
                             <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
@@ -1465,8 +1435,14 @@ function ChurchMembershipSystem() {
                           <Area name="Sábado" type="linear" dataKey="sabado" stroke="#10b981" strokeWidth={3} fill="url(#colorSabado)" fillOpacity={0.1} dot={{ r: 4, fill: '#10b981' }} />
                           <Area name="Geral" type="linear" dataKey="geral" stroke="#3b82f6" strokeWidth={4} fill="url(#colorTotal)" fillOpacity={0.2} dot={{ r: 5, fill: '#3b82f6', stroke: darkMode ? '#0f172a' : '#fff' }} activeDot={{ r: 7 }} />
                         </AreaChart>
-                      )}
-                    </ResponsiveContainer>
+                      </ResponsiveContainer>
+                    )}
+                    {isLeaderMode && (
+                      <div className="flex flex-col items-center justify-center h-full text-slate-500 italic font-bold">
+                        <LineIcon size={48} className="mb-4 opacity-20" />
+                        <p>Análise de frequência detalhada disponível no Histórico.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
