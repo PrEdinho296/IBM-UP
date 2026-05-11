@@ -897,14 +897,18 @@ function ChurchMembershipSystem() {
   const leaderChartData = React.useMemo(() => {
     if (!attendance || attendance.length === 0) return [];
     
-    const processedData = {};
-    const filteredAttendance = isLeaderMode && activeCell 
-      ? attendance.filter(a => {
-          const m = members.find(mem => mem.id === a.member_id);
-          return m && Number(m.cell_id) === Number(activeCell.id);
-        })
-      : attendance;
+    // 1. Identificar quem são os membros relevantes para este gráfico
+    const relevantMembers = isLeaderMode && activeCell 
+      ? members.filter(m => Number(m.cell_id) === Number(activeCell.id) && !m.outros)
+      : members.filter(m => !m.outros);
+    
+    const relevantMemberIds = new Set(relevantMembers.map(m => m.id));
+    const expected = relevantMembers.length;
 
+    // 2. Filtrar presenças apenas desses membros
+    const filteredAttendance = attendance.filter(a => relevantMemberIds.has(a.member_id));
+
+    const processedData = {};
     filteredAttendance.forEach(a => {
       if (a.status !== 'P') return;
       
@@ -917,17 +921,17 @@ function ChurchMembershipSystem() {
       
       if (isSunday) processedData[a.date].culto++;
       else processedData[a.date].celula++;
-      
-      processedData[a.date].total++;
-      
-      const relevantMembers = isLeaderMode && activeCell 
-        ? members.filter(m => Number(m.cell_id) === Number(activeCell.id) && !m.outros)
-        : members.filter(m => !m.outros);
+    });
 
-      const expected = relevantMembers.length;
-      processedData[a.date].ausentes = Math.max(0, expected - (isSunday ? processedData[a.date].culto : processedData[a.date].celula));
-      // Linha azul: soma de presentes + ausentes
-      processedData[a.date].total_members = (isSunday ? processedData[a.date].culto : processedData[a.date].celula) + processedData[a.date].ausentes;
+    // 3. Calcular ausentes com base no esperado daquela célula (ou geral)
+    Object.keys(processedData).forEach(date => {
+      const d = new Date(date + 'T12:00:00');
+      const isSunday = d.getDay() === 0;
+      const count = isSunday ? processedData[date].culto : processedData[date].celula;
+      
+      processedData[date].ausentes = Math.max(0, expected - count);
+      processedData[date].total_members = expected;
+      processedData[date].total = count;
     });
 
     const sorted = Object.values(processedData).sort((a, b) => a.date.localeCompare(b.date));
@@ -944,7 +948,7 @@ function ChurchMembershipSystem() {
         fullDate: d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
       };
     });
-  }, [attendance, timeFilter]);
+  }, [attendance, timeFilter, activeCell, isLeaderMode, members]);
 
   const saveQuickEntry = async () => {
     if (!quickEntryForm.total) return alert('Informe o total de pessoas.');
