@@ -7,6 +7,11 @@ import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pi
 import { supabase } from '../lib/supabase';
 import * as XLSX from 'xlsx';
 
+const getLocalDate = () => {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+};
+
 function ChurchAppWrapper() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-[#020617] flex items-center justify-center text-white italic font-bold text-xl animate-pulse">IBM-UP...</div>}>
@@ -142,11 +147,6 @@ function ChurchMembershipSystem() {
   const [timeFilter, setTimeFilter] = useState('Tudo');
   const [selectedSectors, setSelectedSectors] = useState([]);
   const [historyRefDate, setHistoryRefDate] = useState(getLocalDate());
-
-  const getLocalDate = () => {
-    const d = new Date();
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  };
 
   const [showMemberForm, setShowMemberForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
