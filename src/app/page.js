@@ -757,17 +757,28 @@ function ChurchMembershipSystem() {
       notes: detailedNotes
     };
 
-    const { data } = await supabase.from('reports').insert([payload]).select();
-    if (data) {
-      setReports([data[0], ...reports]);
-      setReportForm({ 
-        date: new Date().toISOString().split('T')[0], 
-        morning_people: 0, morning_visitors: 0, morning_kids: 0,
-        night_people: 0, night_visitors: 0, night_kids: 0,
-        notes: '' 
-      });
-      setShowReportForm(false);
+    // Verificar se já existe registro para esta data
+    const { data: existing } = await supabase.from('reports').select('*').eq('date', reportForm.date);
+    
+    if (existing && existing.length > 0) {
+      const { data: updated } = await supabase.from('reports').update(payload).eq('id', existing[0].id).select();
+      if (updated) {
+        setReports(reports.map(r => r.id === existing[0].id ? updated[0] : r));
+      }
+    } else {
+      const { data: inserted } = await supabase.from('reports').insert([payload]).select();
+      if (inserted) {
+        setReports([inserted[0], ...reports]);
+      }
     }
+
+    setReportForm({ 
+      date: new Date().toISOString().split('T')[0], 
+      morning_people: 0, morning_visitors: 0, morning_kids: 0,
+      night_people: 0, night_visitors: 0, night_kids: 0,
+      notes: '' 
+    });
+    setShowReportForm(false);
   };
 
   const deleteItem = async (table, id) => {
@@ -911,7 +922,9 @@ function ChurchMembershipSystem() {
     if (!quickEntryForm.total) return alert('Informe o total de pessoas.');
 
     const date = quickEntryForm.date;
-    const existing = reports.find(r => r.date === date);
+    // Buscar do banco para garantir que não temos duplicados por race condition
+    const { data: dbExisting } = await supabase.from('reports').select('*').eq('date', date);
+    const existing = dbExisting && dbExisting.length > 0 ? dbExisting[0] : null;
     
     // Preparar dados com base no tipo
     const valP = Number(quickEntryForm.total);
@@ -978,6 +991,10 @@ function ChurchMembershipSystem() {
 
       const { error } = await supabase.from('reports').insert(payload);
       if (error) throw error;
+      
+      // Atualizar estado local
+      const { data: inserted } = await supabase.from('reports').select('*').eq('date', date).order('created_at', { ascending: false }).limit(1);
+      if (inserted) setReports([inserted[0], ...reports]);
     }
 
     await fetchReports();
