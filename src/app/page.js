@@ -30,6 +30,7 @@ function ChurchMembershipSystem() {
   const [reports, setReports] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [selectedMeetingDate, setSelectedMeetingDate] = useState(null);
+  const [selectedSundayDate, setSelectedSundayDate] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -59,11 +60,52 @@ function ChurchMembershipSystem() {
     // Ordenar por data (mais recente primeiro)
     const sortedAtt = [...memberAtt].sort((a, b) => b.date.localeCompare(a.date));
 
-    // Consideramos presente na célula se o registro mais recente for 'P'
-    const isPresentCell = sortedAtt.length > 0 && sortedAtt[0].status === 'P';
-    const isPresentCult = m.attended_cult;
+    // Consideramos presente na célula se houver registro 'P' na data selecionada ou na mais recente
+    const targetCellDate = selectedMeetingDate || (activeCell ? getMeetingDates(activeCell.day_of_week).pop() : null);
+    const targetSundayDate = selectedSundayDate || getMeetingDates('domingo').pop();
+
+    const isPresentCell = attendance.some(a => a.member_id === m.id && a.date === targetCellDate && a.status === 'P');
+    const isPresentCult = attendance.some(a => a.member_id === m.id && a.date === targetSundayDate && a.status === 'P');
 
     return { isPresentCell, isPresentCult };
+  };
+
+  const getConsecutiveAbsences = (m, type) => {
+    const dates = type === 'cell' 
+      ? getMeetingDates(cells.find(c => c.id === m.cell_id)?.day_of_week || 'quarta')
+      : getMeetingDates('domingo');
+    
+    // Pegar as últimas 3 datas
+    const last3 = dates.slice(-3).reverse();
+    if (last3.length < 3) return false;
+
+    // Verificar se faltou em todas as 3
+    return last3.every(d => {
+      const att = attendance.find(a => a.member_id === m.id && a.date === d);
+      return att?.status === 'F' || !att; // Se não tem registro, consideramos falta no contexto de alerta? 
+      // Na verdade, se não tem registro o líder não lançou. Vamos considerar falta apenas se houver registro 'F'.
+      // Mas o usuário quer alerta se o membro faltar. Se o líder não lançou, não sabemos.
+      // Vamos considerar apenas registros 'F'.
+    });
+  };
+
+  // Melhorado: Alerta se faltou 3 vezes seguidas (tem registro 'F' ou não tem registro 'P')
+  const hasAbsenceAlert = (m) => {
+    const checkConsecutive = (type) => {
+      const dates = type === 'cell' 
+        ? getMeetingDates(cells.find(c => c.id === m.cell_id)?.day_of_week || 'quarta')
+        : getMeetingDates('domingo');
+      
+      const last3 = dates.slice(-3);
+      if (last3.length < 3) return false;
+
+      return last3.every(d => {
+        const att = attendance.find(a => a.member_id === m.id && a.date === d);
+        return att?.status === 'F'; // Apenas se o líder marcou explicitamente como falta
+      });
+    };
+
+    return checkConsecutive('cell') || checkConsecutive('culto');
   };
 
   const formatDate = (dateString) => {
@@ -205,18 +247,28 @@ function ChurchMembershipSystem() {
       
       const dates = getMeetingDates(cell.day_of_week);
       if (dates.length > 0) setSelectedMeetingDate(dates[dates.length - 1]);
+      
+      const sundayDates = getMeetingDates('domingo');
+      if (sundayDates.length > 0) setSelectedSundayDate(sundayDates[sundayDates.length - 1]);
     }
 
     return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (isLeaderMode && activeCell?.day_of_week) {
-      const dates = getMeetingDates(activeCell.day_of_week);
-      if (dates.length > 0) {
-        // Só mudar se a data atual não estiver na nova lista (ou for nula)
-        if (!selectedMeetingDate || !dates.includes(selectedMeetingDate)) {
-          setSelectedMeetingDate(dates[dates.length - 1]);
+    if (isLeaderMode) {
+      if (activeCell?.day_of_week) {
+        const dates = getMeetingDates(activeCell.day_of_week);
+        if (dates.length > 0) {
+          if (!selectedMeetingDate || !dates.includes(selectedMeetingDate)) {
+            setSelectedMeetingDate(dates[dates.length - 1]);
+          }
+        }
+      }
+      const sundayDates = getMeetingDates('domingo');
+      if (sundayDates.length > 0) {
+        if (!selectedSundayDate || !sundayDates.includes(selectedSundayDate)) {
+          setSelectedSundayDate(sundayDates[sundayDates.length - 1]);
         }
       }
     }
@@ -265,6 +317,9 @@ function ChurchMembershipSystem() {
       
       const dates = getMeetingDates(cellData.day_of_week);
       if (dates.length > 0) setSelectedMeetingDate(dates[dates.length - 1]);
+      
+      const sundayDates = getMeetingDates('domingo');
+      if (sundayDates.length > 0) setSelectedSundayDate(sundayDates[sundayDates.length - 1]);
       
       alert(`Bem-vindo, ${isTrainee ? 'Líder em Treinamento' : 'Líder'} da célula ${cellData.name}!`);
     } else {
@@ -348,9 +403,16 @@ function ChurchMembershipSystem() {
           setActiveCell(cell);
           const dates = getMeetingDates(cell.day_of_week);
           if (dates.length > 0) setSelectedMeetingDate(dates[dates.length - 1]);
+          
+          const sundayDates = getMeetingDates('domingo');
+          if (sundayDates.length > 0) setSelectedSundayDate(sundayDates[sundayDates.length - 1]);
           // Não ativamos mais o modo líder automaticamente via URL.
           // O usuário deve logar ou clicar em "Primeiro Acesso" na tela de login.
         }
+      } else {
+        // Se não for modo líder, inicializar datas padrão para o Pastor ver alertas/dashboard
+        const sundayDates = getMeetingDates('domingo');
+        if (sundayDates.length > 0) setSelectedSundayDate(sundayDates[sundayDates.length - 1]);
       }
       setIsInitialized(true);
     };
@@ -398,26 +460,42 @@ function ChurchMembershipSystem() {
   const toggleAttendance = async (memberId, type) => {
     const member = members.find(m => m.id === memberId);
     if (!member) return;
-    const newValue = !member[type];
     
-    // Atualiza estado local do membro
-    setMembers(members.map(m => m.id === memberId ? { ...m, [type]: newValue } : m));
-    
-    // Se for presença na célula, atualizamos também o histórico para a data selecionada
-    if (type === 'attended_cell' && activeCell) {
-      const currentMeetingDate = selectedMeetingDate || getMeetingDates(activeCell.day_of_week).pop();
-      
-      const payload = { member_id: memberId, cell_id: activeCell.id, date: currentMeetingDate, status: newValue ? 'P' : 'F' };
-      
-      // Atualiza estado local da frequência
-      setAttendance(prev => {
-        const other = prev.filter(a => !(a.member_id === memberId && a.date === currentMeetingDate));
-        return [...other, { ...payload, id: Date.now() }];
-      });
-      
-      await supabase.from('cell_attendance').upsert([payload], { onConflict: 'member_id,date' });
+    // Identificar a data correta
+    let currentMeetingDate;
+    if (type === 'attended_cell') {
+      currentMeetingDate = selectedMeetingDate || (activeCell ? getMeetingDates(activeCell.day_of_week).pop() : null);
+    } else {
+      currentMeetingDate = selectedSundayDate || getMeetingDates('domingo').pop();
     }
     
+    if (!currentMeetingDate) return;
+
+    // Verificar status atual na data
+    const existing = attendance.find(a => a.member_id === memberId && a.date === currentMeetingDate);
+    const isCurrentlyPresent = existing?.status === 'P';
+    const newValue = !isCurrentlyPresent;
+    
+    // Atualiza estado local do membro (para compatibilidade legada se necessário)
+    setMembers(members.map(m => m.id === memberId ? { ...m, [type]: newValue } : m));
+    
+    // Payload para o histórico
+    const payload = { 
+      member_id: memberId, 
+      cell_id: member.cell_id, 
+      date: currentMeetingDate, 
+      status: newValue ? 'P' : 'F' 
+    };
+    
+    // Atualiza estado local da frequência
+    setAttendance(prev => {
+      const other = prev.filter(a => !(a.member_id === memberId && a.date === currentMeetingDate));
+      return [...other, { ...payload, id: existing?.id || Date.now() }];
+    });
+    
+    await supabase.from('cell_attendance').upsert([payload], { onConflict: 'member_id,date' });
+    
+    // Também atualizamos o booleano no membro para o painel simplificado
     await supabase.from('members').update({ [type]: newValue }).eq('id', memberId);
   };
 
@@ -718,12 +796,12 @@ function ChurchMembershipSystem() {
       if (!isPresentCell) acc.absentCell++;
 
       return acc;
-    }, { total: 0, both: 0, onlyCell: 0, onlyCult: 0, none: 0, absentCult: 0, absentCell: 0, visitors: 0 });
-  }, [members, attendance, isLeaderMode, activeCell, cells]);
+    }, { total: 0, both: 0, onlyCell: 0, onlyCulto: 0, none: 0, absentCulto: 0, absentCell: 0, visitors: 0 });
+  }, [members, attendance, isLeaderMode, activeCell, cells, selectedMeetingDate, selectedSundayDate]);
 
   const loyaltyData = [
     { name: 'Só Célula', value: stats.onlyCell, color: '#f59e0b' },
-    { name: 'Só Culto', value: stats.onlyCult, color: '#a855f7' },
+    { name: 'Só Culto', value: stats.onlyCulto, color: '#a855f7' },
     { name: 'Ambos', value: stats.both, color: '#10b981' },
     { name: 'Inativos', value: stats.none, color: '#ef4444' },
   ];
@@ -752,23 +830,15 @@ function ChurchMembershipSystem() {
   const chartData = React.useMemo(() => {
     if (!reports || reports.length === 0) return [];
     
-    // 1. Agrupar e somar por data e por tipo de culto
     const processedData = {};
     [...reports].forEach(r => {
       if (!processedData[r.date]) {
-        processedData[r.date] = { 
-          date: r.date, 
-          manha: 0, 
-          noite: 0, 
-          sabado: 0,
-          geral: 0 
-        };
+        processedData[r.date] = { date: r.date, manha: 0, noite: 0, sabado: 0, geral: 0 };
       }
 
       const d = new Date(r.date + 'T12:00:00');
       const isSabado = d.getDay() === 6;
 
-      // Tentar extrair Manhã e Noite das notas estruturadas (robusto a acentos e espaços)
       const notesStr = String(r.notes || '');
       const manhaMatch = notesStr.match(/(?:MANH[ÃA]):\s*P:(\d+),\s*V:(\d+),\s*C:(\d+)/i);
       const noiteMatch = notesStr.match(/(?:NOITE):\s*P:(\d+),\s*V:(\d+),\s*C:(\d+)/i);
@@ -776,34 +846,21 @@ function ChurchMembershipSystem() {
       const valManha = manhaMatch ? (Number(manhaMatch[1]) + Number(manhaMatch[2]) + Number(manhaMatch[3])) : 0;
       const valNoite = noiteMatch ? (Number(noiteMatch[1]) + Number(noiteMatch[2]) + Number(noiteMatch[3])) : 0;
 
-      if (isSabado) {
-        processedData[r.date].sabado += (valManha + valNoite || Number(r.total) || 0);
-      } else {
+      if (isSabado) processedData[r.date].sabado += (valManha + valNoite || Number(r.total) || 0);
+      else {
         processedData[r.date].manha += valManha;
         processedData[r.date].noite += valNoite;
       }
-      
       processedData[r.date].geral += (Number(r.total) || 0);
     });
 
-    // 2. Converter para array e ordenar por data
     const sorted = Object.values(processedData).sort((a, b) => a.date.localeCompare(b.date));
-
-    // 3. Aplicar filtro de tempo
     let filtered = sorted;
     const now = new Date();
-    if (timeFilter === 'Este Mês') {
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-      filtered = sorted.filter(r => r.date >= monthStart);
-    } else if (timeFilter === '12m') {
-      const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()).toISOString().split('T')[0];
-      filtered = sorted.filter(r => r.date >= yearAgo);
-    } else if (timeFilter === '24m') {
-      const twoYearsAgo = new Date(now.getFullYear() - 2, now.getMonth(), now.getDate()).toISOString().split('T')[0];
-      filtered = sorted.filter(r => r.date >= twoYearsAgo);
-    }
+    if (timeFilter === 'Este Mês') filtered = sorted.filter(r => r.date >= new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]);
+    else if (timeFilter === '12m') filtered = sorted.filter(r => r.date >= new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()).toISOString().split('T')[0]);
+    else if (timeFilter === '24m') filtered = sorted.filter(r => r.date >= new Date(now.getFullYear() - 2, now.getMonth(), now.getDate()).toISOString().split('T')[0]);
 
-    // 4. Mapear para o formato do Recharts
     return filtered.map(r => {
       const d = new Date(r.date + 'T12:00:00');
       return {
@@ -813,6 +870,42 @@ function ChurchMembershipSystem() {
       };
     });
   }, [reports, timeFilter]);
+
+  const leaderChartData = React.useMemo(() => {
+    if (!attendance || attendance.length === 0) return [];
+    
+    const processedData = {};
+    attendance.forEach(a => {
+      if (a.status !== 'P') return;
+      
+      const d = new Date(a.date + 'T12:00:00');
+      const isSunday = d.getDay() === 0;
+      
+      if (!processedData[a.date]) {
+        processedData[a.date] = { date: a.date, celula: 0, culto: 0, total: 0 };
+      }
+      
+      if (isSunday) processedData[a.date].culto++;
+      else processedData[a.date].celula++;
+      
+      processedData[a.date].total++;
+    });
+
+    const sorted = Object.values(processedData).sort((a, b) => a.date.localeCompare(b.date));
+    let filtered = sorted;
+    const now = new Date();
+    if (timeFilter === 'Este Mês') filtered = sorted.filter(r => r.date >= new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]);
+    else if (timeFilter === '12m') filtered = sorted.filter(r => r.date >= new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()).toISOString().split('T')[0]);
+    
+    return filtered.map(r => {
+      const d = new Date(r.date + 'T12:00:00');
+      return {
+        ...r,
+        displayDate: d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', ''),
+        fullDate: d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+      };
+    });
+  }, [attendance, timeFilter]);
 
   const saveQuickEntry = async () => {
     if (!quickEntryForm.total) return alert('Informe o total de pessoas.');
@@ -1298,8 +1391,8 @@ function ChurchMembershipSystem() {
                 <StatCard label="Membros" value={stats.total} icon={<Users size={16} />} color="blue" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('all'); }} />
                 <StatCard label="Ambos" value={stats.both} icon={<ShieldCheck size={16} />} color="emerald" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('both'); }} />
                 <StatCard label="Só Célula" value={stats.onlyCell} icon={<Home size={16} />} color="blue" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('only-cell'); }} />
-                <StatCard label="Só Culto" value={stats.onlyCult} icon={<Star size={16} />} color="purple" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('only-culto'); }} />
-                <StatCard label="Faltou Culto" value={stats.absentCult} icon={<Activity size={16} />} color="red" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-culto'); }} />
+                <StatCard label="Só Culto" value={stats.onlyCulto} icon={<Star size={16} />} color="purple" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('only-culto'); }} />
+                <StatCard label="Faltou Culto" value={stats.absentCulto} icon={<Activity size={16} />} color="red" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-culto'); }} />
                 <StatCard label="Faltou Célula" value={stats.absentCell} icon={<Clock size={16} />} color="orange" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-cell'); }} />
                 <StatCard label="Ausente Ambos" value={stats.none} icon={<UserMinus size={16} />} color="red" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('none'); }} />
                 <StatCard label="Visitantes" value={stats.visitors} icon={<Star size={16} />} color="pink" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('visitors'); }} />
@@ -1333,14 +1426,14 @@ function ChurchMembershipSystem() {
                 </div>
                 <div className={`${t.card} lg:col-span-8 border rounded-3xl p-6 flex flex-col`}>
                   <div className="flex justify-between items-center mb-10">
-                    <h3 className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-slate-500"><LineIcon size={12} /> Evolução do Rebanho (Mensal)</h3>
+                    <h3 className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-slate-500"><LineIcon size={12} /> Frequência Cultos (Lançamento Manual)</h3>
                     <div className="flex bg-white/5 p-1 rounded-xl border border-white/5">
                       {['Este Mês', '12m', '24m', 'Tudo'].map(f => (
                         <button key={f} onClick={() => setTimeFilter(f)} className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${timeFilter === f ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:text-white'}`}>{f}</button>
                       ))}
                     </div>
                   </div>
-                  <div className="h-[300px] w-full">
+                  <div className="h-[250px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={chartData}>
                         <defs>
@@ -1348,39 +1441,52 @@ function ChurchMembershipSystem() {
                             <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
                             <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                           </linearGradient>
-                          <linearGradient id="colorManha" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#fbbf24" stopOpacity={0.2} />
-                            <stop offset="95%" stopColor="#fbbf24" stopOpacity={0} />
-                          </linearGradient>
-                          <linearGradient id="colorNoite" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2} />
-                            <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                          </linearGradient>
-                          <linearGradient id="colorSabado" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                          </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
                         <XAxis dataKey="displayDate" stroke="#475569" fontSize={9} axisLine={false} tickLine={false} dy={10} interval={Math.ceil(chartData.length / 12)} />
                         <YAxis stroke="#475569" fontSize={9} axisLine={false} tickLine={false} width={30} domain={[0, 'auto']} />
                         <Tooltip content={<CustomTooltip dark={darkMode} />} />
-                        <Legend verticalAlign="top" height={36} content={({ payload }) => (
-                          <div className="flex justify-center gap-4 mb-4">
-                            {payload.map((entry, index) => (
-                              <div key={index} className="flex items-center gap-1.5">
-                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">{entry.value}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )} />
-                        <Area name="Manhã" type="linear" dataKey="manha" stroke="#fbbf24" strokeWidth={2} fill="url(#colorManha)" fillOpacity={0.1} dot={{ r: 3, fill: '#fbbf24' }} />
-                        <Area name="Noite" type="linear" dataKey="noite" stroke="#8b5cf6" strokeWidth={2} fill="url(#colorNoite)" fillOpacity={0.1} dot={{ r: 3, fill: '#8b5cf6' }} />
-                        <Area name="Sábado" type="linear" dataKey="sabado" stroke="#10b981" strokeWidth={2} fill="url(#colorSabado)" fillOpacity={0.1} dot={{ r: 3, fill: '#10b981' }} />
-                        <Area name="Total" type="linear" dataKey="geral" stroke="#3b82f6" strokeWidth={3} fill="url(#colorTotal)" fillOpacity={0.2} dot={{ r: 4, fill: '#3b82f6', stroke: darkMode ? '#0f172a' : '#fff' }} activeDot={{ r: 6 }} />
+                        <Area name="Geral" type="linear" dataKey="geral" stroke="#3b82f6" strokeWidth={3} fill="url(#colorTotal)" fillOpacity={0.2} dot={{ r: 4, fill: '#3b82f6', stroke: darkMode ? '#0f172a' : '#fff' }} activeDot={{ r: 6 }} />
                       </AreaChart>
                     </ResponsiveContainer>
+                  </div>
+
+                  <div className="mt-10 pt-10 border-t border-white/5">
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-slate-500"><Activity size={12} /> Frequência Consolidada (Reporte Líderes)</h3>
+                    </div>
+                    <div className="h-[250px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={leaderChartData}>
+                          <defs>
+                            <linearGradient id="colorCelula" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
+                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="colorCulto" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
+                              <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+                          <XAxis dataKey="displayDate" stroke="#475569" fontSize={9} axisLine={false} tickLine={false} dy={10} interval={Math.ceil(leaderChartData.length / 12)} />
+                          <YAxis stroke="#475569" fontSize={9} axisLine={false} tickLine={false} width={30} domain={[0, 'auto']} />
+                          <Tooltip content={<CustomTooltip dark={darkMode} />} />
+                          <Legend verticalAlign="top" height={36} content={({ payload }) => (
+                            <div className="flex justify-center gap-4 mb-4">
+                              {payload.map((entry, index) => (
+                                <div key={index} className="flex items-center gap-1.5">
+                                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                                  <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">{entry.value}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )} />
+                          <Area name="Célula" type="linear" dataKey="celula" stroke="#3b82f6" strokeWidth={2} fill="url(#colorCelula)" fillOpacity={0.1} dot={{ r: 3, fill: '#3b82f6' }} />
+                          <Area name="Culto" type="linear" dataKey="culto" stroke="#10b981" strokeWidth={2} fill="url(#colorCulto)" fillOpacity={0.1} dot={{ r: 3, fill: '#10b981' }} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1393,17 +1499,31 @@ function ChurchMembershipSystem() {
                 <div className="flex items-center gap-3">
                   <h2 className="text-2xl font-black italic uppercase tracking-tighter">Membros</h2>
                   {isLeaderMode && activeCell && (
-                    <div className="flex items-center gap-2 bg-blue-600/10 border border-blue-500/20 px-3 py-1.5 rounded-xl">
-                      <Calendar size={14} className="text-blue-500" />
-                      <select 
-                        value={selectedMeetingDate || ''} 
-                        onChange={(e) => setSelectedMeetingDate(e.target.value)}
-                        className="bg-transparent text-[10px] font-black uppercase italic text-blue-500 outline-none cursor-pointer"
-                      >
-                        {getMeetingDates(activeCell.day_of_week).map(d => (
-                          <option key={d} value={d} className="bg-slate-900">{formatDate(d)}</option>
-                        ))}
-                      </select>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 bg-blue-600/10 border border-blue-500/20 px-3 py-1.5 rounded-xl">
+                        <span className="text-[7px] font-black uppercase text-blue-500/50">Célula</span>
+                        <select 
+                          value={selectedMeetingDate || ''} 
+                          onChange={(e) => setSelectedMeetingDate(e.target.value)}
+                          className="bg-transparent text-[10px] font-black uppercase italic text-blue-500 outline-none cursor-pointer"
+                        >
+                          {getMeetingDates(activeCell.day_of_week).map(d => (
+                            <option key={d} value={d} className="bg-slate-900">{formatDate(d)}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-2 bg-emerald-600/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl">
+                        <span className="text-[7px] font-black uppercase text-emerald-500/50">Culto</span>
+                        <select 
+                          value={selectedSundayDate || ''} 
+                          onChange={(e) => setSelectedSundayDate(e.target.value)}
+                          className="bg-transparent text-[10px] font-black uppercase italic text-emerald-500 outline-none cursor-pointer"
+                        >
+                          {getMeetingDates('domingo').map(d => (
+                            <option key={d} value={d} className="bg-slate-900">{formatDate(d)}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1421,7 +1541,7 @@ function ChurchMembershipSystem() {
                             data={[
                               { name: 'Ambos', value: stats.both, color: '#3b82f6' },
                               { name: 'Só Célula', value: stats.onlyCell, color: '#10b981' },
-                              { name: 'Só Culto', value: stats.onlyCult, color: '#f59e0b' },
+                              { name: 'Só Culto', value: stats.onlyCulto, color: '#f59e0b' },
                               { name: 'Nenhum', value: stats.none, color: '#475569' },
                             ].filter(d => d.value > 0)}
                             cx="50%"
@@ -1520,6 +1640,11 @@ function ChurchMembershipSystem() {
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-black italic uppercase tracking-tighter">{m.name}</p>
                             {m.pl && <span className="text-[7px] bg-indigo-500 text-white px-1 rounded font-black">PL</span>}
+                            {hasAbsenceAlert(m) && (
+                              <span className="flex items-center gap-1 bg-red-500 text-white px-2 py-0.5 rounded-full text-[7px] font-black animate-bounce shadow-lg shadow-red-500/40">
+                                <Activity size={8} /> ALERTA: 3+ FALTAS
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center gap-3 mt-0.5">
                             <p className="text-[9px] text-slate-500 font-bold">{m.phone || 'Sem Telefone'}</p>
@@ -1537,11 +1662,8 @@ function ChurchMembershipSystem() {
                         </td>
                         <td className="px-4 py-3 text-center">
                           {(() => {
-                            const attStatus = isLeaderMode && selectedMeetingDate 
-                              ? attendance.find(a => a.member_id === m.id && a.date === selectedMeetingDate)?.status
-                              : (m.attended_cell ? 'P' : 'F');
-                            
-                            const isPresent = attStatus === 'P';
+                            const att = attendance.find(a => a.member_id === m.id && a.date === selectedMeetingDate);
+                            const isPresent = att?.status === 'P';
                             
                             return (
                               <button
@@ -1554,12 +1676,19 @@ function ChurchMembershipSystem() {
                           })()}
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() => toggleAttendance(m.id, 'attended_cult')}
-                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${m.attended_cult ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
-                          >
-                            {m.attended_cult ? 'Presente' : 'Faltou'}
-                          </button>
+                          {(() => {
+                            const att = attendance.find(a => a.member_id === m.id && a.date === selectedSundayDate);
+                            const isPresent = att?.status === 'P';
+                            
+                            return (
+                              <button
+                                onClick={() => toggleAttendance(m.id, 'attended_cult')}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${isPresent ? 'bg-emerald-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
+                              >
+                                {isPresent ? 'Presente' : 'Faltou'}
+                              </button>
+                            );
+                          })()}
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
