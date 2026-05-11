@@ -1536,6 +1536,46 @@ function ChurchMembershipSystem() {
                     )}
                   </div>
                 </div>
+
+                {!isLeaderMode && chartData.length > 0 && (
+                  <div className={`${t.card} lg:col-span-12 border rounded-3xl p-8 animate-in fade-in slide-in-from-bottom-4 duration-700`}>
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-[12px] font-black uppercase tracking-widest flex items-center gap-2 text-slate-500">
+                        <ClipboardList size={16} /> Resumo Numérico (Últimos Cultos)
+                      </h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="border-b border-white/5">
+                            <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500">Data</th>
+                            <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-amber-500 text-center">Manhã</th>
+                            <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-purple-500 text-center">Noite</th>
+                            <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-emerald-500 text-center">Sábado</th>
+                            <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-blue-500 text-right">Total Geral</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          {[...chartData].reverse().slice(0, 5).map((r, i) => (
+                            <tr key={i} className="hover:bg-white/5 transition-all group">
+                              <td className="px-6 py-4">
+                                <p className="text-sm font-black italic uppercase tracking-tighter group-hover:text-blue-500 transition-colors">{r.fullDate}</p>
+                              </td>
+                              <td className="px-6 py-4 text-center font-black text-amber-500/80">{r.manha}</td>
+                              <td className="px-6 py-4 text-center font-black text-purple-500/80">{r.noite}</td>
+                              <td className="px-6 py-4 text-center font-black text-emerald-500/80">{r.sabado}</td>
+                              <td className="px-6 py-4 text-right">
+                                <span className="bg-blue-600/10 text-blue-500 px-4 py-1.5 rounded-full font-black text-xs italic shadow-lg shadow-blue-600/5 border border-blue-500/10">
+                                  {r.geral}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
