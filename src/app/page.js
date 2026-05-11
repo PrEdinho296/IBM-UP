@@ -2324,7 +2324,7 @@ function ChurchMembershipSystem() {
 
                         <button
                           onClick={() => deleteItem('reports', r.id)}
-                          className="absolute -right-10 group-hover:right-2 top-2 p-2 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all"
+                          className={`absolute -right-10 group-hover:right-2 top-2 p-2 ${darkMode ? 'text-red-500/50' : 'text-red-400'} hover:bg-red-500 hover:text-white rounded-lg transition-all`}
                           title="Excluir Registro"
                         >
                           <Trash2 size={14} />
@@ -2353,13 +2353,46 @@ function ChurchMembershipSystem() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {cells.filter(cell => !filterSectorId || Number(cell.sector_id) === filterSectorId).map(cell => (<div key={cell.id} className={`${t.card} border rounded-2xl p-6 flex flex-col group`}><div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-500 mb-4 group-hover:bg-blue-600 group-hover:text-white transition-all"><Home size={20} /></div><h3 className="text-lg font-black uppercase italic mb-1">{cell.name}</h3><p className="text-blue-500 text-[9px] font-black uppercase mb-2">{cell.leader}</p>                    <div className="grid grid-cols-2 gap-2 mb-4 border-y border-white/5 py-4">
                   <div className="flex items-center justify-center gap-2 text-[11px] font-black uppercase text-blue-400 italic notranslate" translate="no">
-                    <Calendar size={14} /> {cell.day_of_week || '---'}
+                {cells.filter(cell => !filterSectorId || Number(cell.sector_id) === filterSectorId).map(cell => (
+                  <div key={cell.id} className={`${t.card} border rounded-2xl p-6 flex flex-col group`}>
+                    <div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-500 mb-4 group-hover:bg-blue-600 group-hover:text-white transition-all"><Home size={20} /></div>
+                    <h3 className="text-lg font-black uppercase italic mb-1">{cell.name}</h3>
+                    <p className="text-blue-500 text-[9px] font-black uppercase mb-2">{cell.leader}</p>
+                    <div className="grid grid-cols-2 gap-2 mb-4 border-y border-white/5 py-4">
+                      <div className="flex items-center justify-center gap-2 text-[11px] font-black uppercase text-blue-400 italic notranslate" translate="no">
+                        <Calendar size={14} /> {cell.day_of_week || '---'}
+                      </div>
+                      <div className="flex items-center justify-center gap-2 text-[11px] font-black uppercase text-emerald-400 italic border-l border-white/5 notranslate" translate="no">
+                        <Clock size={14} /> {cell.meeting_time || '---'}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => { const link = `${window.location.origin}${window.location.pathname}?cellId=${cell.id}`; navigator.clipboard.writeText(link); setCopiedId(cell.id); setTimeout(() => setCopiedId(null), 2000); }} className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 font-black text-[8px] uppercase tracking-widest transition-all ${copiedId === cell.id ? 'bg-emerald-600 text-white' : 'bg-blue-600/10 text-blue-500'}`}>{copiedId === cell.id ? 'Copiado!' : 'Link Líder'}</button>
+                      <button 
+                        onClick={() => { setEditingCellId(cell.id); setCellForm(cell); setShowCellForm(true); }} 
+                        className={`p-2.5 rounded-lg border ${darkMode ? 'border-white/10 text-white/50' : 'border-slate-200 text-slate-400'} hover:bg-blue-600/10 hover:text-blue-500 transition-all`}
+                        title="Editar Célula"
+                      >
+                        <Edit2 size={12} />
+                      </button>
+                      <button 
+                        onClick={() => { setActiveCell(cell); setIsLeaderMode(true); setActiveTab('leader-members'); }} 
+                        className={`p-2.5 rounded-lg border ${darkMode ? 'border-white/10 text-white/50' : 'border-slate-200 text-slate-400'} hover:bg-blue-600/10 hover:text-blue-500 transition-all`}
+                        title="Ver Dashboard do Líder"
+                      >
+                        <Eye size={12} />
+                      </button>
+                      <button 
+                        onClick={() => deleteItem('cells', cell.id)} 
+                        className={`p-2.5 rounded-lg ${darkMode ? 'text-red-500/30' : 'text-red-400'} hover:text-red-600 transition-all`}
+                        title="Excluir Célula"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-center gap-2 text-[11px] font-black uppercase text-emerald-400 italic border-l border-white/5 notranslate" translate="no">
-                    <Clock size={14} /> {cell.meeting_time || '---'}
-                  </div>
-                </div><div className="flex gap-2"><button onClick={() => { const link = `${window.location.origin}${window.location.pathname}?cellId=${cell.id}`; navigator.clipboard.writeText(link); setCopiedId(cell.id); setTimeout(() => setCopiedId(null), 2000); }} className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 font-black text-[8px] uppercase tracking-widest transition-all ${copiedId === cell.id ? 'bg-emerald-600 text-white' : 'bg-blue-600/10 text-blue-500'}`}>{copiedId === cell.id ? 'Copiado!' : 'Link Líder'}</button><button onClick={() => { setEditingCellId(cell.id); setCellForm(cell); setShowCellForm(true); }} className="p-2.5 rounded-lg border border-white/10 text-white/50 hover:bg-white/5 hover:text-blue-400"><Edit2 size={12} /></button>
-                    <button onClick={() => { setActiveCell(cell); setIsLeaderMode(true); setActiveTab('leader-members'); }} className="p-2.5 rounded-lg border border-white/10 text-white/50 hover:bg-white/5"><Eye size={12} /></button><button onClick={() => deleteItem('cells', cell.id)} className="p-2.5 rounded-lg text-red-500/30 hover:text-red-500"><Trash2 size={12} /></button></div></div>))}</div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -2373,7 +2406,7 @@ function ChurchMembershipSystem() {
                 >
                   {cells.filter(c => Number(c.sector_id) === s.id).length} Células
                 </button>
-              </td><td className="px-6 py-4 text-right"><button onClick={() => deleteItem('sectors', s.id)} className="text-red-500/20 hover:text-red-500 p-1"><Trash2 size={16} /></button></td></tr>))}</tbody></table></div></div>)}
+              </td><td className="px-6 py-4 text-right"><button onClick={() => deleteItem('sectors', s.id)} className={`${darkMode ? 'text-red-500/20' : 'text-red-400'} hover:text-red-600 p-1 transition-all`} title="Excluir Setor"><Trash2 size={16} /></button></td></tr>))}</tbody></table></div></div>)}
           {activeTab === 'attendance-report' && <AttendanceReport members={members} cells={cells} getMemberEngagement={getMemberEngagement} darkMode={darkMode} />}
           {activeTab === 'pastoral-report' && (
             <PastoralReport 
