@@ -1688,7 +1688,16 @@ function ChurchMembershipSystem() {
                               const cellDates = getMeetingDates(activeCell.day_of_week, historyRefDate).slice(-15);
                               return (
                                 <tr key={m.id} className={t.hover}>
-                                  <td className="px-6 py-4 font-black italic uppercase text-xs tracking-tighter">{m.name}</td>
+                                  <td className="px-6 py-4">
+                                    <p className="font-black italic uppercase text-xs tracking-tighter">{m.name}</p>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {m.ecc && <span className="text-[6px] border border-blue-500/30 text-blue-500 px-1 rounded font-black">ECC</span>}
+                                      {m.bat && <span className="text-[6px] border border-emerald-500/30 text-emerald-500 px-1 rounded font-black">BAT</span>}
+                                      {m.integracao && <span className="text-[6px] border border-amber-500/30 text-amber-500 px-1 rounded font-black">FCC</span>}
+                                      {m.con && <span className="text-[6px] border border-red-500/30 text-red-500 px-1 rounded font-black">CON</span>}
+                                      {m.maturidade && <span className="text-[6px] border border-purple-500/30 text-purple-500 px-1 rounded font-black">TMC</span>}
+                                    </div>
+                                  </td>
                                   {cellDates.map(d => {
                                     const att = attendance.find(a => a.member_id === m.id && a.date === d);
                                     const status = att?.status;
@@ -1733,7 +1742,16 @@ function ChurchMembershipSystem() {
                               const sundayDates = getMeetingDates('domingo', historyRefDate).slice(-15);
                               return (
                                 <tr key={m.id} className={t.hover}>
-                                  <td className="px-6 py-4 font-black italic uppercase text-xs tracking-tighter">{m.name}</td>
+                                  <td className="px-6 py-4">
+                                    <p className="font-black italic uppercase text-xs tracking-tighter">{m.name}</p>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {m.ecc && <span className="text-[6px] border border-blue-500/30 text-blue-500 px-1 rounded font-black">ECC</span>}
+                                      {m.bat && <span className="text-[6px] border border-emerald-500/30 text-emerald-500 px-1 rounded font-black">BAT</span>}
+                                      {m.integracao && <span className="text-[6px] border border-amber-500/30 text-amber-500 px-1 rounded font-black">FCC</span>}
+                                      {m.con && <span className="text-[6px] border border-red-500/30 text-red-500 px-1 rounded font-black">CON</span>}
+                                      {m.maturidade && <span className="text-[6px] border border-purple-500/30 text-purple-500 px-1 rounded font-black">TMC</span>}
+                                    </div>
+                                  </td>
                                   {sundayDates.map(d => {
                                     const att = attendance.find(a => a.member_id === m.id && a.date === d);
                                     const status = att?.status;
@@ -1780,8 +1798,6 @@ function ChurchMembershipSystem() {
                   <thead className={`${t.tableHead} border-b ${t.border}`}>
                     <tr>
                       <th className="px-6 py-4 text-[9px] font-black uppercase">Membro</th>
-                      <th className="px-6 py-4 text-center text-[9px] font-black uppercase">Célula</th>
-                      <th className="px-6 py-4 text-center text-[9px] font-black uppercase">Culto</th>
                       <th className="px-6 py-4 text-right text-[9px] font-black uppercase">Ações</th>
                     </tr>
                   </thead>
@@ -1811,36 +1827,6 @@ function ChurchMembershipSystem() {
                             {m.ctl && <span className="text-[7px] bg-slate-600/10 border border-slate-500/30 text-slate-400 px-1.5 py-0.5 rounded font-black uppercase">MSD</span>}
                             {m.outros && <span className="text-[7px] bg-pink-600/10 border border-pink-500/30 text-pink-400 px-1.5 py-0.5 rounded font-black uppercase">VS</span>}
                           </div>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {(() => {
-                            const att = attendance.find(a => a.member_id === m.id && a.date === selectedMeetingDate);
-                            const isPresent = att?.status === 'P';
-                            
-                            return (
-                              <button
-                                onClick={() => toggleAttendance(m.id, 'attended_cell')}
-                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${isPresent ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800/50 text-slate-500'}`}
-                              >
-                                {isPresent ? 'Presente' : 'Faltou'}
-                              </button>
-                            );
-                          })()}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {(() => {
-                            const att = attendance.find(a => a.member_id === m.id && a.date === selectedSundayDate);
-                            const isPresent = att?.status === 'P';
-                            
-                            return (
-                              <button
-                                onClick={() => toggleAttendance(m.id, 'attended_cult')}
-                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${isPresent ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800/50 text-slate-500'}`}
-                              >
-                                {isPresent ? 'Presente' : 'Faltou'}
-                              </button>
-                            );
-                          })()}
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
@@ -1990,6 +1976,13 @@ function ChurchMembershipSystem() {
                             <tr key={m.id} className="hover:bg-white/5 transition-all">
                               <td className="px-6 py-4">
                                 <p className="text-sm font-black italic uppercase tracking-tighter">{m.name}</p>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {m.ecc && <span className="text-[6px] border border-blue-500/30 text-blue-500 px-1 rounded font-black">ECC</span>}
+                                  {m.bat && <span className="text-[6px] border border-emerald-500/30 text-emerald-500 px-1 rounded font-black">BAT</span>}
+                                  {m.integracao && <span className="text-[6px] border border-amber-500/30 text-amber-500 px-1 rounded font-black">FCC</span>}
+                                  {m.con && <span className="text-[6px] border border-red-500/30 text-red-500 px-1 rounded font-black">CON</span>}
+                                  {m.maturidade && <span className="text-[6px] border border-purple-500/30 text-purple-500 px-1 rounded font-black">TMC</span>}
+                                </div>
                               </td>
                               {sundayDates.map(d => {
                                 const att = attendance.find(a => a.member_id === m.id && a.date === d);
