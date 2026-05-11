@@ -862,7 +862,7 @@ function ChurchMembershipSystem() {
         processedData[r.date].manha += valManha;
         processedData[r.date].noite += valNoite;
       }
-      processedData[r.date].geral += (Number(r.total) || 0);
+      processedData[r.date].geral = processedData[r.date].manha + processedData[r.date].noite + processedData[r.date].sabado;
     });
 
     const sorted = Object.values(processedData).sort((a, b) => a.date.localeCompare(b.date));
