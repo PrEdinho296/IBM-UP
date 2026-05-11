@@ -1630,7 +1630,7 @@ function ChurchMembershipSystem() {
                     <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={[
                       { name: 'Ambos', value: stats.both, color: '#3b82f6' },
                       { name: 'Só Célula', value: stats.onlyCell, color: '#10b981' },
-                      { name: 'Só Culto', value: stats.onlyCult, color: '#f59e0b' },
+                      { name: 'Só Culto', value: stats.onlyCulto, color: '#f59e0b' },
                       { name: 'Inativos', value: stats.none, color: '#475569' },
                     ].filter(d => d.value > 0)} innerRadius={55} outerRadius={75} paddingAngle={5} dataKey="value">{[
                       { color: '#3b82f6' }, { color: '#10b981' }, { color: '#f59e0b' }, { color: '#475569' }
