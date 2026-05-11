@@ -900,6 +900,12 @@ function ChurchMembershipSystem() {
       else processedData[a.date].celula++;
       
       processedData[a.date].total++;
+      
+      // Calcular ausentes (membros daquela célula que não apareceram?)
+      // Na verdade, para o Pastor ver ausência global é difícil se não soubermos quantos membros eram esperados.
+      // Vamos estimar com base no total de membros ativos naquele momento.
+      const expected = members.filter(m => !m.outros).length;
+      processedData[a.date].ausentes = Math.max(0, expected - (isSunday ? processedData[a.date].culto : processedData[a.date].celula));
     });
 
     const sorted = Object.values(processedData).sort((a, b) => a.date.localeCompare(b.date));
@@ -1238,9 +1244,10 @@ function ChurchMembershipSystem() {
         <nav className="flex-1 px-3 space-y-1">
           {isLeaderMode ? (
             <>
+              <MenuBtn icon={<LayoutDashboard size={18} />} label="Dashboard" active={activeTab === 'leader-dashboard'} onClick={() => setActiveTab('leader-dashboard')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<ClipboardList size={18} />} label="Frequência" active={activeTab === 'leader-attendance'} onClick={() => setActiveTab('leader-attendance')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Users size={18} />} label="Membros" active={activeTab === 'leader-members'} onClick={() => setActiveTab('leader-members')} open={sidebarOpen} dark={darkMode} />
-              <MenuBtn icon={<Calendar size={18} />} label="Frequência" active={activeTab === 'leader-attendance'} onClick={() => setActiveTab('leader-attendance')} open={sidebarOpen} dark={darkMode} />
-               <MenuBtn icon={<Sun size={18} />} label="Cultos" active={activeTab === 'leader-culto'} onClick={() => setActiveTab('leader-culto')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<Sun size={18} />} label="Cultos" active={activeTab === 'leader-culto'} onClick={() => setActiveTab('leader-culto')} open={sidebarOpen} dark={darkMode} />
                <div className="pt-4 mt-4 border-t border-white/5 space-y-1">
                  <p className="text-[7px] font-black text-slate-500 uppercase px-3 mb-2 tracking-widest">Equipe da Célula</p>
                  <MenuBtn 
@@ -1470,23 +1477,19 @@ function ChurchMembershipSystem() {
 
                   <div className="mt-10 pt-10 border-t border-white/5">
                     <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-slate-500"><Activity size={12} /> Frequência Consolidada (Reporte Líderes)</h3>
+                      <h3 className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-slate-500"><Users size={12} /> Presença vs Ausência em Cultos (Engajamento de Membros)</h3>
                     </div>
                     <div className="h-[250px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={leaderChartData}>
                           <defs>
-                            <linearGradient id="colorTotalLeader" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                            </linearGradient>
-                            <linearGradient id="colorCelula" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2} />
-                              <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-                            </linearGradient>
-                            <linearGradient id="colorCulto" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
+                            <linearGradient id="colorPresente" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
                               <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="colorAusente" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2} />
+                              <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                             </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
@@ -1503,9 +1506,8 @@ function ChurchMembershipSystem() {
                               ))}
                             </div>
                           )} />
-                          <Area name="Célula" type="linear" dataKey="celula" stroke="#f59e0b" strokeWidth={2} fill="url(#colorCelula)" fillOpacity={0.1} dot={{ r: 3, fill: '#f59e0b' }} />
-                          <Area name="Culto" type="linear" dataKey="culto" stroke="#10b981" strokeWidth={2} fill="url(#colorCulto)" fillOpacity={0.1} dot={{ r: 3, fill: '#10b981' }} />
-                          <Area name="Geral" type="linear" dataKey="total" stroke="#3b82f6" strokeWidth={3} fill="url(#colorTotalLeader)" fillOpacity={0.2} dot={{ r: 4, fill: '#3b82f6' }} />
+                          <Area name="Presentes" type="monotone" dataKey="culto" stroke="#10b981" strokeWidth={3} fill="url(#colorPresente)" fillOpacity={0.2} dot={{ r: 4, fill: '#10b981' }} />
+                          <Area name="Ausentes" type="monotone" dataKey="ausentes" stroke="#ef4444" strokeWidth={2} fill="url(#colorAusente)" fillOpacity={0.1} dot={{ r: 3, fill: '#ef4444' }} />
                         </AreaChart>
                       </ResponsiveContainer>
                     </div>
@@ -1552,7 +1554,7 @@ function ChurchMembershipSystem() {
                 {isLeaderMode && <button onClick={() => setShowMemberForm(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVO MEMBRO</button>}
               </header>
 
-              {isLeaderMode && activeCell && (
+              {isLeaderMode && activeCell && activeTab === 'leader-dashboard' && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                   <div className={`${t.card} p-6 border rounded-3xl flex flex-col items-center`}>
                     <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest self-start flex items-center gap-2"><PieIcon size={12} /> Engajamento (Célula vs Culto)</h3>
@@ -1624,6 +1626,77 @@ function ChurchMembershipSystem() {
                           <p className="text-[9px] font-black italic ml-2" style={{ color: s.color }}>{s.value}</p>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'leader-attendance' && isLeaderMode && activeCell && (
+                <div className="space-y-8 animate-in fade-in duration-500">
+                  <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <h2 className="text-3xl font-black italic uppercase tracking-tighter">Histórico de Frequência</h2>
+                      <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-1">Visão 360º de presença nas últimas 12 semanas</p>
+                    </div>
+                    <button 
+                      onClick={() => setActiveTab('leader-dashboard')} 
+                      className="bg-blue-600/10 border border-blue-500/20 text-blue-500 px-6 py-3 rounded-2xl font-black text-[10px] uppercase italic tracking-widest hover:bg-blue-600 hover:text-white transition-all flex items-center gap-2"
+                    >
+                      <ArrowLeft size={14} /> VOLTAR AO PAINEL GERAL
+                    </button>
+                  </header>
+
+                  <div className={`${t.card} border rounded-3xl overflow-hidden`}>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead className={`${t.tableHead} border-b ${t.border}`}>
+                          <tr>
+                            <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[150px]">Nome do Membro</th>
+                            <th className="px-4 py-5 text-[10px] font-black uppercase tracking-widest text-center" colSpan={10}>Histórico Célula</th>
+                            <th className="px-4 py-5 text-[10px] font-black uppercase tracking-widest text-center bg-emerald-500/5" colSpan={2}>Cultos</th>
+                          </tr>
+                        </thead>
+                        <tbody className={`divide-y ${t.border}`}>
+                          {members.filter(m => Number(m.cell_id) === Number(activeCell.id)).map(m => {
+                            const cellDates = getMeetingDates(activeCell.day_of_week).slice(-10);
+                            const sundayDates = getMeetingDates('domingo').slice(-2);
+                            
+                            return (
+                              <tr key={m.id} className={t.hover}>
+                                <td className="px-6 py-4 font-black italic uppercase text-xs tracking-tighter">{m.name}</td>
+                                {cellDates.map(d => {
+                                  const att = attendance.find(a => a.member_id === m.id && a.date === d);
+                                  const status = att?.status;
+                                  return (
+                                    <td key={d} className="px-1 py-4 text-center">
+                                      <button 
+                                        onClick={() => toggleAttendance(m.id, activeCell.id, d, 'cell')}
+                                        className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 ${status === 'P' ? 'bg-emerald-600 text-white' : status === 'F' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-600'}`}
+                                      >
+                                        {status || '-'}
+                                      </button>
+                                    </td>
+                                  );
+                                })}
+                                {sundayDates.map(d => {
+                                  const att = attendance.find(a => a.member_id === m.id && a.date === d);
+                                  const status = att?.status;
+                                  return (
+                                    <td key={d} className="px-1 py-4 text-center bg-emerald-500/5">
+                                      <button 
+                                        onClick={() => toggleAttendance(m.id, activeCell.id, d, 'culto')}
+                                        className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 ${status === 'P' ? 'bg-emerald-600 text-white' : status === 'F' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-600'}`}
+                                      >
+                                        {status || '-'}
+                                      </button>
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 </div>
