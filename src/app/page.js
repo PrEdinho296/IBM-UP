@@ -67,13 +67,12 @@ function ChurchMembershipSystem() {
   };
 
   const getMemberEngagement = (m) => {
-    // Pegar todas as presenças deste membro
-    const memberAtt = attendance.filter(a => a.member_id === m.id);
-    // Ordenar por data (mais recente primeiro)
-    const sortedAtt = [...memberAtt].sort((a, b) => b.date.localeCompare(a.date));
-
-    // Consideramos presente na célula se houver registro 'P' na data selecionada ou na mais recente
-    const targetCellDate = selectedMeetingDate || (activeCell ? getMeetingDates(activeCell.day_of_week).pop() : null);
+    const cell = cells.find(c => c.id === m.cell_id);
+    const cellDay = cell?.day_of_week || 'quarta';
+    
+    // Identificar as datas de referência para esta semana
+    // Se houver uma data selecionada globalmente, usamos ela. Caso contrário, a mais recente.
+    const targetCellDate = selectedMeetingDate || getMeetingDates(cellDay).pop();
     const targetSundayDate = selectedSundayDate || getMeetingDates('domingo').pop();
 
     const isPresentCell = attendance.some(a => a.member_id === m.id && a.date === targetCellDate && a.status === 'P');
