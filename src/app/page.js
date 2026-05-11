@@ -2250,20 +2250,6 @@ function ChurchMembershipSystem() {
                   <CourseCheckCompact label="TEM DISCIPULADOR" checked={memberForm.ministerios} onChange={val => setMemberForm({ ...memberForm, ministerios: val })} dark={darkMode} />
                 </div>
                 <div className="space-y-6">
-                  {/* Frequência Rápida */}
-                  <div className="bg-blue-600/5 p-4 rounded-xl border border-blue-500/10 space-y-3">
-                    <p className="text-[8px] font-black text-blue-500 uppercase tracking-widest">Frequência desta Semana</p>
-                    <div className="grid grid-cols-2 gap-4">
-                      <label className="flex items-center gap-3 p-3 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition-all">
-                        <input type="checkbox" checked={memberForm.attended_cell} onChange={e => setMemberForm({ ...memberForm, attended_cell: e.target.checked })} className="w-5 h-5 rounded border-white/10 bg-slate-800 text-blue-500" />
-                        <span className="text-[10px] font-black uppercase italic">Célula</span>
-                      </label>
-                      <label className="flex items-center gap-3 p-3 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition-all">
-                        <input type="checkbox" checked={memberForm.attended_cult} onChange={e => setMemberForm({ ...memberForm, attended_cult: e.target.checked })} className="w-5 h-5 rounded border-white/10 bg-slate-800 text-red-500" />
-                        <span className="text-[10px] font-black uppercase italic text-red-500">Faltou no Culto</span>
-                      </label>
-                    </div>
-                  </div>
 
                   {!isLeaderMode && (<div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}><p className="text-[8px] font-black text-slate-500 uppercase mb-2">CÉLULA</p><select value={memberForm.cell_id} onChange={e => setMemberForm({ ...memberForm, cell_id: e.target.value })} className="w-full bg-transparent font-black text-sm outline-none"><option value="">Selecionar...</option>{cells.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>)}
                   <div className="space-y-2">
@@ -2871,61 +2857,69 @@ function PastoralReport({ members, cells, sectors, attendance, getMemberEngageme
         <StatCard label="Engajamento 100%" value={`${Math.round((stats.both / stats.total) * 100 || 0)}%`} icon={<Activity size={16}/>} color="blue" dark={darkMode} />
       </div>
 
-      <div className={`${t.card} border rounded-3xl overflow-hidden`}>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className={`${t.tableHead} border-b ${t.border}`}>
-              <tr>
-                <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest">Membro</th>
-                <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest">Célula / Setor</th>
-                <th className="px-6 py-4 text-center text-[9px] font-black uppercase tracking-widest">Célula</th>
-                <th className="px-6 py-4 text-center text-[9px] font-black uppercase tracking-widest">Culto</th>
-                <th className="px-6 py-4 text-right text-[9px] font-black uppercase tracking-widest">Status</th>
-              </tr>
-            </thead>
-            <tbody className={`divide-y ${t.border}`}>
-              {filteredMembers.sort((a, b) => a.name.localeCompare(b.name)).map(m => {
-                const { isPresentCell, isPresentCult } = getMemberEngagement(m);
-                const cell = cells.find(c => c.id === m.cell_id);
-                const sector = sectors.find(s => s.id === Number(cell?.sector_id));
-                
-                return (
-                  <tr key={m.id} className={t.hover}>
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-black italic uppercase tracking-tighter">{m.name}</p>
-                      <p className="text-[9px] text-slate-500 font-bold">{m.phone || 'Sem Telefone'}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-[10px] font-black uppercase italic">{cell?.name || '---'}</p>
-                      <p className="text-[8px] font-black text-blue-500 uppercase">{sector?.name || 'Sem Setor'}</p>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className={`inline-flex p-1 rounded-lg ${isPresentCell ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
-                        {isPresentCell ? <Check size={14} /> : <X size={14} />}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className={`inline-flex p-1 rounded-lg ${isPresentCult ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
-                        {isPresentCult ? <Check size={14} /> : <X size={14} />}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className={`text-[8px] font-black uppercase px-2 py-1 rounded-full ${isPresentCell && isPresentCult ? 'bg-emerald-500/20 text-emerald-500' : (isPresentCell || isPresentCult ? 'bg-blue-500/20 text-blue-500' : 'bg-red-500/20 text-red-500')}`}>
-                        {isPresentCell && isPresentCult ? 'ENGAJADO' : (isPresentCell || isPresentCult ? 'PARCIAL' : 'AUSENTE')}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-              {filteredMembers.length === 0 && (
+      {/* Resumo por Célula */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-black italic uppercase tracking-tight text-blue-500">Resumo por Célula</h3>
+        <div className={`${t.card} border rounded-3xl overflow-hidden`}>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className={`${t.tableHead} border-b ${t.border}`}>
                 <tr>
-                  <td colSpan="5" className="px-6 py-12 text-center text-slate-500 font-black italic uppercase text-xs">Nenhum membro encontrado nos setores selecionados</td>
+                  <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest">Célula / Líder</th>
+                  <th className="px-6 py-4 text-center text-[9px] font-black uppercase tracking-widest">Total</th>
+                  <th className="px-6 py-4 text-center text-[9px] font-black uppercase tracking-widest">Célula</th>
+                  <th className="px-6 py-4 text-center text-[9px] font-black uppercase tracking-widest">Culto</th>
+                  <th className="px-6 py-4 text-right text-[9px] font-black uppercase tracking-widest">Engajamento %</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className={`divide-y ${t.border}`}>
+                {filteredCells.sort((a, b) => a.name.localeCompare(b.name)).map(cell => {
+                  const cellMembers = members.filter(m => Number(m.cell_id) === cell.id);
+                  const cellStats = cellMembers.reduce((acc, m) => {
+                    const { isPresentCell, isPresentCult } = getMemberEngagement(m);
+                    acc.total++;
+                    if (isPresentCell) acc.cellPresent++;
+                    if (isPresentCult) acc.cultPresent++;
+                    if (isPresentCell && isPresentCult) acc.both++;
+                    return acc;
+                  }, { total: 0, cellPresent: 0, cultPresent: 0, both: 0 });
+
+                  const engagementRate = Math.round((cellStats.both / cellStats.total) * 100 || 0);
+
+                  return (
+                    <tr key={cell.id} className={t.hover}>
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-black italic uppercase tracking-tighter">{cell.name}</p>
+                        <p className="text-[9px] text-slate-500 font-bold">Líder: {cell.leader}</p>
+                      </td>
+                      <td className="px-6 py-4 text-center font-black text-xs">{cellStats.total}</td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-xs font-black text-emerald-500">{cellStats.cellPresent}</span>
+                        <span className="text-[9px] text-slate-500 ml-1">({Math.round((cellStats.cellPresent / cellStats.total) * 100 || 0)}%)</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-xs font-black text-blue-500">{cellStats.cultPresent}</span>
+                        <span className="text-[9px] text-slate-500 ml-1">({Math.round((cellStats.cultPresent / cellStats.total) * 100 || 0)}%)</span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex flex-col items-end">
+                          <span className={`text-xs font-black ${engagementRate > 70 ? 'text-emerald-500' : engagementRate > 40 ? 'text-yellow-500' : 'text-red-500'}`}>
+                            {engagementRate}%
+                          </span>
+                          <div className="w-16 h-1 bg-slate-800 rounded-full mt-1 overflow-hidden">
+                            <div className={`h-full ${engagementRate > 70 ? 'bg-emerald-500' : engagementRate > 40 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${engagementRate}%` }} />
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
+
     </div>
   );
 }
