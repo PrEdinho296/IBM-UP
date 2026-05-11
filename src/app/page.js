@@ -28,7 +28,17 @@ function ChurchMembershipSystem() {
     setCellIdParam(searchParams.get('cellId'));
   }, [searchParams]);
 
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ibm_up_dark_mode');
+      return saved === null ? true : saved === 'true';
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('ibm_up_dark_mode', darkMode);
+  }, [darkMode]);
   const [members, setMembers] = useState([]);
   const [cells, setCells] = useState([]);
   const [sectors, setSectors] = useState([]);
@@ -1387,8 +1397,16 @@ function ChurchMembershipSystem() {
           )}
         </nav>
         <div className={`p-4 border-t ${t.border} space-y-2`}>
+           <button 
+             onClick={() => setDarkMode(!darkMode)} 
+             className={`w-full flex items-center gap-3 p-3 text-[10px] ${darkMode ? 'text-amber-400 hover:bg-amber-400/10' : 'text-slate-500 hover:bg-slate-500/10'} rounded-xl transition-all font-black uppercase tracking-widest mb-1`}
+           >
+             {darkMode ? <Sun size={16}/> : <Moon size={16}/>}
+             {sidebarOpen && (darkMode ? 'Modo Claro' : 'Modo Escuro')}
+           </button>
+
            {isLeaderMode && (
-             <button onClick={() => window.location.href = '/'} className="w-full flex items-center gap-3 p-3 text-[10px] text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest mb-2"><LayoutDashboard size={16}/> {sidebarOpen && 'Painel Geral'}</button>
+             <button onClick={() => window.location.href = '/'} className="w-full flex items-center gap-3 p-3 text-[10px] text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest mb-1"><LayoutDashboard size={16}/> {sidebarOpen && 'Painel Geral'}</button>
            )}
 
            <button onClick={handleLogout} className="w-full flex items-center gap-3 p-3 text-[10px] text-red-500/70 hover:text-red-500 hover:bg-red-400/5 rounded-xl transition-all font-black uppercase tracking-widest"><Power size={16}/> {sidebarOpen && 'Encerrar Sessão'}</button>
@@ -1425,7 +1443,10 @@ function ChurchMembershipSystem() {
               <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
               <span className="text-[8px] font-black uppercase text-emerald-500 tracking-widest">Cloud Sync</span>
             </div>
-            <button onClick={() => setIsChangingPassword(true)} className="p-2 text-slate-500 hover:text-blue-500 transition-all rounded-lg ml-2" title="Mudar Senha">
+            <button onClick={() => setDarkMode(!darkMode)} className={`p-2 ${darkMode ? 'text-amber-400' : 'text-slate-500'} hover:scale-110 transition-all rounded-lg ml-2`} title={darkMode ? "Ativar Modo Claro" : "Ativar Modo Escuro"}>
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+            <button onClick={() => setIsChangingPassword(true)} className={`p-2 ${darkMode ? 'text-slate-500 hover:text-blue-500' : 'text-slate-400 hover:text-blue-600'} transition-all rounded-lg ml-2`} title="Mudar Senha">
               <ShieldCheck size={18} />
             </button>
           </div>
