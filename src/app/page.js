@@ -1476,9 +1476,13 @@ function ChurchMembershipSystem() {
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={leaderChartData}>
                           <defs>
-                            <linearGradient id="colorCelula" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
+                            <linearGradient id="colorTotalLeader" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
                               <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="colorCelula" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2} />
+                              <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
                             </linearGradient>
                             <linearGradient id="colorCulto" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
@@ -1499,8 +1503,9 @@ function ChurchMembershipSystem() {
                               ))}
                             </div>
                           )} />
-                          <Area name="Célula" type="linear" dataKey="celula" stroke="#3b82f6" strokeWidth={2} fill="url(#colorCelula)" fillOpacity={0.1} dot={{ r: 3, fill: '#3b82f6' }} />
+                          <Area name="Célula" type="linear" dataKey="celula" stroke="#f59e0b" strokeWidth={2} fill="url(#colorCelula)" fillOpacity={0.1} dot={{ r: 3, fill: '#f59e0b' }} />
                           <Area name="Culto" type="linear" dataKey="culto" stroke="#10b981" strokeWidth={2} fill="url(#colorCulto)" fillOpacity={0.1} dot={{ r: 3, fill: '#10b981' }} />
+                          <Area name="Geral" type="linear" dataKey="total" stroke="#3b82f6" strokeWidth={3} fill="url(#colorTotalLeader)" fillOpacity={0.2} dot={{ r: 4, fill: '#3b82f6' }} />
                         </AreaChart>
                       </ResponsiveContainer>
                     </div>
