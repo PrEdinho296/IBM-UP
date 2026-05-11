@@ -135,6 +135,11 @@ function ChurchMembershipSystem() {
   const [timeFilter, setTimeFilter] = useState('Tudo');
   const [selectedSectors, setSelectedSectors] = useState([]);
 
+  const getLocalDate = () => {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  };
+
   const [showMemberForm, setShowMemberForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showCellForm, setShowCellForm] = useState(false);
@@ -142,7 +147,7 @@ function ChurchMembershipSystem() {
   const [showSectorForm, setShowSectorForm] = useState(false);
   const [showQuickEntry, setShowQuickEntry] = useState(false);
   const [quickEntryForm, setQuickEntryForm] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalDate(),
     type: 'manha',
     total: '',
     visitors: '0',
@@ -379,7 +384,7 @@ function ChurchMembershipSystem() {
   };
   const [sectorForm, setSectorForm] = useState({ name: '' });
   const [reportForm, setReportForm] = useState({ 
-    date: new Date().toISOString().split('T')[0], 
+    date: getLocalDate(), 
     morning_people: 0, morning_visitors: 0, morning_kids: 0,
     night_people: 0, night_visitors: 0, night_kids: 0,
     notes: '' 
@@ -773,7 +778,7 @@ function ChurchMembershipSystem() {
     }
 
     setReportForm({ 
-      date: new Date().toISOString().split('T')[0], 
+      date: getLocalDate(), 
       morning_people: 0, morning_visitors: 0, morning_kids: 0,
       night_people: 0, night_visitors: 0, night_kids: 0,
       notes: '' 
