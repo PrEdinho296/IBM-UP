@@ -1542,27 +1542,21 @@ function ChurchMembershipSystem() {
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2 bg-blue-600/10 border border-blue-500/20 px-3 py-1.5 rounded-xl">
                         <span className="text-[7px] font-black uppercase text-blue-500/50">Célula</span>
-                        <select 
+                        <input 
+                          type="date"
                           value={selectedMeetingDate || ''} 
                           onChange={(e) => setSelectedMeetingDate(e.target.value)}
                           className="bg-transparent text-[10px] font-black uppercase italic text-blue-500 outline-none cursor-pointer"
-                        >
-                          {getMeetingDates(activeCell.day_of_week).map(d => (
-                            <option key={d} value={d} className="bg-slate-900">{formatDate(d)}</option>
-                          ))}
-                        </select>
+                        />
                       </div>
                       <div className="flex items-center gap-2 bg-emerald-600/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl">
                         <span className="text-[7px] font-black uppercase text-emerald-500/50">Culto</span>
-                        <select 
+                        <input 
+                          type="date"
                           value={selectedSundayDate || ''} 
                           onChange={(e) => setSelectedSundayDate(e.target.value)}
                           className="bg-transparent text-[10px] font-black uppercase italic text-emerald-500 outline-none cursor-pointer"
-                        >
-                          {getMeetingDates('domingo').map(d => (
-                            <option key={d} value={d} className="bg-slate-900">{formatDate(d)}</option>
-                          ))}
-                        </select>
+                        />
                       </div>
                     </div>
                   )}
@@ -1673,57 +1667,93 @@ function ChurchMembershipSystem() {
                     </button>
                   </header>
 
-                  <div className={`${t.card} border rounded-3xl overflow-hidden`}>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead className={`${t.tableHead} border-b ${t.border}`}>
-                          <tr>
-                            <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[150px]">Nome do Membro</th>
-                            <th className="px-4 py-5 text-[10px] font-black uppercase tracking-widest text-center" colSpan={10}>Histórico Célula</th>
-                            <th className="px-4 py-5 text-[10px] font-black uppercase tracking-widest text-center bg-emerald-500/5" colSpan={5}>Cultos</th>
-                          </tr>
-                        </thead>
-                        <tbody className={`divide-y ${t.border}`}>
-                          {members.filter(m => Number(m.cell_id) === Number(activeCell.id)).map(m => {
-                            const cellDates = getMeetingDates(activeCell.day_of_week, historyRefDate).slice(-10);
-                            const sundayDates = getMeetingDates('domingo', historyRefDate).slice(-5);
-                            
-                            return (
-                              <tr key={m.id} className={t.hover}>
-                                <td className="px-6 py-4 font-black italic uppercase text-xs tracking-tighter">{m.name}</td>
-                                {cellDates.map(d => {
-                                  const att = attendance.find(a => a.member_id === m.id && a.date === d);
-                                  const status = att?.status;
-                                  return (
-                                    <td key={d} className="px-1 py-4 text-center">
-                                      <button 
-                                        onClick={() => toggleAttendance(m.id, activeCell.id, d, 'cell')}
-                                        className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 ${status === 'P' ? 'bg-emerald-600 text-white' : status === 'F' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-600'}`}
-                                      >
-                                        {status || '-'}
-                                      </button>
-                                    </td>
-                                  );
-                                })}
-                                {sundayDates.map(d => {
-                                  const att = attendance.find(a => a.member_id === m.id && a.date === d);
-                                  const status = att?.status;
-                                  return (
-                                    <td key={d} className="px-1 py-4 text-center bg-emerald-500/5">
-                                      <button 
-                                        onClick={() => toggleAttendance(m.id, activeCell.id, d, 'culto')}
-                                        className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 ${status === 'P' ? 'bg-emerald-600 text-white' : status === 'F' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-600'}`}
-                                      >
-                                        {status || '-'}
-                                      </button>
-                                    </td>
-                                  );
-                                })}
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                  <div className="space-y-6">
+                    <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center gap-2"><Home size={12} /> Histórico de Reuniões de Célula</h3>
+                    <div className={`${t.card} border rounded-3xl overflow-hidden`}>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead className={`${t.tableHead} border-b ${t.border}`}>
+                            <tr>
+                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[150px]">Nome do Membro</th>
+                              {getMeetingDates(activeCell.day_of_week, historyRefDate).slice(-15).map(d => (
+                                <th key={d} className="px-1 py-5 text-center text-[8px] font-black uppercase text-slate-500 italic border-x border-white/5">
+                                  <div className="text-blue-500 mb-1">{new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
+                                  {new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className={`divide-y ${t.border}`}>
+                            {members.filter(m => Number(m.cell_id) === Number(activeCell.id)).map(m => {
+                              const cellDates = getMeetingDates(activeCell.day_of_week, historyRefDate).slice(-15);
+                              return (
+                                <tr key={m.id} className={t.hover}>
+                                  <td className="px-6 py-4 font-black italic uppercase text-xs tracking-tighter">{m.name}</td>
+                                  {cellDates.map(d => {
+                                    const att = attendance.find(a => a.member_id === m.id && a.date === d);
+                                    const status = att?.status;
+                                    return (
+                                      <td key={d} className="px-1 py-4 text-center border-x border-white/5">
+                                        <button 
+                                          onClick={() => toggleAttendance(m.id, activeCell.id, d, 'cell')}
+                                          className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 ${status === 'P' ? 'bg-emerald-600 text-white shadow-lg' : status === 'F' ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
+                                        >
+                                          {status || '-'}
+                                        </button>
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6 mt-10">
+                    <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center gap-2"><Sun size={12} /> Histórico de Presença nos Cultos</h3>
+                    <div className={`${t.card} border rounded-3xl overflow-hidden`}>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead className={`${t.tableHead} border-b ${t.border}`}>
+                            <tr>
+                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[150px]">Nome do Membro</th>
+                              {getMeetingDates('domingo', historyRefDate).slice(-15).map(d => (
+                                <th key={d} className="px-1 py-5 text-center text-[8px] font-black uppercase text-slate-500 italic border-x border-white/5">
+                                  <div className="text-emerald-500 mb-1">{new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
+                                  Dom
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className={`divide-y ${t.border}`}>
+                            {members.filter(m => Number(m.cell_id) === Number(activeCell.id)).map(m => {
+                              const sundayDates = getMeetingDates('domingo', historyRefDate).slice(-15);
+                              return (
+                                <tr key={m.id} className={t.hover}>
+                                  <td className="px-6 py-4 font-black italic uppercase text-xs tracking-tighter">{m.name}</td>
+                                  {sundayDates.map(d => {
+                                    const att = attendance.find(a => a.member_id === m.id && a.date === d);
+                                    const status = att?.status;
+                                    return (
+                                      <td key={d} className="px-1 py-4 text-center border-x border-white/5">
+                                        <button 
+                                          onClick={() => toggleAttendance(m.id, activeCell.id, d, 'culto')}
+                                          className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 ${status === 'P' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : status === 'F' ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
+                                        >
+                                          {status || '-'}
+                                        </button>
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
                 </div>
