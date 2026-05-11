@@ -1844,14 +1844,24 @@ function ChurchMembershipSystem() {
                     </div>
                     <div className="flex items-center gap-3">
                       {pendingAttendance.length > 0 && (
-                        <button 
-                          onClick={saveHistoryAttendance} 
-                          disabled={isSavingAttendance}
-                          className="bg-emerald-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase italic tracking-widest shadow-xl shadow-emerald-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 border border-emerald-500/50"
-                        >
-                          {isSavingAttendance ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                          SALVAR ALTERAÇÕES ({pendingAttendance.length})
-                        </button>
+                        <div className="flex items-center gap-3 animate-in fade-in zoom-in duration-300">
+                          <button 
+                            onClick={saveHistoryAttendance} 
+                            disabled={isSavingAttendance}
+                            className="bg-emerald-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase italic tracking-widest shadow-xl shadow-emerald-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 border border-emerald-500/50 relative overflow-hidden group"
+                          >
+                            <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                            {isSavingAttendance ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                            <span className="relative z-10">GRAVAR {pendingAttendance.length} ALTERAÇÕES</span>
+                          </button>
+                          <button 
+                            onClick={() => { if(confirm('Descartar alterações não salvas?')) setPendingAttendance([]); }}
+                            className="p-3 rounded-xl border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                            title="Descartar"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
                       )}
                       <button 
                         onClick={() => setActiveTab('leader-dashboard')} 
@@ -2459,6 +2469,25 @@ function ChurchMembershipSystem() {
             />
           )}
         </div>
+
+        {/* Botão Flutuante de Salvar Frequência */}
+        {isLeaderMode && pendingAttendance.length > 0 && (
+          <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end gap-3 animate-in slide-in-from-right-10 duration-500">
+            <div className="bg-emerald-600 text-white p-4 rounded-2xl shadow-2xl shadow-emerald-900/40 border border-emerald-400/30 flex items-center gap-4 group hover:scale-105 transition-all cursor-pointer" onClick={saveHistoryAttendance}>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-widest opacity-70">Pendentes</span>
+                <span className="text-xl font-black italic">{pendingAttendance.length} Registros</span>
+              </div>
+              <button 
+                disabled={isSavingAttendance}
+                className="w-12 h-12 bg-white text-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-all"
+              >
+                {isSavingAttendance ? <Loader2 size={24} className="animate-spin" /> : <Check size={24} />}
+              </button>
+            </div>
+            <p className="bg-slate-900/80 backdrop-blur-md text-[8px] font-black uppercase text-emerald-500 px-3 py-1 rounded-full border border-emerald-500/20">Clique para salvar as alterações agora</p>
+          </div>
+        )}
       </main>
       {showMemberForm && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-2 sm:p-4 overflow-hidden">
