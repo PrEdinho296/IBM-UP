@@ -901,11 +901,10 @@ function ChurchMembershipSystem() {
       
       processedData[a.date].total++;
       
-      // Calcular ausentes (membros daquela célula que não apareceram?)
-      // Na verdade, para o Pastor ver ausência global é difícil se não soubermos quantos membros eram esperados.
-      // Vamos estimar com base no total de membros ativos naquele momento.
       const expected = members.filter(m => !m.outros).length;
       processedData[a.date].ausentes = Math.max(0, expected - (isSunday ? processedData[a.date].culto : processedData[a.date].celula));
+      // Linha azul: soma de presentes + ausentes
+      processedData[a.date].total_members = (isSunday ? processedData[a.date].culto : processedData[a.date].celula) + processedData[a.date].ausentes;
     });
 
     const sorted = Object.values(processedData).sort((a, b) => a.date.localeCompare(b.date));
@@ -1470,7 +1469,10 @@ function ChurchMembershipSystem() {
                         <XAxis dataKey="displayDate" stroke="#475569" fontSize={9} axisLine={false} tickLine={false} dy={10} interval={Math.ceil(chartData.length / 12)} />
                         <YAxis stroke="#475569" fontSize={9} axisLine={false} tickLine={false} width={30} domain={[0, 'auto']} />
                         <Tooltip content={<CustomTooltip dark={darkMode} />} />
-                        <Area name="Geral" type="linear" dataKey="geral" stroke="#3b82f6" strokeWidth={3} fill="url(#colorTotal)" fillOpacity={0.2} dot={{ r: 4, fill: '#3b82f6', stroke: darkMode ? '#0f172a' : '#fff' }} activeDot={{ r: 6 }} />
+                        <Area name="Manhã" type="monotone" dataKey="manha" stroke="#f59e0b" strokeWidth={2} fillOpacity={0} dot={{ r: 3, fill: '#f59e0b' }} />
+                        <Area name="Noite" type="monotone" dataKey="noite" stroke="#a855f7" strokeWidth={2} fillOpacity={0} dot={{ r: 3, fill: '#a855f7' }} />
+                        <Area name="Sábado" type="monotone" dataKey="sabado" stroke="#10b981" strokeWidth={2} fillOpacity={0} dot={{ r: 3, fill: '#10b981' }} />
+                        <Area name="Geral" type="monotone" dataKey="geral" stroke="#3b82f6" strokeWidth={4} fill="url(#colorTotal)" fillOpacity={0.15} dot={{ r: 4, fill: '#3b82f6', stroke: darkMode ? '#0f172a' : '#fff' }} activeDot={{ r: 6 }} />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -1506,8 +1508,9 @@ function ChurchMembershipSystem() {
                               ))}
                             </div>
                           )} />
-                          <Area name="Presentes" type="monotone" dataKey="culto" stroke="#10b981" strokeWidth={3} fill="url(#colorPresente)" fillOpacity={0.2} dot={{ r: 4, fill: '#10b981' }} />
-                          <Area name="Ausentes" type="monotone" dataKey="ausentes" stroke="#ef4444" strokeWidth={2} fill="url(#colorAusente)" fillOpacity={0.1} dot={{ r: 3, fill: '#ef4444' }} />
+                          <Area name="Presentes" type="monotone" dataKey="culto" stroke="#10b981" strokeWidth={2} fillOpacity={0} dot={{ r: 3, fill: '#10b981' }} />
+                          <Area name="Ausentes" type="monotone" dataKey="ausentes" stroke="#ef4444" strokeWidth={2} fillOpacity={0} dot={{ r: 3, fill: '#ef4444' }} />
+                          <Area name="Total" type="monotone" dataKey="total_members" stroke="#3b82f6" strokeWidth={4} fill="url(#colorPresente)" fillOpacity={0.15} dot={{ r: 4, fill: '#3b82f6' }} />
                         </AreaChart>
                       </ResponsiveContainer>
                     </div>
