@@ -34,17 +34,24 @@ function ChurchMembershipSystem() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const getMeetingDates = (dayOfWeek) => {
+  const getMeetingDates = (dayOfWeek, refDate = null) => {
     const daysMap = { 'domingo': 0, 'segunda': 1, 'terça': 2, 'quarta': 3, 'quinta': 4, 'sexta': 5, 'sábado': 6 };
     const targetDay = daysMap[dayOfWeek?.toLowerCase()] ?? 3;
     const datesList = [];
-    const today = new Date();
-    let current = new Date(today);
+    const base = refDate ? new Date(refDate + 'T12:00:00') : new Date();
+    
+    // Se estivermos em um sábado e procurando domingo, ou similar, podemos querer olhar pra frente
+    let current = new Date(base);
+    
+    // Ajustar para o dia da semana alvo mais próximo (pode ser futuro se for amanhã)
+    // Se hoje é Sábado (6) e alvo é Domingo (0), e queremos ver o futuro:
+    if (!refDate && base.getDay() === 6 && targetDay === 0) {
+      current.setDate(base.getDate() + 1);
+    } else {
+      while (current.getDay() !== targetDay) current.setDate(current.getDate() - 1);
+    }
 
-    // Ajustar para o dia da semana alvo mais recente (ou hoje)
-    while (current.getDay() !== targetDay) current.setDate(current.getDate() - 1);
-
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 15; i++) {
       const year = current.getFullYear();
       const month = String(current.getMonth() + 1).padStart(2, '0');
       const day = String(current.getDate()).padStart(2, '0');
@@ -134,6 +141,7 @@ function ChurchMembershipSystem() {
   const [copiedId, setCopiedId] = useState(null);
   const [timeFilter, setTimeFilter] = useState('Tudo');
   const [selectedSectors, setSelectedSectors] = useState([]);
+  const [historyRefDate, setHistoryRefDate] = useState(getLocalDate());
 
   const getLocalDate = () => {
     const d = new Date();
@@ -1642,9 +1650,20 @@ function ChurchMembershipSystem() {
               {activeTab === 'leader-attendance' && isLeaderMode && activeCell && (
                 <div className="space-y-8 animate-in fade-in duration-500">
                   <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                      <h2 className="text-3xl font-black italic uppercase tracking-tighter">Histórico de Frequência</h2>
-                      <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-1">Visão 360º de presença nas últimas 12 semanas</p>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                      <div>
+                        <h2 className="text-3xl font-black italic uppercase tracking-tighter">Histórico de Frequência</h2>
+                        <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-1">Visão 360º de presença nas últimas 15 semanas</p>
+                      </div>
+                      <div className="flex items-center gap-2 bg-blue-600/10 border border-blue-500/20 px-4 py-2 rounded-2xl">
+                        <Calendar size={14} className="text-blue-500" />
+                        <input 
+                          type="date" 
+                          value={historyRefDate} 
+                          onChange={(e) => setHistoryRefDate(e.target.value)}
+                          className="bg-transparent text-[10px] font-black uppercase italic text-blue-400 outline-none cursor-pointer"
+                        />
+                      </div>
                     </div>
                     <button 
                       onClick={() => setActiveTab('leader-dashboard')} 
@@ -1661,13 +1680,13 @@ function ChurchMembershipSystem() {
                           <tr>
                             <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[150px]">Nome do Membro</th>
                             <th className="px-4 py-5 text-[10px] font-black uppercase tracking-widest text-center" colSpan={10}>Histórico Célula</th>
-                            <th className="px-4 py-5 text-[10px] font-black uppercase tracking-widest text-center bg-emerald-500/5" colSpan={2}>Cultos</th>
+                            <th className="px-4 py-5 text-[10px] font-black uppercase tracking-widest text-center bg-emerald-500/5" colSpan={5}>Cultos</th>
                           </tr>
                         </thead>
                         <tbody className={`divide-y ${t.border}`}>
                           {members.filter(m => Number(m.cell_id) === Number(activeCell.id)).map(m => {
-                            const cellDates = getMeetingDates(activeCell.day_of_week).slice(-10);
-                            const sundayDates = getMeetingDates('domingo').slice(-2);
+                            const cellDates = getMeetingDates(activeCell.day_of_week, historyRefDate).slice(-10);
+                            const sundayDates = getMeetingDates('domingo', historyRefDate).slice(-5);
                             
                             return (
                               <tr key={m.id} className={t.hover}>
@@ -1851,8 +1870,21 @@ function ChurchMembershipSystem() {
           {(activeTab === 'culto-geral' || activeTab === 'leader-culto') && (
             <div className="space-y-8">
               <header className="flex flex-col gap-1">
-                <h2 className="text-2xl font-black italic uppercase tracking-tighter">Frequência nos Cultos</h2>
-                <p className="text-blue-500 text-[10px] font-black uppercase tracking-widest">Monitoramento do Domingo</p>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                      <div>
+                        <h2 className="text-2xl font-black italic uppercase tracking-tighter">Frequência nos Cultos</h2>
+                        <p className="text-blue-500 text-[10px] font-black uppercase tracking-widest">Monitoramento do Domingo</p>
+                      </div>
+                      <div className="flex items-center gap-2 bg-blue-600/10 border border-blue-500/20 px-4 py-2 rounded-2xl">
+                        <Calendar size={14} className="text-blue-500" />
+                        <input 
+                          type="date" 
+                          value={historyRefDate} 
+                          onChange={(e) => setHistoryRefDate(e.target.value)}
+                          className="bg-transparent text-[10px] font-black uppercase italic text-blue-400 outline-none cursor-pointer"
+                        />
+                      </div>
+                    </div>
               </header>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1910,7 +1942,7 @@ function ChurchMembershipSystem() {
                     <thead className="bg-slate-900/50 sticky top-0 z-10 border-b border-white/5">
                       <tr>
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[200px]">Membro</th>
-                        {getMeetingDates('domingo').slice(-10).map(d => (
+                        {getMeetingDates('domingo', historyRefDate).slice(-10).map(d => (
                           <th key={d} className="px-1 py-5 text-center text-[8px] font-black uppercase text-slate-500 italic">
                             <div className="text-blue-500 mb-1">{new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
                             Dom
@@ -1923,7 +1955,7 @@ function ChurchMembershipSystem() {
                         .filter(m => isLeaderMode ? m.cell_id === activeCell.id : true)
                         .sort((a, b) => a.name.localeCompare(b.name))
                         .map(m => {
-                          const sundayDates = getMeetingDates('domingo').slice(-10);
+                          const sundayDates = getMeetingDates('domingo', historyRefDate).slice(-10);
                           return (
                             <tr key={m.id} className="hover:bg-white/5 transition-all">
                               <td className="px-6 py-4">
