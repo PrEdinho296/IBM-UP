@@ -76,14 +76,14 @@ function ChurchMembershipSystem() {
     return datesList;
   };
 
-  const getMemberEngagement = (m) => {
+  const getMemberEngagement = (m, forceLatest = false) => {
     const cell = cells.find(c => c.id === m.cell_id);
     const cellDay = cell?.day_of_week || 'quarta';
     
-    // Identificar as datas de referência para esta semana
-    // Se houver uma data selecionada globalmente, usamos ela. Caso contrário, a mais recente.
-    const targetCellDate = selectedMeetingDate || getMeetingDates(cellDay).pop();
-    const targetSundayDate = selectedSundayDate || getMeetingDates('domingo').pop();
+    // Se estivermos no modo global (dashboard), ignoramos a data selecionada individualmente
+    // e buscamos a data mais recente daquela célula específica.
+    const targetCellDate = (selectedMeetingDate && !forceLatest) ? selectedMeetingDate : getMeetingDates(cellDay).pop();
+    const targetSundayDate = (selectedSundayDate && !forceLatest) ? selectedSundayDate : getMeetingDates('domingo').pop();
 
     const isPresentCell = attendance.some(a => a.member_id === m.id && a.date === targetCellDate && a.status === 'P');
     const isPresentCult = attendance.some(a => a.member_id === m.id && a.date === targetSundayDate && a.status === 'P');
@@ -887,7 +887,7 @@ function ChurchMembershipSystem() {
   const stats = React.useMemo(() => {
     return members.reduce((acc, m) => {
       if (isLeaderMode && activeCell && m.cell_id !== activeCell.id) return acc;
-      const { isPresentCell, isPresentCult } = getMemberEngagement(m);
+      const { isPresentCell, isPresentCult } = getMemberEngagement(m, !isLeaderMode);
       acc.total++;
       if (m.outros) acc.visitors++;
       if (isPresentCell && isPresentCult) acc.both++;
