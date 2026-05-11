@@ -898,7 +898,14 @@ function ChurchMembershipSystem() {
     if (!attendance || attendance.length === 0) return [];
     
     const processedData = {};
-    attendance.forEach(a => {
+    const filteredAttendance = isLeaderMode && activeCell 
+      ? attendance.filter(a => {
+          const m = members.find(mem => mem.id === a.member_id);
+          return m && Number(m.cell_id) === Number(activeCell.id);
+        })
+      : attendance;
+
+    filteredAttendance.forEach(a => {
       if (a.status !== 'P') return;
       
       const d = new Date(a.date + 'T12:00:00');
@@ -913,7 +920,11 @@ function ChurchMembershipSystem() {
       
       processedData[a.date].total++;
       
-      const expected = members.filter(m => !m.outros).length;
+      const relevantMembers = isLeaderMode && activeCell 
+        ? members.filter(m => Number(m.cell_id) === Number(activeCell.id) && !m.outros)
+        : members.filter(m => !m.outros);
+
+      const expected = relevantMembers.length;
       processedData[a.date].ausentes = Math.max(0, expected - (isSunday ? processedData[a.date].culto : processedData[a.date].celula));
       // Linha azul: soma de presentes + ausentes
       processedData[a.date].total_members = (isSunday ? processedData[a.date].culto : processedData[a.date].celula) + processedData[a.date].ausentes;
@@ -1351,21 +1362,27 @@ function ChurchMembershipSystem() {
             <div className="space-y-8">
               <header className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-3xl font-black italic uppercase tracking-tighter">Gestão de Cultos</h2>
-                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-1">Lançamento Rápido e Análise de Frequência</p>
+                  <h2 className="text-3xl font-black italic uppercase tracking-tighter">{isLeaderMode ? 'Frequência da Célula no Culto' : 'Gestão de Cultos'}</h2>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-1">
+                    {isLeaderMode ? `Análise de presença dos membros da célula ${activeCell?.name}` : 'Lançamento Rápido e Análise de Frequência'}
+                  </p>
                 </div>
-                <button 
-                  onClick={() => setShowQuickEntry(true)} 
-                  className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase italic tracking-widest shadow-xl shadow-blue-600/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-3"
-                >
-                  <Activity size={18} /> LANÇAMENTO RÁPIDO
-                </button>
+                {!isLeaderMode && (
+                  <button 
+                    onClick={() => setShowQuickEntry(true)} 
+                    className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase italic tracking-widest shadow-xl shadow-blue-600/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-3"
+                  >
+                    <Activity size={18} /> LANÇAMENTO RÁPIDO
+                  </button>
+                )}
               </header>
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <div className={`${t.card} lg:col-span-12 border rounded-3xl p-8`}>
                   <div className="flex justify-between items-center mb-10">
-                    <h3 className="text-[12px] font-black uppercase tracking-widest flex items-center gap-2 text-slate-500"><LineIcon size={16} /> Evolução Detalhada por Culto</h3>
+                    <h3 className="text-[12px] font-black uppercase tracking-widest flex items-center gap-2 text-slate-500">
+                      <LineIcon size={16} /> {isLeaderMode ? 'Evolução de Presença (Membros)' : 'Evolução Detalhada por Culto'}
+                    </h3>
                     <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/5">
                       {['Este Mês', '12m', '24m', 'Tudo'].map(f => (
                         <button key={f} onClick={() => setTimeFilter(f)} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${timeFilter === f ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>{f}</button>
@@ -1375,44 +1392,76 @@ function ChurchMembershipSystem() {
                   
                   <div className="h-[400px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={chartData}>
-                        <defs>
-                          <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                          </linearGradient>
-                          <linearGradient id="colorManha" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#fbbf24" stopOpacity={0.2} />
-                            <stop offset="95%" stopColor="#fbbf24" stopOpacity={0} />
-                          </linearGradient>
-                          <linearGradient id="colorNoite" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2} />
-                            <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                          </linearGradient>
-                          <linearGradient id="colorSabado" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
-                        <XAxis dataKey="displayDate" stroke="#475569" fontSize={9} axisLine={false} tickLine={false} dy={10} interval={Math.ceil(chartData.length / 15)} />
-                        <YAxis stroke="#475569" fontSize={9} axisLine={false} tickLine={false} width={30} domain={[0, 'auto']} />
-                        <Tooltip content={<CustomTooltip dark={darkMode} />} />
-                        <Legend verticalAlign="top" height={36} content={({ payload }) => (
-                          <div className="flex justify-center gap-6 mb-8">
-                            {payload.map((entry, index) => (
-                              <div key={index} className="flex items-center gap-2">
-                                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{entry.value}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )} />
-                        <Area name="Manhã" type="linear" dataKey="manha" stroke="#fbbf24" strokeWidth={3} fill="url(#colorManha)" fillOpacity={0.1} dot={{ r: 4, fill: '#fbbf24' }} />
-                        <Area name="Noite" type="linear" dataKey="noite" stroke="#8b5cf6" strokeWidth={3} fill="url(#colorNoite)" fillOpacity={0.1} dot={{ r: 4, fill: '#8b5cf6' }} />
-                        <Area name="Sábado" type="linear" dataKey="sabado" stroke="#10b981" strokeWidth={3} fill="url(#colorSabado)" fillOpacity={0.1} dot={{ r: 4, fill: '#10b981' }} />
-                        <Area name="Geral" type="linear" dataKey="geral" stroke="#3b82f6" strokeWidth={4} fill="url(#colorTotal)" fillOpacity={0.2} dot={{ r: 5, fill: '#3b82f6', stroke: darkMode ? '#0f172a' : '#fff' }} activeDot={{ r: 7 }} />
-                      </AreaChart>
+                      {isLeaderMode ? (
+                        <AreaChart data={leaderChartData}>
+                          <defs>
+                            <linearGradient id="colorPresente" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="colorAusente" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2} />
+                              <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+                          <XAxis dataKey="displayDate" stroke="#475569" fontSize={9} axisLine={false} tickLine={false} dy={10} interval={Math.ceil(leaderChartData.length / 15)} />
+                          <YAxis stroke="#475569" fontSize={9} axisLine={false} tickLine={false} width={30} domain={[0, 'auto']} />
+                          <Tooltip content={<CustomTooltip dark={darkMode} />} />
+                          <Legend verticalAlign="top" height={36} content={({ payload }) => (
+                            <div className="flex justify-center gap-6 mb-8">
+                              {payload.map((entry, index) => (
+                                <div key={index} className="flex items-center gap-2">
+                                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{entry.value}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )} />
+                          <Area name="Presentes" type="monotone" dataKey="culto" stroke="#10b981" strokeWidth={3} fill="url(#colorPresente)" fillOpacity={0.1} dot={{ r: 4, fill: '#10b981' }} />
+                          <Area name="Ausentes" type="monotone" dataKey="ausentes" stroke="#ef4444" strokeWidth={3} fill="url(#colorAusente)" fillOpacity={0.1} dot={{ r: 4, fill: '#ef4444' }} />
+                          <Area name="Total de Membros" type="monotone" dataKey="total_members" stroke="#3b82f6" strokeWidth={4} fillOpacity={0} dot={{ r: 5, fill: '#3b82f6' }} />
+                        </AreaChart>
+                      ) : (
+                        <AreaChart data={chartData}>
+                          <defs>
+                            <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="colorManha" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#fbbf24" stopOpacity={0.2} />
+                              <stop offset="95%" stopColor="#fbbf24" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="colorNoite" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2} />
+                              <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="colorSabado" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
+                              <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+                          <XAxis dataKey="displayDate" stroke="#475569" fontSize={9} axisLine={false} tickLine={false} dy={10} interval={Math.ceil(chartData.length / 15)} />
+                          <YAxis stroke="#475569" fontSize={9} axisLine={false} tickLine={false} width={30} domain={[0, 'auto']} />
+                          <Tooltip content={<CustomTooltip dark={darkMode} />} />
+                          <Legend verticalAlign="top" height={36} content={({ payload }) => (
+                            <div className="flex justify-center gap-6 mb-8">
+                              {payload.map((entry, index) => (
+                                <div key={index} className="flex items-center gap-2">
+                                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{entry.value}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )} />
+                          <Area name="Manhã" type="linear" dataKey="manha" stroke="#fbbf24" strokeWidth={3} fill="url(#colorManha)" fillOpacity={0.1} dot={{ r: 4, fill: '#fbbf24' }} />
+                          <Area name="Noite" type="linear" dataKey="noite" stroke="#8b5cf6" strokeWidth={3} fill="url(#colorNoite)" fillOpacity={0.1} dot={{ r: 4, fill: '#8b5cf6' }} />
+                          <Area name="Sábado" type="linear" dataKey="sabado" stroke="#10b981" strokeWidth={3} fill="url(#colorSabado)" fillOpacity={0.1} dot={{ r: 4, fill: '#10b981' }} />
+                          <Area name="Geral" type="linear" dataKey="geral" stroke="#3b82f6" strokeWidth={4} fill="url(#colorTotal)" fillOpacity={0.2} dot={{ r: 5, fill: '#3b82f6', stroke: darkMode ? '#0f172a' : '#fff' }} activeDot={{ r: 7 }} />
+                        </AreaChart>
+                      )}
                     </ResponsiveContainer>
                   </div>
                 </div>
@@ -1532,6 +1581,107 @@ function ChurchMembershipSystem() {
             </div>
           )}
 
+          {activeTab === 'leader-dashboard' && isLeaderMode && activeCell && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <header>
+                <h2 className="text-4xl font-black italic uppercase tracking-tighter">Saúde da Célula</h2>
+                <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-1">Análise estratégica: {activeCell?.name}</p>
+              </header>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <StatCard label="Total Membros" value={stats.total} icon={<Users size={16}/>} color="blue" dark={darkMode} />
+                <StatCard label="100% Engajados" value={stats.both} icon={<ShieldCheck size={16}/>} color="emerald" dark={darkMode} />
+                <StatCard label="Só Célula" value={stats.onlyCell} icon={<Home size={16}/>} color="amber" dark={darkMode} />
+                <StatCard label="Só Culto" value={stats.onlyCulto} icon={<Star size={16}/>} color="purple" dark={darkMode} />
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Gráfico de Saúde (Fidelidade) */}
+                <div className={`${t.card} lg:col-span-4 border rounded-3xl p-6 flex flex-col items-center`}>
+                  <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest self-start flex items-center gap-2"><PieIcon size={12} /> Engajamento Semanal</h3>
+                  <div className="h-[200px] w-full relative mb-6">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Ambos', value: stats.both, color: '#3b82f6' },
+                            { name: 'Só Célula', value: stats.onlyCell, color: '#10b981' },
+                            { name: 'Só Culto', value: stats.onlyCulto, color: '#f59e0b' },
+                            { name: 'Inativos', value: stats.none, color: '#475569' },
+                          ].filter(d => d.value > 0)}
+                          innerRadius={55} outerRadius={75} paddingAngle={5} dataKey="value"
+                        >
+                          <Cell fill="#3b82f6" stroke="none" />
+                          <Cell fill="#10b981" stroke="none" />
+                          <Cell fill="#f59e0b" stroke="none" />
+                          <Cell fill="#475569" stroke="none" />
+                        </Pie>
+                        <Tooltip content={<CustomTooltip dark={darkMode} />} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-2xl font-black italic">{Math.round((stats.both / stats.total) * 100 || 0)}%</div>
+                  </div>
+                  <div className="w-full space-y-2">
+                    {[
+                      { name: 'Engajados', value: stats.both, color: '#3b82f6' },
+                      { name: 'Fiel à Célula', value: stats.onlyCell, color: '#10b981' },
+                      { name: 'Fiel ao Culto', value: stats.onlyCulto, color: '#f59e0b' },
+                      { name: 'Inativos', value: stats.none, color: '#475569' },
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center justify-between p-2 rounded-xl hover:bg-white/5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                          <span className="text-[9px] font-black uppercase text-slate-500">{item.name}</span>
+                        </div>
+                        <span className="text-xs font-black italic">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Gráfico de Cursos */}
+                <div className={`${t.card} lg:col-span-8 border rounded-3xl p-6`}>
+                  <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest flex items-center gap-2"><Activity size={12} /> Progresso em Cursos e Batismo</h3>
+                  <div className="h-[250px] w-full mb-6">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={courseStats} layout="vertical" margin={{ left: 0, right: 30 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+                        <XAxis type="number" hide />
+                        <YAxis dataKey="name" type="category" stroke="#475569" fontSize={8} axisLine={false} tickLine={false} width={100} />
+                        <Tooltip content={<CustomTooltip dark={darkMode} />} />
+                        <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={12}>
+                          {courseStats.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Membros em Alerta */}
+                  <div className="pt-6 border-t border-white/5">
+                    <h4 className="text-[10px] font-black uppercase text-red-500 mb-4 tracking-widest flex items-center gap-2">
+                      <Activity size={14} className="animate-pulse" /> Membros em Alerta (3+ Faltas)
+                    </h4>
+                    <div className="space-y-2">
+                      {filteredMembers.filter(m => hasAbsenceAlert(m)).length > 0 ? (
+                        filteredMembers.filter(m => hasAbsenceAlert(m)).map(m => (
+                          <div key={m.id} className="flex items-center justify-between p-3 bg-red-500/5 border border-red-500/10 rounded-xl">
+                            <div>
+                              <p className="text-xs font-black italic uppercase tracking-tighter">{m.name}</p>
+                              <p className="text-[8px] text-slate-500 font-bold uppercase">{m.phone || 'Sem Telefone'}</p>
+                            </div>
+                            <span className="text-[8px] font-black bg-red-500 text-white px-2 py-1 rounded-full uppercase tracking-tighter">Crítico</span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-[9px] text-slate-500 font-bold uppercase italic">Nenhum membro em situação crítica. Parabéns!</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {(activeTab === 'members' || activeTab === 'leader-members') && (
             <div className="space-y-6">
               <header className="flex justify-between items-center">
@@ -1562,83 +1712,6 @@ function ChurchMembershipSystem() {
                 </div>
                 {isLeaderMode && <button onClick={() => setShowMemberForm(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVO MEMBRO</button>}
               </header>
-
-              {isLeaderMode && activeCell && activeTab === 'leader-dashboard' && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                  <div className={`${t.card} p-6 border rounded-3xl flex flex-col items-center`}>
-                    <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest self-start flex items-center gap-2"><PieIcon size={12} /> Engajamento (Célula vs Culto)</h3>
-                    <div className="w-full h-[200px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={[
-                              { name: 'Ambos', value: stats.both, color: '#3b82f6' },
-                              { name: 'Só Célula', value: stats.onlyCell, color: '#10b981' },
-                              { name: 'Só Culto', value: stats.onlyCulto, color: '#f59e0b' },
-                              { name: 'Nenhum', value: stats.none, color: '#475569' },
-                            ].filter(d => d.value > 0)}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={55}
-                            outerRadius={75}
-                            paddingAngle={5}
-                            dataKey="value"
-                          >
-                            <Cell fill="#3b82f6" stroke="none" />
-                            <Cell fill="#10b981" stroke="none" />
-                            <Cell fill="#f59e0b" stroke="none" />
-                            <Cell fill="#475569" stroke="none" />
-                          </Pie>
-                          <Tooltip content={<CustomTooltip dark={darkMode} />} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className="flex flex-wrap justify-center gap-4 mt-6">
-                      {[
-                        { label: 'Ambos', color: 'bg-blue-500' },
-                        { label: 'Só Célula', color: 'bg-emerald-500' },
-                        { label: 'Só Culto', color: 'bg-amber-500' },
-                        { label: 'Nenhum', color: 'bg-slate-600' }
-                      ].map(item => (
-                        <div key={item.label} className="flex items-center gap-1.5">
-                          <div className={`w-2 h-2 rounded-full ${item.color}`}></div>
-                          <span className="text-[8px] font-black uppercase text-slate-400">{item.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className={`${t.card} p-6 border rounded-3xl flex flex-col`}>
-                    <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest flex items-center gap-2"><Activity size={12} /> Conclusão de Cursos</h3>
-                    <div className="w-full h-[250px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={courseStats} layout="vertical" margin={{ left: 0, right: 20 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" horizontal={true} vertical={false} />
-                          <XAxis type="number" hide />
-                          <YAxis dataKey="name" type="category" stroke="#475569" fontSize={8} axisLine={false} tickLine={false} width={90} />
-                          <Tooltip content={<CustomTooltip dark={darkMode} />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
-                          <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={10}>
-                            {courseStats.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className="mt-auto pt-4 border-t border-white/5 grid grid-cols-2 gap-x-4 gap-y-2">
-                      {courseStats.map((s, i) => (
-                        <div key={i} className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5 overflow-hidden">
-                            <div className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-                            <p className="text-[7px] font-black uppercase text-slate-500 truncate" title={s.name}>{s.name}</p>
-                          </div>
-                          <p className="text-[9px] font-black italic ml-2" style={{ color: s.color }}>{s.value}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {activeTab === 'leader-attendance' && isLeaderMode && activeCell && (
                 <div className="space-y-8 animate-in fade-in duration-500">
