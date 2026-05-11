@@ -1905,39 +1905,47 @@ function ChurchMembershipSystem() {
                     }} className="text-[8px] font-black uppercase bg-red-600/10 text-red-500 px-3 py-1.5 rounded-lg border border-red-500/20">Limpar Tudo</button>
                   </div>
                 </div>
-                <div className="max-h-[500px] overflow-y-auto">
-                  <table className="w-full text-left">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
                     <thead className="bg-slate-900/50 sticky top-0 z-10 border-b border-white/5">
                       <tr>
-                        <th className="px-6 py-4 text-[9px] font-black uppercase">Membro</th>
-                        {!isLeaderMode && <th className="px-6 py-4 text-[9px] font-black uppercase">Célula</th>}
-                        <th className="px-6 py-4 text-center text-[9px] font-black uppercase">Faltou no Culto?</th>
+                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[200px]">Membro</th>
+                        {getMeetingDates('domingo').slice(-10).map(d => (
+                          <th key={d} className="px-1 py-5 text-center text-[8px] font-black uppercase text-slate-500 italic">
+                            <div className="text-blue-500 mb-1">{new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
+                            Dom
+                          </th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
                       {members
                         .filter(m => isLeaderMode ? m.cell_id === activeCell.id : true)
                         .sort((a, b) => a.name.localeCompare(b.name))
-                        .map(m => (
-                          <tr key={m.id} className="hover:bg-white/5 transition-all">
-                            <td className="px-6 py-4">
-                              <p className="text-sm font-black italic uppercase tracking-tighter">{m.name}</p>
-                            </td>
-                            {!isLeaderMode && (
+                        .map(m => {
+                          const sundayDates = getMeetingDates('domingo').slice(-10);
+                          return (
+                            <tr key={m.id} className="hover:bg-white/5 transition-all">
                               <td className="px-6 py-4">
-                                <span className="text-[10px] font-black uppercase text-slate-500 bg-white/5 px-2 py-1 rounded-md">{cells.find(c => c.id === m.cell_id)?.name || 'Sem Célula'}</span>
+                                <p className="text-sm font-black italic uppercase tracking-tighter">{m.name}</p>
                               </td>
-                            )}
-                            <td className="px-4 py-3 text-center">
-                              <button
-                                onClick={() => toggleAttendance(m.id, 'attended_cult')}
-                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${m.attended_cult ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-600'}`}
-                              >
-                                {m.attended_cult ? 'Presente' : 'Faltou'}
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                              {sundayDates.map(d => {
+                                const att = attendance.find(a => a.member_id === m.id && a.date === d);
+                                const status = att?.status;
+                                return (
+                                  <td key={d} className="px-1 py-4 text-center">
+                                    <button 
+                                      onClick={() => toggleAttendance(m.id, activeCell.id, d, 'culto')}
+                                      className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 ${status === 'P' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : status === 'F' ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
+                                    >
+                                      {status || '-'}
+                                    </button>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })}
                     </tbody>
                   </table>
                 </div>
