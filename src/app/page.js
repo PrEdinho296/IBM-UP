@@ -264,7 +264,38 @@ function ChurchMembershipSystem() {
       if (sundayDates.length > 0) setSelectedSundayDate(sundayDates[sundayDates.length - 1]);
     }
 
-    return () => subscription.unsubscribe();
+    // Inscrição em Tempo Real para Atualizações do Pastor
+    const attendanceChannel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'cell_attendance' },
+        (payload) => {
+          console.log('Real-time Attendance:', payload);
+          // Atualizar apenas o item alterado ou recarregar tudo
+          if (payload.eventType === 'INSERT') {
+            setAttendance(prev => [...prev, payload.new]);
+          } else if (payload.eventType === 'UPDATE') {
+            setAttendance(prev => prev.map(a => a.id === payload.new.id ? payload.new : a));
+          } else if (payload.eventType === 'DELETE') {
+            setAttendance(prev => prev.filter(a => a.id !== payload.old.id));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'reports' },
+        (payload) => {
+          console.log('Real-time Reports:', payload);
+          fetchReports(); // Recarrega os relatórios consolidados
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+      supabase.removeChannel(attendanceChannel);
+    };
   }, []);
 
   useEffect(() => {
@@ -511,22 +542,61 @@ function ChurchMembershipSystem() {
     await supabase.from('members').update({ [type]: newValue }).eq('id', memberId);
   };
 
-  const toggleHistoryAttendance = async (memberId, cellId, date) => {
+  const [pendingAttendance, setPendingAttendance] = useState([]);
+  const [isSavingAttendance, setIsSavingAttendance] = useState(false);
+
+  const toggleHistoryAttendance = (memberId, cellId, date) => {
     const existing = attendance.find(a => a.member_id === memberId && a.date === date);
     let nextStatus = 'P';
     if (existing?.status === 'P') nextStatus = 'F';
     else if (existing?.status === 'F') nextStatus = null;
 
+    // Atualiza localmente para feedback imediato
     if (nextStatus) {
       const payload = { member_id: memberId, cell_id: cellId, date, status: nextStatus };
       setAttendance(prev => {
         const other = prev.filter(a => !(a.member_id === memberId && a.date === date));
-        return [...other, { ...payload, id: existing?.id || Date.now() }];
+        return [...other, { ...payload, id: existing?.id || `temp-${Date.now()}` }];
       });
-      await supabase.from('cell_attendance').upsert([payload], { onConflict: 'member_id,date' });
+      // Adiciona aos pendentes
+      setPendingAttendance(prev => {
+        const other = prev.filter(p => !(p.member_id === memberId && p.date === date));
+        return [...other, payload];
+      });
     } else {
       setAttendance(prev => prev.filter(a => !(a.member_id === memberId && a.date === date)));
-      await supabase.from('cell_attendance').delete().match({ member_id: memberId, date });
+      // Adiciona exclusão pendente (status null significa deletar)
+      setPendingAttendance(prev => {
+        const other = prev.filter(p => !(p.member_id === memberId && p.date === date));
+        return [...other, { member_id: memberId, cell_id: cellId, date, status: null }];
+      });
+    }
+  };
+
+  const saveHistoryAttendance = async () => {
+    if (pendingAttendance.length === 0) return;
+    setIsSavingAttendance(true);
+    try {
+      const toUpsert = pendingAttendance.filter(p => p.status !== null);
+      const toDelete = pendingAttendance.filter(p => p.status === null);
+
+      if (toUpsert.length > 0) {
+        const { error } = await supabase.from('cell_attendance').upsert(toUpsert, { onConflict: 'member_id,date' });
+        if (error) throw error;
+      }
+
+      for (const item of toDelete) {
+        const { error } = await supabase.from('cell_attendance').delete().match({ member_id: item.member_id, date: item.date });
+        if (error) throw error;
+      }
+
+      setPendingAttendance([]);
+      alert('Alterações salvas com sucesso e sincronizadas com o Pastor!');
+    } catch (err) {
+      console.error('Erro ao salvar frequência:', err);
+      alert('Erro ao salvar: ' + err.message);
+    } finally {
+      setIsSavingAttendance(false);
     }
   };
 
@@ -1711,12 +1781,24 @@ function ChurchMembershipSystem() {
                         />
                       </div>
                     </div>
-                    <button 
-                      onClick={() => setActiveTab('leader-dashboard')} 
-                      className="bg-blue-600/10 border border-blue-500/20 text-blue-500 px-6 py-3 rounded-2xl font-black text-[10px] uppercase italic tracking-widest hover:bg-blue-600 hover:text-white transition-all flex items-center gap-2"
-                    >
-                      <ArrowLeft size={14} /> VOLTAR AO PAINEL GERAL
-                    </button>
+                    <div className="flex items-center gap-3">
+                      {pendingAttendance.length > 0 && (
+                        <button 
+                          onClick={saveHistoryAttendance} 
+                          disabled={isSavingAttendance}
+                          className="bg-emerald-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase italic tracking-widest shadow-xl shadow-emerald-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 border border-emerald-500/50"
+                        >
+                          {isSavingAttendance ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                          SALVAR ALTERAÇÕES ({pendingAttendance.length})
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => setActiveTab('leader-dashboard')} 
+                        className="bg-slate-800 border border-white/5 text-slate-300 px-6 py-3 rounded-2xl font-black text-[10px] uppercase italic tracking-widest hover:bg-slate-700 transition-all flex items-center gap-2"
+                      >
+                        <ArrowLeft size={14} /> VOLTAR AO PAINEL
+                      </button>
+                    </div>
                   </header>
 
                   <div className="space-y-6">
@@ -1756,10 +1838,13 @@ function ChurchMembershipSystem() {
                                     return (
                                       <td key={d} className="px-1 py-4 text-center border-x border-white/5">
                                         <button 
-                                          onClick={() => toggleAttendance(m.id, activeCell.id, d, 'cell')}
-                                          className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 ${status === 'P' ? 'bg-emerald-600 text-white shadow-lg' : status === 'F' ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
+                                          onClick={() => toggleHistoryAttendance(m.id, activeCell.id, d)}
+                                          className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 relative ${status === 'P' ? 'bg-emerald-600 text-white shadow-lg' : status === 'F' ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
                                         >
                                           {status || '-'}
+                                          {pendingAttendance.some(p => p.member_id === m.id && p.date === d) && (
+                                            <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full border border-white animate-pulse" />
+                                          )}
                                         </button>
                                       </td>
                                     );
@@ -1810,10 +1895,13 @@ function ChurchMembershipSystem() {
                                     return (
                                       <td key={d} className="px-1 py-4 text-center border-x border-white/5">
                                         <button 
-                                          onClick={() => toggleAttendance(m.id, activeCell.id, d, 'culto')}
-                                          className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 ${status === 'P' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : status === 'F' ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
+                                          onClick={() => toggleHistoryAttendance(m.id, activeCell.id, d)}
+                                          className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 relative ${status === 'P' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : status === 'F' ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
                                         >
                                           {status || '-'}
+                                          {pendingAttendance.some(p => p.member_id === m.id && p.date === d) && (
+                                            <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full border border-white animate-pulse" />
+                                          )}
                                         </button>
                                       </td>
                                     );
