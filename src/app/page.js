@@ -892,10 +892,10 @@ function ChurchMembershipSystem() {
       if (m.outros) acc.visitors++;
       if (isPresentCell && isPresentCult) acc.both++;
       else if (isPresentCell && !isPresentCult) acc.onlyCell++;
-      else if (!isPresentCell && isPresentCult) acc.onlyCult++;
+      else if (!isPresentCell && isPresentCult) acc.onlyCulto++;
       else acc.none++;
 
-      if (!isPresentCult) acc.absentCult++;
+      if (!isPresentCult) acc.absentCulto++;
       if (!isPresentCell) acc.absentCell++;
 
       return acc;
