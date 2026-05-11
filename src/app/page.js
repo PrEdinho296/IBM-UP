@@ -1341,8 +1341,19 @@ function ChurchMembershipSystem() {
   );
 
   return (
-    <div className={`flex h-screen ${t.bg} ${t.text} transition-all duration-300 font-sans overflow-hidden`}>
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} ${t.sidebar} border-r ${t.border} transition-all flex flex-col z-50 overflow-hidden`}>
+    <div className={`flex h-screen ${t.bg} ${t.text} transition-all duration-300 font-sans overflow-hidden relative`}>
+      {/* Overlay para mobile quando sidebar aberta */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[45] md:hidden transition-opacity"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      
+      <aside className={`
+        fixed md:relative h-full z-50 transition-all duration-500 ease-in-out border-r ${t.border} ${t.sidebar} flex flex-col overflow-hidden
+        ${sidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full md:w-20 md:translate-x-0'}
+      `}>
         <div className="p-6 flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg shrink-0"><Users size={18} /></div>
           {sidebarOpen && <span className={`font-black text-lg tracking-tighter ${t.text} italic`}>IBM-<span className="text-blue-500 uppercase">UP</span></span>}
@@ -1420,29 +1431,33 @@ function ChurchMembershipSystem() {
 
       <main className="flex-1 overflow-auto flex flex-col relative">
         <header className={`sticky top-0 z-40 ${t.bg}/80 backdrop-blur-md border-b ${t.border} px-6 py-3 flex justify-between items-center shrink-0`}>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className={`p-2 border rounded-lg ${t.subText} hover:text-white transition-all`}><Menu size={18} /></button>
-            <div>
+            <div className="hidden sm:block">
               <h1 className={`text-base font-black ${t.text} italic uppercase tracking-tighter`}>IBM-UP</h1>
               <div className="flex items-center gap-2">
-                <p className={`${t.subText} text-[8px] font-bold uppercase tracking-widest`}>
-                  {isLeaderMode ? (leaderCell?.isTraineeLogin ? `Líder em Treinamento: ${activeCell?.name || ''}` : `Líder: ${activeCell?.name || ''}`) : 'Gestão Estratégica'}
+                <p className={`${t.subText} text-[8px] font-bold uppercase tracking-widest whitespace-nowrap`}>
+                  {isLeaderMode ? (leaderCell?.isTraineeLogin ? `Treinamento: ${activeCell?.name || ''}` : `Líder: ${activeCell?.name || ''}`) : 'Gestão Estratégica'}
                 </p>
                 {isLeaderMode && session && (
                   <button 
                     onClick={() => window.location.href = '/'} 
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-full font-black text-[9px] uppercase italic tracking-tighter transition-all hover:scale-105 active:scale-95 shadow-lg shadow-blue-600/40 animate-in fade-in slide-in-from-right-4 duration-500"
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-full font-black text-[8px] uppercase italic tracking-tighter transition-all shadow-lg shadow-blue-600/40"
                   >
-                    <ArrowLeft size={14} className="animate-pulse" />
-                    VOLTAR AO PAINEL GERAL
+                    <ArrowLeft size={12} />
+                    VOLTAR
                   </button>
                 )}
               </div>
             </div>
+            {/* Título Mobile */}
+            <div className="sm:hidden">
+              <h1 className={`text-sm font-black ${t.text} italic uppercase tracking-tighter`}>IBM-UP</h1>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setShowVisitorModal(true)} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase italic tracking-widest flex items-center gap-2 transition-all shadow-lg shadow-blue-600/20 mr-2">
-              <Users size={14}/> + VISITANTE
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button onClick={() => setShowVisitorModal(true)} className="bg-blue-600 hover:bg-blue-500 text-white p-2 sm:px-4 sm:py-2 rounded-xl font-black text-[10px] uppercase italic tracking-widest flex items-center gap-2 transition-all shadow-lg shadow-blue-600/20">
+              <Users size={14}/> <span className="hidden xs:inline">+ VISITANTE</span>
             </button>
             <div className="flex items-center gap-1.5 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20 mr-2">
               <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
@@ -1892,24 +1907,24 @@ function ChurchMembershipSystem() {
                     <div className={`${t.card} border rounded-3xl overflow-hidden`}>
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
-                          <thead className={`${t.tableHead} border-b ${t.border}`}>
+                          <thead className={`${t.tableHead} border-b ${t.border} sticky top-0 z-20`}>
                             <tr>
-                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[150px]">Nome do Membro</th>
-                              {getMeetingDates(activeCell.day_of_week, historyRefDate).slice(-15).map(d => (
-                                <th key={d} className="px-1 py-5 text-center text-[8px] font-black uppercase text-slate-500 italic border-x border-white/5">
+                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[150px] sticky left-0 z-30 bg-slate-900 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">Nome do Membro</th>
+                              {getMeetingDates(activeCell.day_of_week || 'quarta', historyRefDate).slice(-15).map(d => (
+                                <th key={d} className="px-1 py-5 text-center text-[8px] font-black uppercase text-slate-500 italic border-x border-white/5 min-w-[60px]">
                                   <div className="text-blue-500 mb-1">{new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
-                                  {new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
+                                  {activeCell.day_of_week?.substring(0, 3) || 'Qua'}
                                 </th>
                               ))}
                             </tr>
                           </thead>
                           <tbody className={`divide-y ${t.border}`}>
                             {members.filter(m => Number(m.cell_id) === Number(activeCell.id)).map(m => {
-                              const cellDates = getMeetingDates(activeCell.day_of_week, historyRefDate).slice(-15);
+                              const cellDates = getMeetingDates(activeCell.day_of_week || 'quarta', historyRefDate).slice(-15);
                               return (
                                 <tr key={m.id} className={t.hover}>
-                                  <td className="px-6 py-4">
-                                    <p className="font-black italic uppercase text-xs tracking-tighter">{m.name}</p>
+                                  <td className="px-6 py-4 sticky left-0 z-10 bg-slate-950 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+                                    <p className="font-black italic uppercase text-xs tracking-tighter truncate w-32">{m.name}</p>
                                     <div className="flex flex-wrap gap-1 mt-1">
                                       {m.ecc && <span className="text-[6px] border border-blue-500/30 text-blue-500 px-1 rounded font-black">ECC</span>}
                                       {m.bat && <span className="text-[6px] border border-emerald-500/30 text-emerald-500 px-1 rounded font-black">BAT</span>}
@@ -1949,11 +1964,11 @@ function ChurchMembershipSystem() {
                     <div className={`${t.card} border rounded-3xl overflow-hidden`}>
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
-                          <thead className={`${t.tableHead} border-b ${t.border}`}>
+                          <thead className={`${t.tableHead} border-b ${t.border} sticky top-0 z-20`}>
                             <tr>
-                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[150px]">Nome do Membro</th>
+                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[150px] sticky left-0 z-30 bg-slate-900 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">Nome do Membro</th>
                               {getMeetingDates('domingo', historyRefDate).slice(-15).map(d => (
-                                <th key={d} className="px-1 py-5 text-center text-[8px] font-black uppercase text-slate-500 italic border-x border-white/5">
+                                <th key={d} className="px-1 py-5 text-center text-[8px] font-black uppercase text-slate-500 italic border-x border-white/5 min-w-[60px]">
                                   <div className="text-emerald-500 mb-1">{new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
                                   Dom
                                 </th>
@@ -1965,8 +1980,8 @@ function ChurchMembershipSystem() {
                               const sundayDates = getMeetingDates('domingo', historyRefDate).slice(-15);
                               return (
                                 <tr key={m.id} className={t.hover}>
-                                  <td className="px-6 py-4">
-                                    <p className="font-black italic uppercase text-xs tracking-tighter">{m.name}</p>
+                                  <td className="px-6 py-4 sticky left-0 z-10 bg-slate-950 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+                                    <p className="font-black italic uppercase text-xs tracking-tighter truncate w-32">{m.name}</p>
                                     <div className="flex flex-wrap gap-1 mt-1">
                                       {m.ecc && <span className="text-[6px] border border-blue-500/30 text-blue-500 px-1 rounded font-black">ECC</span>}
                                       {m.bat && <span className="text-[6px] border border-emerald-500/30 text-emerald-500 px-1 rounded font-black">BAT</span>}
@@ -2157,22 +2172,46 @@ function ChurchMembershipSystem() {
               <div className={`${t.card} border rounded-2xl overflow-hidden`}>
                 <div className="p-4 border-b border-white/5 bg-white/5 flex justify-between items-center">
                   <h3 className="text-[10px] font-black uppercase tracking-widest italic text-slate-400">Lista de Chamada do Culto</h3>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap items-center gap-3">
+                    {pendingAttendance.length > 0 && (
+                      <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-300">
+                        <button 
+                          onClick={saveHistoryAttendance} 
+                          disabled={isSavingAttendance}
+                          className="bg-emerald-600 text-white px-4 py-1.5 rounded-lg font-black text-[8px] uppercase italic tracking-widest shadow-lg shadow-emerald-900/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 border border-emerald-500/30"
+                        >
+                          {isSavingAttendance ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                          GRAVAR {pendingAttendance.length}
+                        </button>
+                        <button 
+                          onClick={() => { if(confirm('Descartar alterações não salvas?')) setPendingAttendance([]); }}
+                          className="p-1.5 rounded-lg border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    )}
                     <button onClick={() => setShowVisitorModal(true)} className="bg-blue-600 text-white px-4 py-1.5 rounded-lg font-black text-[8px] uppercase italic tracking-widest flex items-center gap-2 hover:bg-blue-500 transition-all shadow-lg shadow-blue-900/20"><Users size={12}/> NOVO VISITANTE</button>
                     <button onClick={() => {
                       if (confirm('Marcar TODOS como presentes no culto?')) {
+                        const sunday = getMeetingDates('domingo', historyRefDate).pop();
                         members.forEach(m => {
                           if (isLeaderMode ? m.cell_id === activeCell.id : true) {
-                            if (!m.attended_cult) toggleAttendance(m.id, 'attended_cult');
+                            toggleHistoryAttendance(m.id, activeCell.id, sunday);
                           }
                         });
                       }
                     }} className="text-[8px] font-black uppercase bg-blue-600/10 text-blue-500 px-3 py-1.5 rounded-lg border border-blue-500/20">Marcar Todos</button>
                     <button onClick={() => {
                       if (confirm('Limpar TODA a frequência de culto?')) {
+                        const sunday = getMeetingDates('domingo', historyRefDate).pop();
                         members.forEach(m => {
                           if (isLeaderMode ? m.cell_id === activeCell.id : true) {
-                            if (m.attended_cult) toggleAttendance(m.id, 'attended_cult');
+                            setAttendance(prev => prev.filter(a => !(a.member_id === m.id && a.date === sunday)));
+                            setPendingAttendance(prev => {
+                              const other = prev.filter(p => !(p.member_id === m.id && p.date === sunday));
+                              return [...other, { member_id: m.id, cell_id: activeCell.id, date: sunday, status: null }];
+                            });
                           }
                         });
                       }
@@ -2214,12 +2253,15 @@ function ChurchMembershipSystem() {
                                 const att = attendance.find(a => a.member_id === m.id && a.date === d);
                                 const status = att?.status;
                                 return (
-                                  <td key={d} className="px-1 py-4 text-center">
+                                  <td key={d} className="px-1 py-4 text-center border-x border-white/5">
                                     <button 
-                                      onClick={() => toggleAttendance(m.id, activeCell.id, d, 'culto')}
-                                      className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 ${status === 'P' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : status === 'F' ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
+                                      onClick={() => toggleHistoryAttendance(m.id, activeCell.id, d)}
+                                      className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 relative ${status === 'P' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : status === 'F' ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
                                     >
                                       {status || '-'}
+                                      {pendingAttendance.some(p => p.member_id === m.id && p.date === d) && (
+                                        <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-white rounded-full border-2 border-blue-600 animate-pulse" />
+                                      )}
                                     </button>
                                   </td>
                                 );
