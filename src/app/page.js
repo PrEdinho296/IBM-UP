@@ -1,5 +1,5 @@
 'use client';
-// BUILD v2026.05.08.1711 - ministerios is boolean fix
+// VERSION v2026.05.11.0317 - floating save and topbar sync fix
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Plus, Trash2, Users, Menu, X, Activity, LayoutDashboard, Map, Home, ClipboardList, Star, Calendar, Clock, Copy, Check, MapPin, Loader2, Sun, Moon, ShieldCheck, UserMinus, Eye, Download, Upload, Power, Edit2, FileDown, ArrowLeft, LineChart as LineIcon, PieChart as PieIcon } from 'lucide-react';
@@ -1410,6 +1410,11 @@ function ChurchMembershipSystem() {
            )}
 
            <button onClick={handleLogout} className="w-full flex items-center gap-3 p-3 text-[10px] text-red-500/70 hover:text-red-500 hover:bg-red-400/5 rounded-xl transition-all font-black uppercase tracking-widest"><Power size={16}/> {sidebarOpen && 'Encerrar Sessão'}</button>
+           {sidebarOpen && (
+              <div className="pt-2 px-3">
+                <p className="text-[7px] font-bold text-slate-600 uppercase tracking-widest text-center">IBM-UP v2026.05.11.0317</p>
+              </div>
+            )}
         </div>
       </aside>
 
@@ -1439,10 +1444,20 @@ function ChurchMembershipSystem() {
             <button onClick={() => setShowVisitorModal(true)} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase italic tracking-widest flex items-center gap-2 transition-all shadow-lg shadow-blue-600/20 mr-2">
               <Users size={14}/> + VISITANTE
             </button>
-            <div className="flex items-center gap-1.5 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
+            <div className="flex items-center gap-1.5 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20 mr-2">
               <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
               <span className="text-[8px] font-black uppercase text-emerald-500 tracking-widest">Cloud Sync</span>
             </div>
+            {pendingAttendance.length > 0 && (
+              <button 
+                onClick={saveHistoryAttendance}
+                disabled={isSavingAttendance}
+                className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase italic tracking-widest flex items-center gap-2 transition-all shadow-lg shadow-red-600/40 animate-bounce"
+              >
+                {isSavingAttendance ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14}/>}
+                SALVAR {pendingAttendance.length}
+              </button>
+            )}
             <button onClick={() => setDarkMode(!darkMode)} className={`p-2 ${darkMode ? 'text-amber-400' : 'text-slate-500'} hover:scale-110 transition-all rounded-lg ml-2`} title={darkMode ? "Ativar Modo Claro" : "Ativar Modo Escuro"}>
               {darkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
