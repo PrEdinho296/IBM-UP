@@ -1754,13 +1754,13 @@ function ChurchMembershipSystem() {
                             {m.ministerios && <span className="text-[8px] bg-blue-600/20 text-blue-400 px-1.5 py-0.5 rounded font-black uppercase">DISC</span>}
                           </div>
                           <div className="flex flex-wrap gap-1 mt-1.5">
-                            {m.ecc && <span className="text-[7px] border border-blue-500/30 text-blue-500 px-1 rounded font-black uppercase">ECC</span>}
-                            {m.bat && <span className="text-[7px] border border-emerald-500/30 text-emerald-500 px-1 rounded font-black uppercase">BAT</span>}
-                            {m.integracao && <span className="text-[7px] border border-amber-500/30 text-amber-500 px-1 rounded font-black uppercase">FCC</span>}
-                            {m.con && <span className="text-[7px] border border-red-500/30 text-red-500 px-1 rounded font-black uppercase">CON</span>}
-                            {m.maturidade && <span className="text-[7px] border border-purple-500/30 text-purple-500 px-1 rounded font-black uppercase">TMC</span>}
-                            {m.ctl && <span className="text-[7px] border border-slate-500/30 text-slate-500 px-1 rounded font-black uppercase">MSD</span>}
-                            {m.outros && <span className="text-[7px] border border-pink-500/30 text-pink-500 px-1 rounded font-black uppercase">VS</span>}
+                            {m.ecc && <span className="text-[7px] bg-blue-600/10 border border-blue-500/30 text-blue-400 px-1.5 py-0.5 rounded font-black uppercase">ECC</span>}
+                            {m.bat && <span className="text-[7px] bg-emerald-600/10 border border-emerald-500/30 text-emerald-400 px-1.5 py-0.5 rounded font-black uppercase">BAT</span>}
+                            {m.integracao && <span className="text-[7px] bg-amber-600/10 border border-amber-500/30 text-amber-400 px-1.5 py-0.5 rounded font-black uppercase">FCC</span>}
+                            {m.con && <span className="text-[7px] bg-red-600/10 border border-red-500/30 text-red-400 px-1.5 py-0.5 rounded font-black uppercase">CON</span>}
+                            {m.maturidade && <span className="text-[7px] bg-purple-600/10 border border-purple-500/30 text-purple-400 px-1.5 py-0.5 rounded font-black uppercase">TMC</span>}
+                            {m.ctl && <span className="text-[7px] bg-slate-600/10 border border-slate-500/30 text-slate-400 px-1.5 py-0.5 rounded font-black uppercase">MSD</span>}
+                            {m.outros && <span className="text-[7px] bg-pink-600/10 border border-pink-500/30 text-pink-400 px-1.5 py-0.5 rounded font-black uppercase">VS</span>}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-center">
@@ -1771,7 +1771,7 @@ function ChurchMembershipSystem() {
                             return (
                               <button
                                 onClick={() => toggleAttendance(m.id, 'attended_cell')}
-                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${isPresent ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${isPresent ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800/50 text-slate-500'}`}
                               >
                                 {isPresent ? 'Presente' : 'Faltou'}
                               </button>
@@ -1786,7 +1786,7 @@ function ChurchMembershipSystem() {
                             return (
                               <button
                                 onClick={() => toggleAttendance(m.id, 'attended_cult')}
-                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${isPresent ? 'bg-emerald-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic transition-all ${isPresent ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800/50 text-slate-500'}`}
                               >
                                 {isPresent ? 'Presente' : 'Faltou'}
                               </button>
