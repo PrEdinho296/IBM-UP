@@ -2468,19 +2468,27 @@ function ChurchMembershipSystem() {
                     }
                   });
 
-                  const expectedDates = getMeetingDates(cell.day_of_week);
-                  const latestExpected = expectedDates[expectedDates.length - 1];
-                  const previousExpected = expectedDates[expectedDates.length - 2];
+                  const getSundayStr = (offsetDays = 0) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() - d.getDay() + offsetDays);
+                    const y = d.getFullYear();
+                    const m = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    return `${y}-${m}-${day}`;
+                  };
+
+                  const currentSunday = getSundayStr(0);
+                  const previousSunday = getSundayStr(-7);
 
                   let statusColor = "bg-red-500/5 border-red-500/10 text-red-400";
                   let dotColor = "bg-red-500";
                   let badgeText = "Desatualizada";
 
-                  if (lastUpdateDate === latestExpected) {
+                  if (lastUpdateDate >= currentSunday) {
                     statusColor = "bg-emerald-500/5 border-emerald-500/10 text-emerald-400";
                     dotColor = "bg-emerald-500";
                     badgeText = "Atualizada";
-                  } else if (lastUpdateDate === previousExpected) {
+                  } else if (lastUpdateDate >= previousSunday) {
                     statusColor = "bg-amber-500/5 border-amber-500/10 text-amber-400";
                     dotColor = "bg-amber-500";
                     badgeText = "Atenção";
@@ -3268,41 +3276,27 @@ function PastoralReport({ members, cells, sectors, attendance, getMemberEngageme
                     }
                   });
 
-                  // Função enxuta para pegar a lista de reuniões da célula
-                  const getLocalDates = (dayOfWeek) => {
-                    const daysMap = { 'domingo': 0, 'segunda': 1, 'terça': 2, 'quarta': 3, 'quinta': 4, 'sexta': 5, 'sábado': 6 };
-                    const targetDay = daysMap[dayOfWeek?.toLowerCase()] ?? 3;
-                    const datesList = [];
-                    const base = new Date();
-                    let current = new Date(base);
-                    if (base.getDay() === 6 && targetDay === 0) {
-                      current.setDate(base.getDate() + 1);
-                    } else {
-                      while (current.getDay() !== targetDay) current.setDate(current.getDate() - 1);
-                    }
-                    for (let i = 0; i < 3; i++) {
-                      const year = current.getFullYear();
-                      const month = String(current.getMonth() + 1).padStart(2, '0');
-                      const day = String(current.getDate()).padStart(2, '0');
-                      datesList.unshift(`${year}-${month}-${day}`);
-                      current.setDate(current.getDate() - 7);
-                    }
-                    return datesList;
+                  const getSundayStr = (offsetDays = 0) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() - d.getDay() + offsetDays);
+                    const y = d.getFullYear();
+                    const m = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    return `${y}-${m}-${day}`;
                   };
 
-                  const expectedDates = getLocalDates(cell.day_of_week);
-                  const latestExpected = expectedDates[expectedDates.length - 1];
-                  const previousExpected = expectedDates[expectedDates.length - 2];
+                  const currentSunday = getSundayStr(0);
+                  const previousSunday = getSundayStr(-7);
 
                   let statusColor = "bg-red-500/10 text-red-400 border-red-500/20";
                   let dotColor = "bg-red-500";
                   let badgeText = "Desatualizada";
 
-                  if (lastUpdateDate === latestExpected) {
+                  if (lastUpdateDate >= currentSunday) {
                     statusColor = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
                     dotColor = "bg-emerald-500";
                     badgeText = "Atualizada";
-                  } else if (lastUpdateDate === previousExpected) {
+                  } else if (lastUpdateDate >= previousSunday) {
                     statusColor = "bg-amber-500/10 text-amber-400 border-amber-500/20";
                     dotColor = "bg-amber-500";
                     badgeText = "Atenção";
