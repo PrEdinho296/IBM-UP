@@ -2458,45 +2458,100 @@ function ChurchMembershipSystem() {
                 <button onClick={() => setShowCellForm(true)} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVA CÉLULA</button>
               </header>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {cells.filter(cell => !filterSectorId || Number(cell.sector_id) === filterSectorId).map(cell => (
-                  <div key={cell.id} className={`${t.card} border rounded-2xl p-6 flex flex-col group`}>
-                    <div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-500 mb-4 group-hover:bg-blue-600 group-hover:text-white transition-all"><Home size={20} /></div>
-                    <h3 className="text-lg font-black uppercase italic mb-1">{cell.name}</h3>
-                    <p className="text-blue-500 text-[9px] font-black uppercase mb-2">{cell.leader}</p>
-                    <div className="grid grid-cols-2 gap-2 mb-4 border-y border-white/5 py-4">
-                      <div className="flex items-center justify-center gap-2 text-[11px] font-black uppercase text-blue-400 italic notranslate" translate="no">
-                        <Calendar size={14} /> {cell.day_of_week || '---'}
+                {cells.filter(cell => !filterSectorId || Number(cell.sector_id) === filterSectorId).map(cell => {
+                  let lastUpdateDate = null;
+                  attendance.forEach(a => {
+                    if (String(a.cell_id) === String(cell.id)) {
+                      if (!lastUpdateDate || a.date > lastUpdateDate) {
+                        lastUpdateDate = a.date;
+                      }
+                    }
+                  });
+
+                  const expectedDates = getMeetingDates(cell.day_of_week);
+                  const latestExpected = expectedDates[expectedDates.length - 1];
+                  const previousExpected = expectedDates[expectedDates.length - 2];
+
+                  let statusColor = "bg-red-500/5 border-red-500/10 text-red-400";
+                  let dotColor = "bg-red-500";
+                  let badgeText = "Desatualizada";
+
+                  if (lastUpdateDate === latestExpected) {
+                    statusColor = "bg-emerald-500/5 border-emerald-500/10 text-emerald-400";
+                    dotColor = "bg-emerald-500";
+                    badgeText = "Atualizada";
+                  } else if (lastUpdateDate === previousExpected) {
+                    statusColor = "bg-amber-500/5 border-amber-500/10 text-amber-400";
+                    dotColor = "bg-amber-500";
+                    badgeText = "Atenção";
+                  } else if (lastUpdateDate) {
+                    statusColor = "bg-red-500/5 border-red-500/10 text-red-400";
+                    dotColor = "bg-red-500";
+                    badgeText = "Desatualizada";
+                  } else {
+                    statusColor = "bg-slate-500/5 border-slate-500/10 text-slate-400";
+                    dotColor = "bg-slate-500";
+                    badgeText = "Sem Dados";
+                  }
+
+                  const formattedDate = lastUpdateDate ? lastUpdateDate.split('-').reverse().join('/') : '--/--/----';
+
+                  return (
+                    <div key={cell.id} className={`${t.card} border rounded-2xl p-6 flex flex-col group hover:border-blue-500/30 transition-all`}>
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                          <Home size={20} />
+                        </div>
+                        <span className={`text-[8px] font-black uppercase px-2.5 py-1 rounded-full border border-current/20 flex items-center gap-1.5 ${statusColor}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${dotColor} ${badgeText === 'Atualizada' ? '' : 'animate-pulse'}`} />
+                          {badgeText}
+                        </span>
                       </div>
-                      <div className="flex items-center justify-center gap-2 text-[11px] font-black uppercase text-emerald-400 italic border-l border-white/5 notranslate" translate="no">
-                        <Clock size={14} /> {cell.meeting_time || '---'}
+                      <h3 className="text-lg font-black uppercase italic mb-1">{cell.name}</h3>
+                      <p className="text-blue-500 text-[9px] font-black uppercase mb-2">{cell.leader || 'Sem Líder'}</p>
+                      
+                      <div className="grid grid-cols-2 gap-2 mb-3 border-t border-white/5 pt-4">
+                        <div className="flex items-center justify-center gap-2 text-[11px] font-black uppercase text-blue-400 italic notranslate" translate="no">
+                          <Calendar size={14} /> {cell.day_of_week || '---'}
+                        </div>
+                        <div className="flex items-center justify-center gap-2 text-[11px] font-black uppercase text-emerald-400 italic border-l border-white/5 notranslate" translate="no">
+                          <Clock size={14} /> {cell.meeting_time || '---'}
+                        </div>
+                      </div>
+
+                      {/* Bloco da Última Atualização Efetuada pelo Líder */}
+                      <div className="bg-white/5 rounded-xl p-2.5 border border-white/5 flex justify-between items-center mb-4 mt-auto">
+                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Última Atualização:</span>
+                        <span className={`text-[10px] font-black italic ${lastUpdateDate ? 'text-white' : 'text-slate-600'}`}>{formattedDate}</span>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button onClick={() => { const link = `${window.location.origin}${window.location.pathname}?cellId=${cell.id}`; navigator.clipboard.writeText(link); setCopiedId(cell.id); setTimeout(() => setCopiedId(null), 2000); }} className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 font-black text-[8px] uppercase tracking-widest transition-all ${copiedId === cell.id ? 'bg-emerald-600 text-white' : 'bg-blue-600/10 text-blue-500'}`}>{copiedId === cell.id ? 'Copiado!' : 'Link Líder'}</button>
+                        <button 
+                          onClick={() => { setEditingCellId(cell.id); setCellForm(cell); setShowCellForm(true); }} 
+                          className={`p-2.5 rounded-lg border ${darkMode ? 'border-white/10 text-white/50' : 'border-slate-200 text-slate-400'} hover:bg-blue-600/10 hover:text-blue-500 transition-all`}
+                          title="Editar Célula"
+                        >
+                          <Edit2 size={12} />
+                        </button>
+                        <button 
+                          onClick={() => { setActiveCell(cell); setIsLeaderMode(true); setActiveTab('leader-members'); }} 
+                          className={`p-2.5 rounded-lg border ${darkMode ? 'border-white/10 text-white/50' : 'border-slate-200 text-slate-400'} hover:bg-blue-600/10 hover:text-blue-500 transition-all`}
+                          title="Ver Dashboard do Líder"
+                        >
+                          <Eye size={12} />
+                        </button>
+                        <button 
+                          onClick={() => deleteItem('cells', cell.id)} 
+                          className={`p-2.5 rounded-lg ${darkMode ? 'text-red-500/30' : 'text-red-400'} hover:text-red-600 transition-all`}
+                          title="Excluir Célula"
+                        >
+                          <Trash2 size={12} />
+                        </button>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => { const link = `${window.location.origin}${window.location.pathname}?cellId=${cell.id}`; navigator.clipboard.writeText(link); setCopiedId(cell.id); setTimeout(() => setCopiedId(null), 2000); }} className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 font-black text-[8px] uppercase tracking-widest transition-all ${copiedId === cell.id ? 'bg-emerald-600 text-white' : 'bg-blue-600/10 text-blue-500'}`}>{copiedId === cell.id ? 'Copiado!' : 'Link Líder'}</button>
-                      <button 
-                        onClick={() => { setEditingCellId(cell.id); setCellForm(cell); setShowCellForm(true); }} 
-                        className={`p-2.5 rounded-lg border ${darkMode ? 'border-white/10 text-white/50' : 'border-slate-200 text-slate-400'} hover:bg-blue-600/10 hover:text-blue-500 transition-all`}
-                        title="Editar Célula"
-                      >
-                        <Edit2 size={12} />
-                      </button>
-                      <button 
-                        onClick={() => { setActiveCell(cell); setIsLeaderMode(true); setActiveTab('leader-members'); }} 
-                        className={`p-2.5 rounded-lg border ${darkMode ? 'border-white/10 text-white/50' : 'border-slate-200 text-slate-400'} hover:bg-blue-600/10 hover:text-blue-500 transition-all`}
-                        title="Ver Dashboard do Líder"
-                      >
-                        <Eye size={12} />
-                      </button>
-                      <button 
-                        onClick={() => deleteItem('cells', cell.id)} 
-                        className={`p-2.5 rounded-lg ${darkMode ? 'text-red-500/30' : 'text-red-400'} hover:text-red-600 transition-all`}
-                        title="Excluir Célula"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -3204,11 +3259,74 @@ function PastoralReport({ members, cells, sectors, attendance, getMemberEngageme
 
                   const engagementRate = Math.round((cellStats.both / cellStats.total) * 100 || 0);
 
+                  let lastUpdateDate = null;
+                  attendance.forEach(a => {
+                    if (String(a.cell_id) === String(cell.id)) {
+                      if (!lastUpdateDate || a.date > lastUpdateDate) {
+                        lastUpdateDate = a.date;
+                      }
+                    }
+                  });
+
+                  // Função enxuta para pegar a lista de reuniões da célula
+                  const getLocalDates = (dayOfWeek) => {
+                    const daysMap = { 'domingo': 0, 'segunda': 1, 'terça': 2, 'quarta': 3, 'quinta': 4, 'sexta': 5, 'sábado': 6 };
+                    const targetDay = daysMap[dayOfWeek?.toLowerCase()] ?? 3;
+                    const datesList = [];
+                    const base = new Date();
+                    let current = new Date(base);
+                    if (base.getDay() === 6 && targetDay === 0) {
+                      current.setDate(base.getDate() + 1);
+                    } else {
+                      while (current.getDay() !== targetDay) current.setDate(current.getDate() - 1);
+                    }
+                    for (let i = 0; i < 3; i++) {
+                      const year = current.getFullYear();
+                      const month = String(current.getMonth() + 1).padStart(2, '0');
+                      const day = String(current.getDate()).padStart(2, '0');
+                      datesList.unshift(`${year}-${month}-${day}`);
+                      current.setDate(current.getDate() - 7);
+                    }
+                    return datesList;
+                  };
+
+                  const expectedDates = getLocalDates(cell.day_of_week);
+                  const latestExpected = expectedDates[expectedDates.length - 1];
+                  const previousExpected = expectedDates[expectedDates.length - 2];
+
+                  let statusColor = "bg-red-500/10 text-red-400 border-red-500/20";
+                  let dotColor = "bg-red-500";
+                  let badgeText = "Desatualizada";
+
+                  if (lastUpdateDate === latestExpected) {
+                    statusColor = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+                    dotColor = "bg-emerald-500";
+                    badgeText = "Atualizada";
+                  } else if (lastUpdateDate === previousExpected) {
+                    statusColor = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+                    dotColor = "bg-amber-500";
+                    badgeText = "Atenção";
+                  } else if (lastUpdateDate) {
+                    statusColor = "bg-red-500/10 text-red-400 border-red-500/20";
+                    dotColor = "bg-red-500";
+                    badgeText = "Desatualizada";
+                  } else {
+                    statusColor = "bg-slate-500/10 text-slate-400 border-slate-500/20";
+                    dotColor = "bg-slate-500";
+                    badgeText = "Sem Dados";
+                  }
+
+                  const formattedDate = lastUpdateDate ? lastUpdateDate.split('-').reverse().join('/') : '--/--/----';
+
                   return (
                     <tr key={cell.id} className={t.hover}>
                       <td className="px-6 py-4">
                         <p className="text-sm font-black italic uppercase tracking-tighter">{cell.name}</p>
-                        <p className="text-[9px] text-slate-500 font-bold">Líder: {cell.leader}</p>
+                        <p className="text-[9px] text-slate-500 font-bold mb-1.5">Líder: {cell.leader}</p>
+                        <span className={`inline-flex items-center gap-1.5 text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${statusColor}`}>
+                          <span className={`w-1 h-1 rounded-full ${dotColor} ${badgeText === 'Atualizada' ? '' : 'animate-pulse'}`} />
+                          {badgeText}: {formattedDate}
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-center font-black text-xs">{cellStats.total}</td>
                       <td className="px-6 py-4 text-center">
