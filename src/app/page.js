@@ -129,6 +129,30 @@ function ChurchMembershipSystem() {
     return checkConsecutive('cell') || checkConsecutive('culto');
   };
 
+  const getVisitorConsecutiveAttendances = (m) => {
+    if (!m || !m.cell_id) return 0;
+    const cell = cells.find(c => c.id === m.cell_id);
+    if (!cell) return 0;
+    const dates = getMeetingDates(cell.day_of_week);
+    const reversedDates = [...dates].reverse();
+    
+    let count = 0;
+    let startedCounting = false;
+
+    for (const d of reversedDates) {
+      const att = attendance.find(a => a.member_id === m.id && a.date === d);
+      if (att?.status === 'P') {
+        count++;
+        startedCounting = true;
+      } else if (att?.status === 'F') {
+        break;
+      } else {
+        if (startedCounting) break;
+      }
+    }
+    return count;
+  };
+
   const formatDate = (dateString) => {
     if (!dateString || !dateString.includes('-')) return dateString;
     const [year, month, day] = dateString.split("-");
@@ -2072,7 +2096,11 @@ function ChurchMembershipSystem() {
                             {m.con && <span className="text-[7px] bg-red-600/10 border border-red-500/30 text-red-400 px-1.5 py-0.5 rounded font-black uppercase">CON</span>}
                             {m.maturidade && <span className="text-[7px] bg-purple-600/10 border border-purple-500/30 text-purple-400 px-1.5 py-0.5 rounded font-black uppercase">TMC</span>}
                             {m.ctl && <span className="text-[7px] bg-slate-600/10 border border-slate-500/30 text-slate-400 px-1.5 py-0.5 rounded font-black uppercase">MSD</span>}
-                            {m.outros && <span className="text-[7px] bg-pink-600/10 border border-pink-500/30 text-pink-400 px-1.5 py-0.5 rounded font-black uppercase">VS</span>}
+                            {m.outros && (
+                              <span className={`text-[7px] px-1.5 py-0.5 rounded font-black uppercase border flex items-center gap-1 ${getVisitorConsecutiveAttendances(m) >= 6 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 animate-pulse' : 'bg-pink-600/10 border-pink-500/30 text-pink-400'}`}>
+                                VS: {getVisitorConsecutiveAttendances(m)}/6
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right">
@@ -2626,6 +2654,33 @@ function ChurchMembershipSystem() {
 
             {/* Body */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar-fine">
+              {memberForm.outros && (
+                <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${getVisitorConsecutiveAttendances(memberForm) >= 6 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-pink-500/5 border-pink-500/10 text-pink-400'}`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex flex-col items-center justify-center font-black leading-tight ${getVisitorConsecutiveAttendances(memberForm) >= 6 ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-pink-500/20 text-pink-400'}`}>
+                      <span className="text-sm">{getVisitorConsecutiveAttendances(memberForm)}</span>
+                      <span className="text-[6px] uppercase tracking-tighter">Células</span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-tighter">Trilha de Consolidação do Visitante</p>
+                      <p className="text-[9px] text-slate-400 font-bold">
+                        {getVisitorConsecutiveAttendances(memberForm) >= 6 
+                          ? '✨ Atingiu a meta de 6+ presenças! Clique para convertê-lo em membro.' 
+                          : `Faltam ${Math.max(0, 6 - getVisitorConsecutiveAttendances(memberForm))} presenças seguidas na célula para se tornar membro.`}
+                      </p>
+                    </div>
+                  </div>
+                  {getVisitorConsecutiveAttendances(memberForm) >= 6 && (
+                    <button 
+                      type="button"
+                      onClick={() => setMemberForm({ ...memberForm, outros: false })}
+                      className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all active:scale-95 shrink-0 animate-bounce"
+                    >
+                      Promover a Membro
+                    </button>
+                  )}
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <InputCompact label="NOME COMPLETO" value={memberForm.name} onChange={val => setMemberForm({ ...memberForm, name: val })} dark={darkMode} />
