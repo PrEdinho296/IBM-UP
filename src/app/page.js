@@ -892,14 +892,20 @@ function ChurchMembershipSystem() {
       if (m.outros) acc.visitors++;
       if (isPresentCell && isPresentCult) acc.both++;
       else if (isPresentCell && !isPresentCult) acc.onlyCell++;
-      else if (!isPresentCell && isPresentCult) acc.onlyCulto++;
+      else if (!isPresentCell && isPresentCult) {
+        acc.onlyCulto++;
+        acc.onlyCult++;
+      }
       else acc.none++;
 
-      if (!isPresentCult) acc.absentCulto++;
+      if (!isPresentCult) {
+        acc.absentCulto++;
+        acc.absentCult++;
+      }
       if (!isPresentCell) acc.absentCell++;
 
       return acc;
-    }, { total: 0, both: 0, onlyCell: 0, onlyCulto: 0, none: 0, absentCulto: 0, absentCell: 0, visitors: 0 });
+    }, { total: 0, both: 0, onlyCell: 0, onlyCulto: 0, onlyCult: 0, none: 0, absentCulto: 0, absentCult: 0, absentCell: 0, visitors: 0 });
   }, [members, attendance, isLeaderMode, activeCell, cells, selectedMeetingDate, selectedSundayDate]);
 
   const loyaltyData = [
