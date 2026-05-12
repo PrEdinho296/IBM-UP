@@ -2643,7 +2643,7 @@ function ChurchMembershipSystem() {
                     <p className="text-[8px] font-black text-slate-500 uppercase">Cursos</p>
                     <div className="grid grid-cols-1 gap-2">
                       <CourseCheckCompact label="ECC - CASAIS COM CRISTO" checked={memberForm.ecc} onChange={val => setMemberForm({ ...memberForm, ecc: val })} dark={darkMode} />
-                      <CourseCheckCompact label="BAT - MEMBROS PARA BATIZAR" checked={memberForm.bat} onChange={val => setMemberForm({ ...memberForm, bat: val })} dark={darkMode} />
+                      <CourseCheckCompact label="BAT - MEMBROS PARA CLASSE DO BATISMO" checked={memberForm.bat} onChange={val => setMemberForm({ ...memberForm, bat: val })} dark={darkMode} />
                       <CourseCheckCompact label="FCC - FREQUENTE CULTOS/CÉLULAS" checked={memberForm.integracao} onChange={val => setMemberForm({ ...memberForm, integracao: val })} dark={darkMode} />
                       <CourseCheckCompact label="CON - CONSOLIDAÇÃO PENDENTE" checked={memberForm.con} onChange={val => setMemberForm({ ...memberForm, con: val })} dark={darkMode} />
                       <CourseCheckCompact label="VS - VISITANTE DA SEMANA" checked={memberForm.outros} onChange={val => setMemberForm({ ...memberForm, outros: val })} dark={darkMode} />
