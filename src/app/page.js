@@ -192,7 +192,8 @@ function ChurchMembershipSystem() {
     type: 'manha',
     total: '',
     visitors: '0',
-    kids: '0'
+    kids: '0',
+    notes: ''
   });
   const [showReportForm, setShowReportForm] = useState(false);
   const [showLeaderConfig, setShowLeaderConfig] = useState(false);
@@ -1098,7 +1099,8 @@ function ChurchMembershipSystem() {
       const totalKids = kM + kN;
       const grandTotal = totalMembers + totalVisitors + totalKids;
       
-      notes = `[MANHÃ: P:${pM}, V:${vM}, C:${kM}] [NOITE: P:${pN}, V:${vN}, C:${kN}] ${existing.notes?.split('] ').pop() || ''}`;
+      const customNote = quickEntryForm.notes && quickEntryForm.notes.trim() !== '' ? quickEntryForm.notes.trim() : (existing.notes?.split('] ').pop() || '');
+      notes = `[MANHÃ: P:${pM}, V:${vM}, C:${kM}] [NOITE: P:${pN}, V:${vN}, C:${kN}] ${customNote}`;
 
       payload = {
         members: totalMembers,
@@ -1120,7 +1122,8 @@ function ChurchMembershipSystem() {
       const totalVisitors = vM + vN;
       const totalKids = kM + kN;
       const grandTotal = totalMembers + totalVisitors + totalKids;
-      notes = `[MANHÃ: P:${pM}, V:${vM}, C:${kM}] [NOITE: P:${pN}, V:${vN}, C:${kN}] `;
+      const customNote = quickEntryForm.notes ? quickEntryForm.notes.trim() : '';
+      notes = `[MANHÃ: P:${pM}, V:${vM}, C:${kM}] [NOITE: P:${pN}, V:${vN}, C:${kN}] ${customNote}`;
 
       payload = {
         date,
@@ -1141,6 +1144,14 @@ function ChurchMembershipSystem() {
 
     await fetchReports();
     setShowQuickEntry(false);
+    setQuickEntryForm({
+      date: getLocalDate(),
+      type: 'manha',
+      total: '',
+      visitors: '0',
+      kids: '0',
+      notes: ''
+    });
     alert('Contagem salva com sucesso!');
   };
 
@@ -2931,6 +2942,7 @@ function ChurchMembershipSystem() {
                   <InputCompact label="Visitantes" value={quickEntryForm.visitors} onChange={val => setQuickEntryForm({...quickEntryForm, visitors: val})} dark={darkMode} />
                   <InputCompact label="Crianças" value={quickEntryForm.kids} onChange={val => setQuickEntryForm({...quickEntryForm, kids: val})} dark={darkMode} />
                 </div>
+                <InputCompact label="Observação / Data Especial" value={quickEntryForm.notes} onChange={val => setQuickEntryForm({...quickEntryForm, notes: val})} dark={darkMode} placeholder="Ex: Santa Ceia, Aniversário da Igreja, Missões..." />
               </div>
             </div>
 
