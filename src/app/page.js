@@ -612,7 +612,7 @@ function ChurchMembershipSystem() {
 
   const addMember = async () => {
     const cId = isLeaderMode ? activeCell?.id : memberForm.cell_id;
-    if (!memberForm.name || !cId) return;
+    if (!memberForm.name) return;
 
     // Enviar APENAS os campos válidos da tabela members
     // TODOS estes campos são BOOLEAN no banco (verificado via schema)
@@ -625,7 +625,7 @@ function ChurchMembershipSystem() {
       'name', 'email', 'phone', 'status',
       'cep', 'address', 'number', 'neighborhood', 'city'
     ];
-    const finalData = { cell_id: Number(cId) };
+    const finalData = { cell_id: cId ? Number(cId) : null };
     textFields.forEach(field => {
       const val = memberForm[field];
       // Enviar null para campos vazios (compatível com o schema do Supabase)
