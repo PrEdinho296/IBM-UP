@@ -1833,6 +1833,40 @@ function ChurchMembershipSystem() {
                 </div>
               </div>
             </div>
+              {(() => {
+                if (isLemeBranch) return null;
+                const lemeSectors = rawSectors.filter(s => (s.name || '').includes('[LEME]'));
+                const lemeCells = rawCells.filter(c => lemeSectors.some(s => s.id === c.sector_id));
+                const lemeMembers = rawMembers.filter(m => lemeCells.some(c => c.id === m.cell_id));
+                const lemeReports = rawReports.filter(r => (r.notes || '').includes('[LEME]'));
+                const latestLemeReport = lemeReports.length > 0 ? lemeReports[0] : null;
+
+                return (
+                  <div className={`mt-8 p-6 rounded-3xl border border-blue-500/10 ${darkMode ? 'bg-[#0f172a]' : 'bg-blue-50'}`}>
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-xl font-black italic uppercase tracking-tighter text-blue-500">Congregação LEME</h2>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Resumo Separado</div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className={`p-4 rounded-2xl ${darkMode ? 'bg-[#1e293b]' : 'bg-white'} border border-slate-500/10`}>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Células Leme</p>
+                        <p className="text-3xl font-black italic tracking-tighter">{lemeCells.length}</p>
+                      </div>
+                      <div className={`p-4 rounded-2xl ${darkMode ? 'bg-[#1e293b]' : 'bg-white'} border border-slate-500/10`}>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Membros Leme</p>
+                        <p className="text-3xl font-black italic tracking-tighter">{lemeMembers.length}</p>
+                      </div>
+                      <div className={`p-4 rounded-2xl ${darkMode ? 'bg-[#1e293b]' : 'bg-white'} border border-slate-500/10`}>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Último Culto Leme</p>
+                        <p className="text-3xl font-black italic tracking-tighter">{latestLemeReport ? latestLemeReport.total : 0}</p>
+                        <p className="text-[8px] uppercase text-slate-500 font-bold mt-1">
+                          {latestLemeReport ? formatDate(latestLemeReport.date) : 'Nenhum registro'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
           )}
 
           {activeTab === 'leader-dashboard' && isLeaderMode && activeCell && (
@@ -1933,40 +1967,6 @@ function ChurchMembershipSystem() {
                   </div>
                 </div>
               </div>
-              {(() => {
-                if (isLemeBranch) return null;
-                const lemeSectors = rawSectors.filter(s => (s.name || '').includes('[LEME]'));
-                const lemeCells = rawCells.filter(c => lemeSectors.some(s => s.id === c.sector_id));
-                const lemeMembers = rawMembers.filter(m => lemeCells.some(c => c.id === m.cell_id));
-                const lemeReports = rawReports.filter(r => (r.notes || '').includes('[LEME]'));
-                const latestLemeReport = lemeReports.length > 0 ? lemeReports[0] : null;
-
-                return (
-                  <div className={`mt-8 p-6 rounded-3xl border border-blue-500/10 ${darkMode ? 'bg-[#0f172a]' : 'bg-blue-50'}`}>
-                    <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-xl font-black italic uppercase tracking-tighter text-blue-500">Congregação LEME</h2>
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Resumo Separado</div>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className={`p-4 rounded-2xl ${darkMode ? 'bg-[#1e293b]' : 'bg-white'} border border-slate-500/10`}>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Células Leme</p>
-                        <p className="text-3xl font-black italic tracking-tighter">{lemeCells.length}</p>
-                      </div>
-                      <div className={`p-4 rounded-2xl ${darkMode ? 'bg-[#1e293b]' : 'bg-white'} border border-slate-500/10`}>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Membros Leme</p>
-                        <p className="text-3xl font-black italic tracking-tighter">{lemeMembers.length}</p>
-                      </div>
-                      <div className={`p-4 rounded-2xl ${darkMode ? 'bg-[#1e293b]' : 'bg-white'} border border-slate-500/10`}>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Último Culto Leme</p>
-                        <p className="text-3xl font-black italic tracking-tighter">{latestLemeReport ? latestLemeReport.total : 0}</p>
-                        <p className="text-[8px] uppercase text-slate-500 font-bold mt-1">
-                          {latestLemeReport ? formatDate(latestLemeReport.date) : 'Nenhum registro'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
             </div>
           )}
 
