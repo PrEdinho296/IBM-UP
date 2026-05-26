@@ -445,8 +445,9 @@ function ChurchMembershipSystem() {
     setActiveCell(null);
     localStorage.removeItem('ibm_up_leader_cell');
     
-    // Redirecionar para a página limpa (sem parâmetros de URL) para evitar entrar no modo líder público
-    window.location.href = window.location.origin + window.location.pathname;
+    // Redirecionar para a página limpa preservando o modo leme, se ativo
+    const extra = isLemeBranch ? '?branch=leme' : '';
+    window.location.href = window.location.origin + window.location.pathname + extra;
   };
 
   const handleChangePassword = async (e) => {
@@ -465,8 +466,9 @@ function ChurchMembershipSystem() {
       setIsChangingPassword(false);
       setShowResetForm(false);
       setAuthForm({ ...authForm, newPassword: '' });
-      // Limpar a URL
-      window.location.href = window.location.origin + window.location.pathname;
+      // Limpar a URL (mas preservar o modo leme)
+      const extra = isLemeBranch ? '?branch=leme' : '';
+      window.location.href = window.location.origin + window.location.pathname + extra;
     }
   };
 
