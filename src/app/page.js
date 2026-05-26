@@ -445,9 +445,8 @@ function ChurchMembershipSystem() {
     setActiveCell(null);
     localStorage.removeItem('ibm_up_leader_cell');
     
-    // Redirecionar para a página limpa preservando o modo leme, se ativo
-    const extra = isLemeBranch ? '?branch=leme' : '';
-    window.location.href = window.location.origin + window.location.pathname + extra;
+    // Redirecionar para a página limpa (sem parâmetros de URL) para evitar entrar no modo líder público
+    window.location.href = window.location.origin + window.location.pathname;
   };
 
   const handleChangePassword = async (e) => {
@@ -466,9 +465,8 @@ function ChurchMembershipSystem() {
       setIsChangingPassword(false);
       setShowResetForm(false);
       setAuthForm({ ...authForm, newPassword: '' });
-      // Limpar a URL (mas preservar o modo leme)
-      const extra = isLemeBranch ? '?branch=leme' : '';
-      window.location.href = window.location.origin + window.location.pathname + extra;
+      // Limpar a URL
+      window.location.href = window.location.origin + window.location.pathname;
     }
   };
 
@@ -1498,7 +1496,7 @@ function ChurchMembershipSystem() {
            </button>
 
            {isLeaderMode && (
-             <button onClick={() => window.location.href = '/'} className="w-full flex items-center gap-3 p-3 text-[10px] text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest mb-1"><LayoutDashboard size={16}/> {sidebarOpen && 'Painel Geral'}</button>
+             <button onClick={() => window.location.href = isLemeBranch ? '/?branch=leme' : '/'} className="w-full flex items-center gap-3 p-3 text-[10px] text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest mb-1"><LayoutDashboard size={16}/> {sidebarOpen && 'Painel Geral'}</button>
            )}
 
            <button onClick={handleLogout} className="w-full flex items-center gap-3 p-3 text-[10px] text-red-500/70 hover:text-red-500 hover:bg-red-400/5 rounded-xl transition-all font-black uppercase tracking-widest"><Power size={16}/> {sidebarOpen && 'Encerrar Sessão'}</button>
