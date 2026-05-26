@@ -1483,6 +1483,29 @@ function ChurchMembershipSystem() {
               <MenuBtn icon={<Map size={18} />} label="Setores" active={activeTab === 'sectors'} onClick={() => setActiveTab('sectors')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<ClipboardList size={18} />} label="Relatório Pastoral" active={activeTab === 'pastoral-report'} onClick={() => setActiveTab('pastoral-report')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Activity size={18} />} label="Relatório Presença" active={activeTab === 'attendance-report'} onClick={() => setActiveTab('attendance-report')} open={sidebarOpen} dark={darkMode} />
+              
+              <div className="pt-4 mt-4 border-t border-white/5 space-y-1">
+                <p className="text-[7px] font-black text-slate-500 uppercase px-3 mb-2 tracking-widest">Filtros Globais</p>
+                {isLemeBranch ? (
+                  <MenuBtn 
+                    icon={<MapPin size={18} className="text-amber-500" />} 
+                    label="Voltar p/ Sede" 
+                    active={false} 
+                    onClick={() => window.location.href = window.location.origin} 
+                    open={sidebarOpen} 
+                    dark={darkMode} 
+                  />
+                ) : (
+                  <MenuBtn 
+                    icon={<MapPin size={18} className="text-blue-500" />} 
+                    label="Visão LEME" 
+                    active={false} 
+                    onClick={() => window.location.href = window.location.origin + '?branch=leme'} 
+                    open={sidebarOpen} 
+                    dark={darkMode} 
+                  />
+                )}
+              </div>
             </>
           )}
         </nav>
