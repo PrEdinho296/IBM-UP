@@ -466,7 +466,7 @@ function ChurchMembershipSystem() {
       setShowResetForm(false);
       setAuthForm({ ...authForm, newPassword: '' });
       // Limpar a URL
-      window.location.href = window.location.origin + window.location.pathname;
+      window.location.href = isLemeBranch ? window.location.origin + window.location.pathname + '?branch=leme' : window.location.origin + window.location.pathname;
     }
   };
 
@@ -475,7 +475,7 @@ function ChurchMembershipSystem() {
     if (!recoveryEmail) return;
     
     const { error } = await supabase.auth.resetPasswordForEmail(recoveryEmail, {
-      redirectTo: window.location.origin + window.location.pathname + '?mode=reset',
+      redirectTo: window.location.origin + window.location.pathname + (isLemeBranch ? '?branch=leme&mode=reset' : '?mode=reset'),
     });
     
     if (error) {
@@ -1450,7 +1450,7 @@ function ChurchMembershipSystem() {
                    icon={<Plus size={18} />} 
                    label="Convidar Treinee" 
                    onClick={() => {
-                     const link = `${window.location.origin}${window.location.pathname}?cellId=${activeCell.id}&role=trainee`;
+                     const link = `${window.location.origin}${window.location.pathname}?${isLemeBranch ? 'branch=leme&' : ''}cellId=${activeCell.id}&role=trainee`;
                      navigator.clipboard.writeText(link);
                      alert('Link de convite para Líder em Treinamento copiado!\nEnvie para o seu auxiliar.');
                    }} 
@@ -1520,7 +1520,7 @@ function ChurchMembershipSystem() {
                 </p>
                 {isLeaderMode && session && (
                   <button 
-                    onClick={() => window.location.href = '/'} 
+                    onClick={() => window.location.href = isLemeBranch ? '/?branch=leme' : '/'} 
                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-full font-black text-[8px] uppercase italic tracking-tighter transition-all shadow-lg shadow-blue-600/40"
                   >
                     <ArrowLeft size={12} />
@@ -2794,7 +2794,7 @@ function ChurchMembershipSystem() {
                       </div>
 
                       <div className="flex gap-2">
-                        <button onClick={() => { const link = `${window.location.origin}${window.location.pathname}?cellId=${cell.id}`; navigator.clipboard.writeText(link); setCopiedId(cell.id); setTimeout(() => setCopiedId(null), 2000); }} className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 font-black text-[8px] uppercase tracking-widest transition-all ${copiedId === cell.id ? 'bg-emerald-600 text-white' : 'bg-blue-600/10 text-blue-500'}`}>{copiedId === cell.id ? 'Copiado!' : 'Link Líder'}</button>
+                        <button onClick={() => { const link = `${window.location.origin}${window.location.pathname}?${isLemeBranch ? 'branch=leme&' : ''}cellId=${cell.id}`; navigator.clipboard.writeText(link); setCopiedId(cell.id); setTimeout(() => setCopiedId(null), 2000); }} className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 font-black text-[8px] uppercase tracking-widest transition-all ${copiedId === cell.id ? 'bg-emerald-600 text-white' : 'bg-blue-600/10 text-blue-500'}`}>{copiedId === cell.id ? 'Copiado!' : 'Link Líder'}</button>
                         <button 
                           onClick={() => { setEditingCellId(cell.id); setCellForm(cell); setShowCellForm(true); }} 
                           className={`p-2.5 rounded-lg border ${darkMode ? 'border-white/10 text-white/50' : 'border-slate-200 text-slate-400'} hover:bg-blue-600/10 hover:text-blue-500 transition-all`}
