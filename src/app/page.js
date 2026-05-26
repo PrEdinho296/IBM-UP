@@ -1832,7 +1832,6 @@ function ChurchMembershipSystem() {
                   </div>
                 </div>
               </div>
-            </div>
               {(() => {
                 if (isLemeBranch) return null;
                 const lemeSectors = rawSectors.filter(s => (s.name || '').includes('[LEME]'));
