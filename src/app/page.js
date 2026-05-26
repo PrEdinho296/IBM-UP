@@ -1867,6 +1867,7 @@ function ChurchMembershipSystem() {
                   </div>
                 );
               })()}
+            </div>
           )}
 
           {activeTab === 'leader-dashboard' && isLeaderMode && activeCell && (
