@@ -23,9 +23,11 @@ function ChurchAppWrapper() {
 function ChurchMembershipSystem() {
   const searchParams = useSearchParams();
   const [cellIdParam, setCellIdParam] = useState(null);
+  const [isLemeBranch, setIsLemeBranch] = useState(false);
 
   useEffect(() => {
     setCellIdParam(searchParams.get('cellId'));
+    setIsLemeBranch(searchParams.get('branch') === 'leme');
   }, [searchParams]);
 
   const [darkMode, setDarkMode] = useState(() => {
@@ -39,10 +41,30 @@ function ChurchMembershipSystem() {
   useEffect(() => {
     localStorage.setItem('ibm_up_dark_mode', darkMode);
   }, [darkMode]);
-  const [members, setMembers] = useState([]);
-  const [cells, setCells] = useState([]);
-  const [sectors, setSectors] = useState([]);
-  const [reports, setReports] = useState([]);
+  const [rawMembers, setMembers] = useState([]);
+  const [rawCells, setCells] = useState([]);
+  const [rawSectors, setSectors] = useState([]);
+  const [rawReports, setReports] = useState([]);
+
+  // Derived state for multi-branch support
+  const sectors = rawSectors
+    .filter(s => isLemeBranch ? (s.name || '').includes('[LEME]') : !(s.name || '').includes('[LEME]'))
+    .map(s => ({ ...s, name: (s.name || '').replace('[LEME] ', '').replace('[LEME]', '') }));
+    
+  const cells = rawCells.filter(c => {
+    const sector = rawSectors.find(s => s.id === c.sector_id);
+    return isLemeBranch ? (sector?.name || '').includes('[LEME]') : !(sector?.name || '').includes('[LEME]');
+  });
+  
+  const members = rawMembers.filter(m => {
+    if (!m.cell_id) return !isLemeBranch;
+    const cell = cells.find(c => c.id === m.cell_id);
+    return !!cell;
+  });
+  
+  const reports = rawReports
+    .filter(r => isLemeBranch ? (r.notes || '').includes('[LEME]') : !(r.notes || '').includes('[LEME]'))
+    .map(r => ({ ...r, notes: (r.notes || '').replace('[LEME] ', '').replace('[LEME]', '') }));
   const [attendance, setAttendance] = useState([]);
   const [selectedMeetingDate, setSelectedMeetingDate] = useState(null);
   const [selectedSundayDate, setSelectedSundayDate] = useState(null);
@@ -563,7 +585,7 @@ function ChurchMembershipSystem() {
     const newValue = !isCurrentlyPresent;
     
     // Atualiza estado local do membro (para compatibilidade legada se necessário)
-    setMembers(members.map(m => m.id === memberId ? { ...m, [type]: newValue } : m));
+    setMembers(prev => prev.map(m => m.id === memberId ? { ...m, [type]: newValue } : m));
     
     // Payload para o histórico
     const payload = { 
@@ -682,7 +704,7 @@ function ChurchMembershipSystem() {
         return;
       }
       if (data) {
-        setMembers(members.map(m => m.id === editingId ? data[0] : m));
+        setMembers(prev => prev.map(m => m.id === editingId ? data[0] : m));
         setEditingId(null);
         setMemberForm({ name: '', email: '', phone: '', cell_id: '', status: 'active', cep: '', address: '', number: '', neighborhood: '', city: '', pl: false, ecc: false, bat: false, con: false, maturidade: false, ctl: false, ministerios: false, integracao: false, outros: false, attended_cell: false, attended_cult: false });
         setShowMemberForm(false);
@@ -695,7 +717,7 @@ function ChurchMembershipSystem() {
         return;
       }
       if (data) {
-        setMembers([...members, data[0]]);
+        setMembers(prev => [...prev, data[0]]);
         setMemberForm({ name: '', email: '', phone: '', cell_id: '', status: 'active', cep: '', address: '', number: '', neighborhood: '', city: '', pl: false, ecc: false, bat: false, con: false, maturidade: false, ctl: false, ministerios: false, integracao: false, outros: false, attended_cell: false, attended_cult: false });
         setShowMemberForm(false);
       }
@@ -716,7 +738,7 @@ function ChurchMembershipSystem() {
         return;
       }
       if (data) {
-        setCells(cells.map(c => c.id === editingCellId ? data[0] : c));
+        setCells(prev => prev.map(c => c.id === editingCellId ? data[0] : c));
         setEditingCellId(null);
         setCellForm({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30', login_email: '', login_password: '' });
         setShowCellForm(false);
@@ -729,7 +751,7 @@ function ChurchMembershipSystem() {
         return;
       }
       if (data) {
-        setCells([...cells, data[0]]);
+        setCells(prev => [...prev, data[0]]);
         setCellForm({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30', login_email: '', login_password: '' });
         setShowCellForm(false);
       }
@@ -812,7 +834,7 @@ function ChurchMembershipSystem() {
       console.error('Erro ao registrar visitante:', error);
       alert('Erro ao registrar visitante');
     } else if (data) {
-      setMembers([...members, data[0]]);
+      setMembers(prev => [...prev, data[0]]);
       setVisitorForm({ 
         name: '', phone: '', email: '', cep: '', address: '', number: '', neighborhood: '', city: '', 
         ministerios: '', suggested_cell: null, visit_type: 'manha'
@@ -850,9 +872,10 @@ function ChurchMembershipSystem() {
 
   const addSector = async () => {
     if (!sectorForm.name) return;
-    const { data } = await supabase.from('sectors').insert([sectorForm]).select();
+    const nameToSave = isLemeBranch ? `[LEME] ${sectorForm.name}` : sectorForm.name;
+    const { data } = await supabase.from('sectors').insert([{...sectorForm, name: nameToSave}]).select();
     if (data) {
-      setSectors([...sectors, data[0]]);
+      setSectors(prev => [...prev, data[0]]);
       setSectorForm({ name: '' });
       setShowSectorForm(false);
     }
@@ -872,6 +895,7 @@ function ChurchMembershipSystem() {
     const grandTotal = totalMembers + totalVisitors + totalKids;
 
     const detailedNotes = `[MANHÃ: P:${pM}, V:${vM}, C:${kM}] [NOITE: P:${pN}, V:${vN}, C:${kN}] ${reportForm.notes}`;
+    const finalNotes = isLemeBranch ? `[LEME] ${detailedNotes}` : detailedNotes;
 
     const payload = {
       date: reportForm.date,
@@ -879,21 +903,25 @@ function ChurchMembershipSystem() {
       visitors: totalVisitors,
       frequenters: totalKids,
       total: grandTotal,
-      notes: detailedNotes
+      notes: finalNotes
     };
 
-    // Verificar se já existe registro para esta data
-    const { data: existing } = await supabase.from('reports').select('*').eq('date', reportForm.date);
+    // Verificar se já existe registro para esta data E ramo
+    const { data: dbExisting } = await supabase.from('reports').select('*').eq('date', reportForm.date);
+    let existing = null;
+    if (dbExisting && dbExisting.length > 0) {
+      existing = dbExisting.find(r => isLemeBranch ? (r.notes || '').includes('[LEME]') : !(r.notes || '').includes('[LEME]'));
+    }
     
-    if (existing && existing.length > 0) {
-      const { data: updated } = await supabase.from('reports').update(payload).eq('id', existing[0].id).select();
+    if (existing) {
+      const { data: updated } = await supabase.from('reports').update(payload).eq('id', existing.id).select();
       if (updated) {
-        setReports(reports.map(r => r.id === existing[0].id ? updated[0] : r));
+        setReports(prev => prev.map(r => r.id === existing.id ? updated[0] : r));
       }
     } else {
       const { data: inserted } = await supabase.from('reports').insert([payload]).select();
       if (inserted) {
-        setReports([inserted[0], ...reports]);
+        setReports(prev => [inserted[0], ...prev]);
       }
     }
 
@@ -910,10 +938,10 @@ function ChurchMembershipSystem() {
     if (!confirm('Tem certeza?')) return;
     const { error } = await supabase.from(table).delete().eq('id', id);
     if (!error) {
-      if (table === 'members') setMembers(members.filter(m => m.id !== id));
-      if (table === 'cells') setCells(cells.filter(c => c.id !== id));
-      if (table === 'sectors') setSectors(sectors.filter(s => s.id !== id));
-      if (table === 'reports') setReports(reports.filter(r => r.id !== id));
+      if (table === 'members') setMembers(prev => prev.filter(m => m.id !== id));
+      if (table === 'cells') setCells(prev => prev.filter(c => c.id !== id));
+      if (table === 'sectors') setSectors(prev => prev.filter(s => s.id !== id));
+      if (table === 'reports') setReports(prev => prev.filter(r => r.id !== id));
     }
   };
 
@@ -1075,7 +1103,7 @@ function ChurchMembershipSystem() {
     const date = quickEntryForm.date;
     // Buscar do banco para garantir que não temos duplicados por race condition
     const { data: dbExisting } = await supabase.from('reports').select('*').eq('date', date);
-    const existing = dbExisting && dbExisting.length > 0 ? dbExisting[0] : null;
+    const existing = dbExisting && dbExisting.length > 0 ? dbExisting.find(r => isLemeBranch ? (r.notes || '').includes('[LEME]') : !(r.notes || '').includes('[LEME]')) : null;
     
     // Preparar dados com base no tipo
     const valP = Number(quickEntryForm.total);
@@ -1107,8 +1135,9 @@ function ChurchMembershipSystem() {
       const totalKids = kM + kN;
       const grandTotal = totalMembers + totalVisitors + totalKids;
       
-      const customNote = quickEntryForm.notes && quickEntryForm.notes.trim() !== '' ? quickEntryForm.notes.trim() : (existing.notes?.split('] ').pop() || '');
+      const customNote = quickEntryForm.notes && quickEntryForm.notes.trim() !== '' ? quickEntryForm.notes.trim() : (existing.notes?.split('] ').pop()?.replace('[LEME] ', '') || '');
       notes = `[MANHÃ: P:${pM}, V:${vM}, C:${kM}] [NOITE: P:${pN}, V:${vN}, C:${kN}] ${customNote}`;
+      if (isLemeBranch) notes = `[LEME] ${notes}`;
 
       payload = {
         members: totalMembers,
@@ -1132,6 +1161,7 @@ function ChurchMembershipSystem() {
       const grandTotal = totalMembers + totalVisitors + totalKids;
       const customNote = quickEntryForm.notes ? quickEntryForm.notes.trim() : '';
       notes = `[MANHÃ: P:${pM}, V:${vM}, C:${kM}] [NOITE: P:${pN}, V:${vN}, C:${kN}] ${customNote}`;
+      if (isLemeBranch) notes = `[LEME] ${notes}`;
 
       payload = {
         date,
@@ -1147,7 +1177,7 @@ function ChurchMembershipSystem() {
       
       // Atualizar estado local
       const { data: inserted } = await supabase.from('reports').select('*').eq('date', date).order('created_at', { ascending: false }).limit(1);
-      if (inserted) setReports([inserted[0], ...reports]);
+      if (inserted) setReports(prev => [inserted[0], ...prev]);
     }
 
     await fetchReports();
@@ -1903,6 +1933,40 @@ function ChurchMembershipSystem() {
                   </div>
                 </div>
               </div>
+              {(() => {
+                if (isLemeBranch) return null;
+                const lemeSectors = rawSectors.filter(s => (s.name || '').includes('[LEME]'));
+                const lemeCells = rawCells.filter(c => lemeSectors.some(s => s.id === c.sector_id));
+                const lemeMembers = rawMembers.filter(m => lemeCells.some(c => c.id === m.cell_id));
+                const lemeReports = rawReports.filter(r => (r.notes || '').includes('[LEME]'));
+                const latestLemeReport = lemeReports.length > 0 ? lemeReports[0] : null;
+
+                return (
+                  <div className={`mt-8 p-6 rounded-3xl border border-blue-500/10 ${darkMode ? 'bg-[#0f172a]' : 'bg-blue-50'}`}>
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-xl font-black italic uppercase tracking-tighter text-blue-500">Congregação LEME</h2>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Resumo Separado</div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className={`p-4 rounded-2xl ${darkMode ? 'bg-[#1e293b]' : 'bg-white'} border border-slate-500/10`}>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Células Leme</p>
+                        <p className="text-3xl font-black italic tracking-tighter">{lemeCells.length}</p>
+                      </div>
+                      <div className={`p-4 rounded-2xl ${darkMode ? 'bg-[#1e293b]' : 'bg-white'} border border-slate-500/10`}>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Membros Leme</p>
+                        <p className="text-3xl font-black italic tracking-tighter">{lemeMembers.length}</p>
+                      </div>
+                      <div className={`p-4 rounded-2xl ${darkMode ? 'bg-[#1e293b]' : 'bg-white'} border border-slate-500/10`}>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Último Culto Leme</p>
+                        <p className="text-3xl font-black italic tracking-tighter">{latestLemeReport ? latestLemeReport.total : 0}</p>
+                        <p className="text-[8px] uppercase text-slate-500 font-bold mt-1">
+                          {latestLemeReport ? formatDate(latestLemeReport.date) : 'Nenhum registro'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
