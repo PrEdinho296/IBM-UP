@@ -23,11 +23,12 @@ function ChurchAppWrapper() {
 function ChurchMembershipSystem() {
   const searchParams = useSearchParams();
   const [cellIdParam, setCellIdParam] = useState(null);
-  const [isLemeBranch, setIsLemeBranch] = useState(false);
+  const [currentBranch, setCurrentBranch] = useState(null);
 
   useEffect(() => {
     setCellIdParam(searchParams.get('cellId'));
-    setIsLemeBranch(searchParams.get('branch') === 'leme');
+    const branchParam = searchParams.get('branch');
+    setCurrentBranch(branchParam ? branchParam.toUpperCase() : null);
   }, [searchParams]);
 
   const [darkMode, setDarkMode] = useState(() => {
@@ -45,26 +46,36 @@ function ChurchMembershipSystem() {
   const [rawCells, setCells] = useState([]);
   const [rawSectors, setSectors] = useState([]);
   const [rawReports, setReports] = useState([]);
+  const [branchConfigs, setBranchConfigs] = useState([]);
 
   // Derived state for multi-branch support
+  const isBranchPrefix = (str, branchName) => (str || '').includes(`[${branchName}]`);
+  
   const sectors = rawSectors
-    .filter(s => isLemeBranch ? (s.name || '').includes('[LEME]') : !(s.name || '').includes('[LEME]'))
-    .map(s => ({ ...s, name: (s.name || '').replace('[LEME] ', '').replace('[LEME]', '') }));
+    .filter(s => {
+      if (currentBranch) return isBranchPrefix(s.name, currentBranch);
+      return !branchConfigs.some(b => isBranchPrefix(s.name, b.name));
+    })
+    .map(s => currentBranch ? { ...s, name: (s.name || '').replace(`[${currentBranch}] `, '').replace(`[${currentBranch}]`, '') } : s);
     
   const cells = rawCells.filter(c => {
     const sector = rawSectors.find(s => s.id === c.sector_id);
-    return isLemeBranch ? (sector?.name || '').includes('[LEME]') : !(sector?.name || '').includes('[LEME]');
+    if (currentBranch) return isBranchPrefix(sector?.name, currentBranch);
+    return !branchConfigs.some(b => isBranchPrefix(sector?.name, b.name));
   });
   
   const members = rawMembers.filter(m => {
-    if (!m.cell_id) return !isLemeBranch;
+    if (!m.cell_id) return !currentBranch;
     const cell = cells.find(c => c.id === m.cell_id);
     return !!cell;
   });
   
   const reports = rawReports
-    .filter(r => isLemeBranch ? (r.notes || '').includes('[LEME]') : !(r.notes || '').includes('[LEME]'))
-    .map(r => ({ ...r, notes: (r.notes || '').replace('[LEME] ', '').replace('[LEME]', '') }));
+    .filter(r => {
+      if (currentBranch) return isBranchPrefix(r.notes, currentBranch);
+      return !branchConfigs.some(b => isBranchPrefix(r.notes, b.name));
+    })
+    .map(r => currentBranch ? { ...r, notes: (r.notes || '').replace(`[${currentBranch}] `, '').replace(`[${currentBranch}]`, '') } : r);
   const [attendance, setAttendance] = useState([]);
   const [selectedMeetingDate, setSelectedMeetingDate] = useState(null);
   const [selectedSundayDate, setSelectedSundayDate] = useState(null);
@@ -303,6 +314,17 @@ function ChurchMembershipSystem() {
   const [recoveryEmail, setRecoveryEmail] = useState('');
   const [showResetForm, setShowResetForm] = useState(false);
 
+  const currentBranchPastor = branchConfigs.find(b => session?.user?.email?.toLowerCase() === b.pastor_email?.toLowerCase());
+  const isBranchPastor = !!currentBranchPastor;
+
+  useEffect(() => {
+    if (isBranchPastor && currentBranch !== currentBranchPastor.name) {
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('branch', currentBranchPastor.name.toLowerCase());
+      window.location.href = newUrl.toString();
+    }
+  }, [isBranchPastor, currentBranch, currentBranchPastor]);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -466,7 +488,7 @@ function ChurchMembershipSystem() {
       setShowResetForm(false);
       setAuthForm({ ...authForm, newPassword: '' });
       // Limpar a URL
-      window.location.href = isLemeBranch ? window.location.origin + window.location.pathname + '?branch=leme' : window.location.origin + window.location.pathname;
+      window.location.href = currentBranch ? window.location.origin + window.location.pathname + '?branch=' + currentBranch.toLowerCase() : window.location.origin + window.location.pathname;
     }
   };
 
@@ -475,7 +497,7 @@ function ChurchMembershipSystem() {
     if (!recoveryEmail) return;
     
     const { error } = await supabase.auth.resetPasswordForEmail(recoveryEmail, {
-      redirectTo: window.location.origin + window.location.pathname + (isLemeBranch ? '?branch=leme&mode=reset' : '?mode=reset'),
+      redirectTo: window.location.origin + window.location.pathname + (currentBranch ? '?branch=' + currentBranch.toLowerCase() + '&mode=reset' : '?mode=reset'),
     });
     
     if (error) {
@@ -486,6 +508,8 @@ function ChurchMembershipSystem() {
     }
   };
   const [sectorForm, setSectorForm] = useState({ name: '' });
+  const [showBranchForm, setShowBranchForm] = useState(false);
+  const [branchForm, setBranchForm] = useState({ name: '', pastor_email: '' });
   const [reportForm, setReportForm] = useState({ 
     date: getLocalDate(), 
     morning_people: 0, morning_visitors: 0, morning_kids: 0,
@@ -535,14 +559,16 @@ function ChurchMembershipSystem() {
       const { data: m } = await supabase.from('members').select('*').order('name');
       const { data: r } = await supabase.from('reports').select('*').order('date', { ascending: false });
       const { data: att } = await supabase.from('cell_attendance').select('*').order('date', { ascending: false });
+      const { data: bc } = await supabase.from('branch_configs').select('*').order('name');
 
       if (s) setSectors(s);
       if (c) setCells(c);
       if (m) setMembers(m);
       if (r) setReports(r);
       if (att) setAttendance(att);
+      if (bc) setBranchConfigs(bc);
 
-      return { sectors: s, cells: c, members: m, reports: r, attendance: att };
+      return { sectors: s, cells: c, members: m, reports: r, attendance: att, branchConfigs: bc };
     } catch (err) {
       console.error("Erro ao buscar dados", err);
       return null;
@@ -872,12 +898,29 @@ function ChurchMembershipSystem() {
 
   const addSector = async () => {
     if (!sectorForm.name) return;
-    const nameToSave = isLemeBranch ? `[LEME] ${sectorForm.name}` : sectorForm.name;
+    const nameToSave = currentBranch ? `[${currentBranch}] ${sectorForm.name}` : sectorForm.name;
     const { data } = await supabase.from('sectors').insert([{...sectorForm, name: nameToSave}]).select();
     if (data) {
       setSectors(prev => [...prev, data[0]]);
       setSectorForm({ name: '' });
       setShowSectorForm(false);
+    }
+  };
+
+  const addBranch = async (e) => {
+    e.preventDefault();
+    if (!branchForm.name || !branchForm.pastor_email) return;
+    const { data, error } = await supabase.from('branch_configs').insert([{ 
+      name: branchForm.name.toUpperCase().trim(),
+      pastor_email: branchForm.pastor_email.toLowerCase().trim()
+    }]).select();
+    
+    if (error) {
+      alert('Erro ao criar filial: ' + error.message);
+    } else if (data) {
+      setBranchConfigs(prev => [...prev, data[0]]);
+      setBranchForm({ name: '', pastor_email: '' });
+      setShowBranchForm(false);
     }
   };
 
@@ -895,7 +938,7 @@ function ChurchMembershipSystem() {
     const grandTotal = totalMembers + totalVisitors + totalKids;
 
     const detailedNotes = `[MANHÃ: P:${pM}, V:${vM}, C:${kM}] [NOITE: P:${pN}, V:${vN}, C:${kN}] ${reportForm.notes}`;
-    const finalNotes = isLemeBranch ? `[LEME] ${detailedNotes}` : detailedNotes;
+    const finalNotes = currentBranch ? `[${currentBranch}] ${detailedNotes}` : detailedNotes;
 
     const payload = {
       date: reportForm.date,
@@ -910,7 +953,7 @@ function ChurchMembershipSystem() {
     const { data: dbExisting } = await supabase.from('reports').select('*').eq('date', reportForm.date);
     let existing = null;
     if (dbExisting && dbExisting.length > 0) {
-      existing = dbExisting.find(r => isLemeBranch ? (r.notes || '').includes('[LEME]') : !(r.notes || '').includes('[LEME]'));
+      existing = dbExisting.find(r => currentBranch ? (r.notes || '').includes(`[${currentBranch}]`) : !(r.notes || '').match(/\[.*?\]/));
     }
     
     if (existing) {
@@ -942,6 +985,7 @@ function ChurchMembershipSystem() {
       if (table === 'cells') setCells(prev => prev.filter(c => c.id !== id));
       if (table === 'sectors') setSectors(prev => prev.filter(s => s.id !== id));
       if (table === 'reports') setReports(prev => prev.filter(r => r.id !== id));
+      if (table === 'branch_configs') setBranchConfigs(prev => prev.filter(b => b.id !== id));
     }
   };
 
@@ -1103,7 +1147,7 @@ function ChurchMembershipSystem() {
     const date = quickEntryForm.date;
     // Buscar do banco para garantir que não temos duplicados por race condition
     const { data: dbExisting } = await supabase.from('reports').select('*').eq('date', date);
-    const existing = dbExisting && dbExisting.length > 0 ? dbExisting.find(r => isLemeBranch ? (r.notes || '').includes('[LEME]') : !(r.notes || '').includes('[LEME]')) : null;
+    const existing = dbExisting && dbExisting.length > 0 ? dbExisting.find(r => currentBranch ? (r.notes || '').includes(`[${currentBranch}]`) : !(r.notes || '').match(/\[.*?\]/)) : null;
     
     // Preparar dados com base no tipo
     const valP = Number(quickEntryForm.total);
@@ -1135,9 +1179,9 @@ function ChurchMembershipSystem() {
       const totalKids = kM + kN;
       const grandTotal = totalMembers + totalVisitors + totalKids;
       
-      const customNote = quickEntryForm.notes && quickEntryForm.notes.trim() !== '' ? quickEntryForm.notes.trim() : (existing.notes?.split('] ').pop()?.replace('[LEME] ', '') || '');
+      const customNote = quickEntryForm.notes && quickEntryForm.notes.trim() !== '' ? quickEntryForm.notes.trim() : (existing.notes?.split('] ').pop()?.replace(`[${currentBranch}] `, '') || '');
       notes = `[MANHÃ: P:${pM}, V:${vM}, C:${kM}] [NOITE: P:${pN}, V:${vN}, C:${kN}] ${customNote}`;
-      if (isLemeBranch) notes = `[LEME] ${notes}`;
+      if (currentBranch) notes = `[${currentBranch}] ${notes}`;
 
       payload = {
         members: totalMembers,
@@ -1161,7 +1205,7 @@ function ChurchMembershipSystem() {
       const grandTotal = totalMembers + totalVisitors + totalKids;
       const customNote = quickEntryForm.notes ? quickEntryForm.notes.trim() : '';
       notes = `[MANHÃ: P:${pM}, V:${vM}, C:${kM}] [NOITE: P:${pN}, V:${vN}, C:${kN}] ${customNote}`;
-      if (isLemeBranch) notes = `[LEME] ${notes}`;
+      if (currentBranch) notes = `[${currentBranch}] ${notes}`;
 
       payload = {
         date,
@@ -1486,24 +1530,34 @@ function ChurchMembershipSystem() {
               
               <div className="pt-4 mt-4 border-t border-white/5 space-y-1">
                 <p className="text-[7px] font-black text-slate-500 uppercase px-3 mb-2 tracking-widest">Filtros Globais</p>
-                {isLemeBranch ? (
-                  <MenuBtn 
-                    icon={<MapPin size={18} className="text-amber-500" />} 
-                    label="Voltar p/ Sede" 
-                    active={false} 
-                    onClick={() => window.location.href = window.location.origin} 
-                    open={sidebarOpen} 
-                    dark={darkMode} 
-                  />
+                {currentBranch ? (
+                  !isBranchPastor && (
+                    <MenuBtn 
+                      icon={<MapPin size={18} className="text-amber-500" />} 
+                      label="Voltar p/ Sede" 
+                      active={false} 
+                      onClick={() => window.location.href = window.location.origin} 
+                      open={sidebarOpen} 
+                      dark={darkMode} 
+                    />
+                  )
                 ) : (
-                  <MenuBtn 
-                    icon={<MapPin size={18} className="text-blue-500" />} 
-                    label="Visão LEME" 
-                    active={false} 
-                    onClick={() => window.location.href = window.location.origin + '?branch=leme'} 
-                    open={sidebarOpen} 
-                    dark={darkMode} 
-                  />
+                  !isBranchPastor && branchConfigs.map(b => (
+                    <MenuBtn 
+                      key={b.id}
+                      icon={<MapPin size={18} className="text-blue-500" />} 
+                      label={`Visão ${b.name}`} 
+                      active={false} 
+                      onClick={() => window.location.href = window.location.origin + '?branch=' + b.name.toLowerCase()} 
+                      open={sidebarOpen} 
+                      dark={darkMode} 
+                    />
+                  ))
+                )}
+                {!isBranchPastor && !isLeaderMode && (
+                  <div className="pt-2">
+                    <MenuBtn icon={<Edit2 size={18} />} label="Configurar Filiais" active={activeTab === 'branch-configs'} onClick={() => setActiveTab('branch-configs')} open={sidebarOpen} dark={darkMode} />
+                  </div>
                 )}
               </div>
             </>
@@ -1585,6 +1639,49 @@ function ChurchMembershipSystem() {
         </header>
 
         <div className="p-6 md:p-10 space-y-6 md:space-y-10 animate-in fade-in duration-500 max-w-[1600px] mx-auto w-full">
+          {activeTab === 'branch-configs' && !isBranchPastor && (
+            <div className="space-y-8">
+              <header className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-3xl font-black italic uppercase tracking-tighter">Filiais</h2>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-1">Configuração de Pastores e Acessos</p>
+                </div>
+                <button 
+                  onClick={() => setShowBranchForm(true)}
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase italic tracking-widest shadow-xl shadow-blue-600/20 transition-all flex items-center gap-2"
+                >
+                  <Plus size={16} /> NOVA FILIAL
+                </button>
+              </header>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {branchConfigs.map(branch => (
+                  <div key={branch.id} className={`${t.card} p-6 rounded-3xl relative group`}>
+                    <button onClick={() => deleteItem('branch_configs', branch.id)} className="absolute top-4 right-4 p-2 text-red-500/50 hover:text-red-500 hover:bg-red-500/10 rounded-full transition-all opacity-0 group-hover:opacity-100">
+                      <Trash2 size={16} />
+                    </button>
+                    <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 mb-4">
+                      <MapPin size={24} />
+                    </div>
+                    <h3 className="text-xl font-black uppercase tracking-tighter mb-1">{branch.name}</h3>
+                    <p className="text-xs text-slate-500 font-bold break-all">{branch.pastor_email}</p>
+                    <div className="mt-4 pt-4 border-t border-white/5">
+                      <p className="text-[10px] text-emerald-500 font-black uppercase tracking-widest">
+                        PREFIXO: [{branch.name}]
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {branchConfigs.length === 0 && (
+                  <div className="col-span-full py-12 text-center border-2 border-dashed border-white/10 rounded-3xl">
+                    <MapPin size={48} className="mx-auto text-slate-500 mb-4 opacity-50" />
+                    <p className="text-lg font-black uppercase tracking-widest text-slate-400">Nenhuma Filial Cadastrada</p>
+                    <p className="text-xs font-bold text-slate-500 mt-2 max-w-md mx-auto">Cadastre filiais para fornecer um painel isolado para os pastores e usar o prefixo dinâmico no banco de dados.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {(activeTab === 'cultos' || activeTab === 'leader-culto') && (
             <div className="space-y-8">
               <header className="flex justify-between items-center">
@@ -3026,6 +3123,30 @@ function ChurchMembershipSystem() {
             <div className="p-6 border-t border-white/5 flex gap-4 shrink-0 bg-inherit rounded-b-2xl">
               <button onClick={() => setShowCellForm(false)} className="flex-1 py-4 text-slate-500 font-black uppercase text-xs hover:bg-white/5 rounded-xl transition-all">Cancelar</button>
               <button onClick={addCell} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-xl font-black text-sm uppercase italic transition-all shadow-lg shadow-indigo-600/20 active:scale-95">Salvar Célula</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showBranchForm && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center p-2 sm:p-4 overflow-hidden">
+          <div className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-md rounded-2xl border ${t.border} shadow-2xl flex flex-col relative text-left`}>
+            <div className="p-6 border-b border-white/5 flex justify-between items-center shrink-0">
+              <h2 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter">Nova Filial</h2>
+              <button onClick={() => { setShowBranchForm(false); setBranchForm({ name: '', pastor_email: '' }); }} className="p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24} /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <InputCompact label="NOME DA FILIAL (EX: LEME)" value={branchForm.name} onChange={val => setBranchForm({ ...branchForm, name: val })} dark={darkMode} />
+              <InputCompact label="E-MAIL DO PASTOR (LOGIN)" value={branchForm.pastor_email} onChange={val => setBranchForm({ ...branchForm, pastor_email: val })} dark={darkMode} type="email" autoCapitalize="none" />
+              <div className="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                <p className="text-[10px] text-emerald-500 font-bold leading-relaxed">
+                  Ao criar, o pastor logado com este e-mail será forçado para o painel desta filial. O sistema usará o prefixo <strong>[{branchForm.name ? branchForm.name.toUpperCase() : 'FILIAL'}]</strong> para filtrar setores e células.
+                </p>
+              </div>
+            </div>
+            <div className="p-6 border-t border-white/5 flex gap-4 shrink-0 bg-inherit rounded-b-2xl">
+              <button onClick={() => setShowBranchForm(false)} className="flex-1 py-4 text-slate-500 font-black uppercase text-xs hover:bg-white/5 rounded-xl transition-all">Cancelar</button>
+              <button onClick={addBranch} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl font-black text-sm uppercase italic transition-all shadow-lg active:scale-95">Criar Filial</button>
             </div>
           </div>
         </div>
