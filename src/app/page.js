@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 // VERSION v2026.05.11.0317 - floating save and topbar sync fix
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -83,16 +83,16 @@ function ChurchMembershipSystem() {
   const [searchTerm, setSearchTerm] = useState('');
 
   const getMeetingDates = (dayOfWeek, refDate = null) => {
-    const daysMap = { 'domingo': 0, 'segunda': 1, 'terÃ§a': 2, 'quarta': 3, 'quinta': 4, 'sexta': 5, 'sÃ¡bado': 6 };
+    const daysMap = { 'domingo': 0, 'segunda': 1, 'terça': 2, 'quarta': 3, 'quinta': 4, 'sexta': 5, 'sábado': 6 };
     const targetDay = daysMap[dayOfWeek?.toLowerCase()] ?? 3;
     const datesList = [];
     const base = refDate ? new Date(refDate + 'T12:00:00') : new Date();
     
-    // Se estivermos em um sÃ¡bado e procurando domingo, ou similar, podemos querer olhar pra frente
+    // Se estivermos em um sábado e procurando domingo, ou similar, podemos querer olhar pra frente
     let current = new Date(base);
     
-    // Ajustar para o dia da semana alvo mais prÃ³ximo (pode ser futuro se for amanhÃ£)
-    // Se hoje Ã© SÃ¡bado (6) e alvo Ã© Domingo (0), e queremos ver o futuro:
+    // Ajustar para o dia da semana alvo mais próximo (pode ser futuro se for amanhã)
+    // Se hoje é Sábado (6) e alvo é Domingo (0), e queremos ver o futuro:
     if (!refDate && base.getDay() === 6 && targetDay === 0) {
       current.setDate(base.getDate() + 1);
     } else {
@@ -114,7 +114,7 @@ function ChurchMembershipSystem() {
     const cellDay = cell?.day_of_week || 'quarta';
     
     // Se estivermos no modo global (dashboard), ignoramos a data selecionada individualmente
-    // e buscamos a data mais recente daquela cÃ©lula especÃ­fica.
+    // e buscamos a data mais recente daquela célula específica.
     const targetCellDate = (selectedMeetingDate && !forceLatest) ? selectedMeetingDate : getMeetingDates(cellDay).pop();
     const targetSundayDate = (selectedSundayDate && !forceLatest) ? selectedSundayDate : getMeetingDates('domingo').pop();
 
@@ -137,21 +137,21 @@ function ChurchMembershipSystem() {
       ? getMeetingDates(cells.find(c => c.id === m.cell_id)?.day_of_week || 'quarta')
       : getMeetingDates('domingo');
     
-    // Pegar as Ãºltimas 3 datas
+    // Pegar as últimas 3 datas
     const last3 = dates.slice(-3).reverse();
     if (last3.length < 3) return false;
 
     // Verificar se faltou em todas as 3
     return last3.every(d => {
       const att = attendance.find(a => a.member_id === m.id && a.date === d);
-      return att?.status === 'F' || !att; // Se nÃ£o tem registro, consideramos falta no contexto de alerta? 
-      // Na verdade, se nÃ£o tem registro o lÃ­der nÃ£o lanÃ§ou. Vamos considerar falta apenas se houver registro 'F'.
-      // Mas o usuÃ¡rio quer alerta se o membro faltar. Se o lÃ­der nÃ£o lanÃ§ou, nÃ£o sabemos.
+      return att?.status === 'F' || !att; // Se não tem registro, consideramos falta no contexto de alerta? 
+      // Na verdade, se não tem registro o líder não lançou. Vamos considerar falta apenas se houver registro 'F'.
+      // Mas o usuário quer alerta se o membro faltar. Se o líder não lançou, não sabemos.
       // Vamos considerar apenas registros 'F'.
     });
   };
 
-  // Melhorado: Alerta se faltou 3 vezes seguidas (tem registro 'F' ou nÃ£o tem registro 'P')
+  // Melhorado: Alerta se faltou 3 vezes seguidas (tem registro 'F' ou não tem registro 'P')
   const hasAbsenceAlert = (m) => {
     const checkConsecutive = (type) => {
       const dates = type === 'cell' 
@@ -163,7 +163,7 @@ function ChurchMembershipSystem() {
 
       return last3.every(d => {
         const att = attendance.find(a => a.member_id === m.id && a.date === d);
-        return att?.status === 'F'; // Apenas se o lÃ­der marcou explicitamente como falta
+        return att?.status === 'F'; // Apenas se o líder marcou explicitamente como falta
       });
     };
 
@@ -264,11 +264,11 @@ function ChurchMembershipSystem() {
   const findClosestCell = (cep, neighborhood) => {
     if (!cells.length) return null;
     
-    // 1. Tentar por bairro exato (Maior PrecisÃ£o)
+    // 1. Tentar por bairro exato (Maior Precisão)
     const byNeighborhood = cells.filter(c => c.neighborhood?.toLowerCase() === neighborhood?.toLowerCase());
     if (byNeighborhood.length > 0) return byNeighborhood[0];
     
-    // 2. Tentar por distÃ¢ncia numÃ©rica de CEP (Menor diferenÃ§a absoluta)
+    // 2. Tentar por distância numérica de CEP (Menor diferença absoluta)
     const visitorCepNum = parseInt(cep.replace(/\D/g, ''));
     let closest = cells[0];
     let minDiff = Infinity;
@@ -351,7 +351,7 @@ function ChurchMembershipSystem() {
       if (sundayDates.length > 0) setSelectedSundayDate(sundayDates[sundayDates.length - 1]);
     }
 
-    // InscriÃ§Ã£o em Tempo Real para AtualizaÃ§Ãµes do Pastor
+    // Inscrição em Tempo Real para Atualizações do Pastor
     const attendanceChannel = supabase
       .channel('schema-db-changes')
       .on(
@@ -374,7 +374,7 @@ function ChurchMembershipSystem() {
         { event: '*', schema: 'public', table: 'reports' },
         (payload) => {
           console.log('Real-time Reports:', payload);
-          fetchReports(); // Recarrega os relatÃ³rios consolidados
+          fetchReports(); // Recarrega os relatórios consolidados
         }
       )
       .subscribe();
@@ -408,7 +408,7 @@ function ChurchMembershipSystem() {
     e.preventDefault();
     setAuthLoading(true);
     
-    // Garantir que comeÃ§amos do zero (limpa qualquer rastro de login anterior)
+    // Garantir que começamos do zero (limpa qualquer rastro de login anterior)
     await supabase.auth.signOut();
     localStorage.removeItem('ibm_up_leader_cell');
     setLeaderCell(null);
@@ -424,7 +424,7 @@ function ChurchMembershipSystem() {
       return;
     }
 
-    // 2. Tentar Login de LÃ­der (Tabela cells)
+    // 2. Tentar Login de Líder (Tabela cells)
     const cellData = cells.find(c => 
       (c.login_email && authForm.email && 
        c.login_email.toLowerCase() === authForm.email.toLowerCase() && 
@@ -451,9 +451,9 @@ function ChurchMembershipSystem() {
       const sundayDates = getMeetingDates('domingo');
       if (sundayDates.length > 0) setSelectedSundayDate(sundayDates[sundayDates.length - 1]);
       
-      alert(`Bem-vindo, ${isTrainee ? 'LÃ­der em Treinamento' : 'LÃ­der'} da cÃ©lula ${cellData.name}!`);
+      alert(`Bem-vindo, ${isTrainee ? 'Líder em Treinamento' : 'Líder'} da célula ${cellData.name}!`);
     } else {
-      alert('Credenciais invÃ¡lidas. Verifique o e-mail e senha.');
+      alert('Credenciais inválidas. Verifique o e-mail e senha.');
     }
     
     setAuthLoading(false);
@@ -467,7 +467,7 @@ function ChurchMembershipSystem() {
     setActiveCell(null);
     localStorage.removeItem('ibm_up_leader_cell');
     
-    // Redirecionar para a pÃ¡gina limpa (sem parÃ¢metros de URL) para evitar entrar no modo lÃ­der pÃºblico
+    // Redirecionar para a página limpa (sem parâmetros de URL) para evitar entrar no modo líder público
     window.location.href = window.location.origin + window.location.pathname;
   };
 
@@ -476,14 +476,14 @@ function ChurchMembershipSystem() {
     const { error } = await supabase.auth.updateUser({ password: authForm.newPassword });
     if (error) alert('Erro ao alterar senha: ' + error.message);
     else {
-      // Se estiver no modo de recuperaÃ§Ã£o, precisamos atualizar tambÃ©m na tabela cells
+      // Se estiver no modo de recuperação, precisamos atualizar também na tabela cells
       const user = (await supabase.auth.getUser()).data.user;
       if (user?.email) {
         await supabase.from('cells').update({ login_password: authForm.newPassword }).eq('login_email', user.email);
         await supabase.from('cells').update({ trainee_login_password: authForm.newPassword }).eq('trainee_login_email', user.email);
       }
       
-      alert('Senha alterada com sucesso! VocÃª jÃ¡ pode logar.');
+      alert('Senha alterada com sucesso! Você já pode logar.');
       setIsChangingPassword(false);
       setShowResetForm(false);
       setAuthForm({ ...authForm, newPassword: '' });
@@ -503,7 +503,7 @@ function ChurchMembershipSystem() {
     if (error) {
       alert('Erro ao enviar e-mail: ' + error.message);
     } else {
-      alert('E-mail de recuperaÃ§Ã£o enviado! Verifique sua caixa de entrada.');
+      alert('E-mail de recuperação enviado! Verifique sua caixa de entrada.');
       setIsRecoveringPassword(false);
     }
   };
@@ -519,7 +519,7 @@ function ChurchMembershipSystem() {
 
   useEffect(() => {
     const initFetch = async () => {
-      // Detectar modo de recuperaÃ§Ã£o
+      // Detectar modo de recuperação
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('mode') === 'reset' || window.location.hash.includes('type=recovery')) {
         setShowResetForm(true);
@@ -538,11 +538,11 @@ function ChurchMembershipSystem() {
           
           const sundayDates = getMeetingDates('domingo');
           if (sundayDates.length > 0) setSelectedSundayDate(sundayDates[sundayDates.length - 1]);
-          // NÃ£o ativamos mais o modo lÃ­der automaticamente via URL.
-          // O usuÃ¡rio deve logar ou clicar em "Primeiro Acesso" na tela de login.
+          // Não ativamos mais o modo líder automaticamente via URL.
+          // O usuário deve logar ou clicar em "Primeiro Acesso" na tela de login.
         }
       } else {
-        // Se nÃ£o for modo lÃ­der, inicializar datas padrÃ£o para o Pastor ver alertas/dashboard
+        // Se não for modo líder, inicializar datas padrão para o Pastor ver alertas/dashboard
         const sundayDates = getMeetingDates('domingo');
         if (sundayDates.length > 0) setSelectedSundayDate(sundayDates[sundayDates.length - 1]);
       }
@@ -610,10 +610,10 @@ function ChurchMembershipSystem() {
     const isCurrentlyPresent = existing?.status === 'P';
     const newValue = !isCurrentlyPresent;
     
-    // Atualiza estado local do membro (para compatibilidade legada se necessÃ¡rio)
+    // Atualiza estado local do membro (para compatibilidade legada se necessário)
     setMembers(prev => prev.map(m => m.id === memberId ? { ...m, [type]: newValue } : m));
     
-    // Payload para o histÃ³rico
+    // Payload para o histórico
     const payload = { 
       member_id: memberId, 
       cell_id: member.cell_id, 
@@ -621,7 +621,7 @@ function ChurchMembershipSystem() {
       status: newValue ? 'P' : 'F' 
     };
     
-    // Atualiza estado local da frequÃªncia
+    // Atualiza estado local da frequência
     setAttendance(prev => {
       const other = prev.filter(a => !(a.member_id === memberId && a.date === currentMeetingDate));
       return [...other, { ...payload, id: existing?.id || Date.now() }];
@@ -629,7 +629,7 @@ function ChurchMembershipSystem() {
     
     await supabase.from('cell_attendance').upsert([payload], { onConflict: 'member_id,date' });
     
-    // TambÃ©m atualizamos o booleano no membro para o painel simplificado
+    // Também atualizamos o booleano no membro para o painel simplificado
     await supabase.from('members').update({ [type]: newValue }).eq('id', memberId);
   };
 
@@ -656,7 +656,7 @@ function ChurchMembershipSystem() {
       });
     } else {
       setAttendance(prev => prev.filter(a => !(a.member_id === memberId && a.date === date)));
-      // Adiciona exclusÃ£o pendente (status null significa deletar)
+      // Adiciona exclusão pendente (status null significa deletar)
       setPendingAttendance(prev => {
         const other = prev.filter(p => !(p.member_id === memberId && p.date === date));
         return [...other, { member_id: memberId, cell_id: cellId, date, status: null }];
@@ -682,9 +682,9 @@ function ChurchMembershipSystem() {
       }
 
       setPendingAttendance([]);
-      alert('AlteraÃ§Ãµes salvas com sucesso e sincronizadas com o Pastor!');
+      alert('Alterações salvas com sucesso e sincronizadas com o Pastor!');
     } catch (err) {
-      console.error('Erro ao salvar frequÃªncia:', err);
+      console.error('Erro ao salvar frequência:', err);
       alert('Erro ao salvar: ' + err.message);
     } finally {
       setIsSavingAttendance(false);
@@ -695,8 +695,8 @@ function ChurchMembershipSystem() {
     const cId = isLeaderMode ? activeCell?.id : memberForm.cell_id;
     if (!memberForm.name) return;
 
-    // Enviar APENAS os campos vÃ¡lidos da tabela members
-    // TODOS estes campos sÃ£o BOOLEAN no banco (verificado via schema)
+    // Enviar APENAS os campos válidos da tabela members
+    // TODOS estes campos são BOOLEAN no banco (verificado via schema)
     const booleanFields = [
       'pl', 'ecc', 'bat', 'con', 'maturidade', 'ctl',
       'integracao', 'outros', 'attended_cell', 'attended_cult',
@@ -709,7 +709,7 @@ function ChurchMembershipSystem() {
     const finalData = { cell_id: cId ? Number(cId) : null };
     textFields.forEach(field => {
       const val = memberForm[field];
-      // Enviar null para campos vazios (compatÃ­vel com o schema do Supabase)
+      // Enviar null para campos vazios (compatível com o schema do Supabase)
       finalData[field] = (val && val.toString().trim() !== '') ? val : null;
     });
     // Garantir que name nunca seja null
@@ -726,7 +726,7 @@ function ChurchMembershipSystem() {
       const { data, error } = await supabase.from('members').update(finalData).eq('id', editingId).select();
       if (error) {
         console.error('Erro ao atualizar membro:', error);
-        alert('Erro ao salvar alteraÃ§Ãµes: ' + (error.message || error.details || JSON.stringify(error)));
+        alert('Erro ao salvar alterações: ' + (error.message || error.details || JSON.stringify(error)));
         return;
       }
       if (data) {
@@ -753,14 +753,14 @@ function ChurchMembershipSystem() {
   const addCell = async () => {
     if (!cellForm.name || !cellForm.sector_id) return;
 
-    // Remover campos que nÃ£o devem ser enviados na atualizaÃ§Ã£o/inserÃ§Ã£o
+    // Remover campos que não devem ser enviados na atualização/inserção
     const { id, created_at, ...payload } = cellForm;
 
     if (editingCellId) {
       const { data, error } = await supabase.from('cells').update(payload).eq('id', editingCellId).select();
       if (error) {
-        console.error('Erro ao atualizar cÃ©lula:', error);
-        alert('Erro ao salvar alteraÃ§Ãµes na cÃ©lula');
+        console.error('Erro ao atualizar célula:', error);
+        alert('Erro ao salvar alterações na célula');
         return;
       }
       if (data) {
@@ -772,8 +772,8 @@ function ChurchMembershipSystem() {
     } else {
       const { data, error } = await supabase.from('cells').insert([payload]).select();
       if (error) {
-        console.error('Erro ao criar cÃ©lula:', error);
-        alert('Erro ao criar nova cÃ©lula');
+        console.error('Erro ao criar célula:', error);
+        alert('Erro ao criar nova célula');
         return;
       }
       if (data) {
@@ -789,7 +789,7 @@ function ChurchMembershipSystem() {
     const isTraineeMode = searchParams.get('role') === 'trainee';
     const cellId = leaderCell?.id || activeCell?.id || selectedCellForConfig?.id;
     if (!cellId) {
-      alert('Por favor, selecione uma cÃ©lula.');
+      alert('Por favor, selecione uma célula.');
       return;
     }
     if (!leaderConfigForm.email || !leaderConfigForm.password) {
@@ -814,9 +814,9 @@ function ChurchMembershipSystem() {
       .eq('id', cellId);
 
     if (error) {
-      alert('Erro ao salvar configuraÃ§Ã£o: ' + error.message);
+      alert('Erro ao salvar configuração: ' + error.message);
     } else {
-      // Tentar criar o usuÃ¡rio no Supabase Auth para permitir recuperaÃ§Ã£o de senha futura
+      // Tentar criar o usuário no Supabase Auth para permitir recuperação de senha futura
       await supabase.auth.signUp({
         email: leaderConfigForm.email,
         password: leaderConfigForm.password,
@@ -830,7 +830,7 @@ function ChurchMembershipSystem() {
       const updatedCell = { ...targetCell, ...payload };
       if (leaderCell) setLeaderCell(updatedCell);
       setActiveCell(updatedCell);
-      // Recarregar dados para garantir que a lista de cÃ©lulas esteja atualizada
+      // Recarregar dados para garantir que a lista de células esteja atualizada
       fetchData();
     }
   };
@@ -865,7 +865,7 @@ function ChurchMembershipSystem() {
         name: '', phone: '', email: '', cep: '', address: '', number: '', neighborhood: '', city: '', 
         ministerios: '', suggested_cell: null, visit_type: 'manha'
       });
-      alert('Visitante registrado com sucesso! O formulÃ¡rio foi limpo para o prÃ³ximo.');
+      alert('Visitante registrado com sucesso! O formulário foi limpo para o próximo.');
     }
   };
 
@@ -873,17 +873,17 @@ function ChurchMembershipSystem() {
     const header = "NOME;TELEFONE;CELULA;DISCIPULADOR;CURSOS;STATUS CULTO;STATUS CELULA;ENGAJAMENTO\n";
     const rows = filteredMembers.map(m => {
       const { isPresentCell, isPresentCult } = getMemberEngagement(m);
-      const cellName = cells.find(c => c.id === m.cell_id)?.name || 'Sem CÃ©lula';
+      const cellName = cells.find(c => c.id === m.cell_id)?.name || 'Sem Célula';
       const eng = isPresentCell && isPresentCult ? 'AMBOS' :
-        isPresentCell ? 'SÃ“ CÃ‰LULA' :
-          isPresentCult ? 'SÃ“ CULTO' : 'INATIVO';
+        isPresentCell ? 'SÓ CÉLULA' :
+          isPresentCult ? 'SÓ CULTO' : 'INATIVO';
 
       const courses = [
         m.ecc && 'ECC', m.bat && 'BAT', m.integracao && 'FCC', m.con && 'CON',
         m.maturidade && 'TMC', m.ctl && 'MSD', m.pl && 'PL'
       ].filter(Boolean).join(', ');
 
-      return `${m.name};${m.phone || ''};${cellName};${m.ministerios ? 'SIM' : 'NÃƒO'};${courses};${isPresentCult ? 'PRESENTE' : 'FALTOU'};${isPresentCell ? 'PRESENTE' : 'FALTOU'};${eng}`;
+      return `${m.name};${m.phone || ''};${cellName};${m.ministerios ? 'SIM' : 'NÃO'};${courses};${isPresentCult ? 'PRESENTE' : 'FALTOU'};${isPresentCell ? 'PRESENTE' : 'FALTOU'};${eng}`;
     }).join('\n');
 
     const blob = new Blob(["\ufeff" + header + rows], { type: 'text/csv;charset=utf-8;' });
@@ -937,7 +937,7 @@ function ChurchMembershipSystem() {
     const totalKids = kM + kN;
     const grandTotal = totalMembers + totalVisitors + totalKids;
 
-    const detailedNotes = `[MANHÃƒ: P:${pM}, V:${vM}, C:${kM}] [NOITE: P:${pN}, V:${vN}, C:${kN}] ${reportForm.notes}`;
+    const detailedNotes = `[MANHÃ: P:${pM}, V:${vM}, C:${kM}] [NOITE: P:${pN}, V:${vN}, C:${kN}] ${reportForm.notes}`;
     const finalNotes = currentBranch ? `[${currentBranch}] ${detailedNotes}` : detailedNotes;
 
     const payload = {
@@ -949,7 +949,7 @@ function ChurchMembershipSystem() {
       notes: finalNotes
     };
 
-    // Verificar se jÃ¡ existe registro para esta data E ramo
+    // Verificar se já existe registro para esta data E ramo
     const { data: dbExisting } = await supabase.from('reports').select('*').eq('date', reportForm.date);
     let existing = null;
     if (dbExisting && dbExisting.length > 0) {
@@ -1014,8 +1014,8 @@ function ChurchMembershipSystem() {
   }, [members, attendance, isLeaderMode, activeCell, cells, selectedMeetingDate, selectedSundayDate]);
 
   const loyaltyData = [
-    { name: 'SÃ³ CÃ©lula', value: stats.onlyCell, color: '#f59e0b' },
-    { name: 'SÃ³ Culto', value: stats.onlyCulto, color: '#a855f7' },
+    { name: 'Só Célula', value: stats.onlyCell, color: '#f59e0b' },
+    { name: 'Só Culto', value: stats.onlyCulto, color: '#a855f7' },
     { name: 'Ambos', value: stats.both, color: '#10b981' },
     { name: 'Inativos', value: stats.none, color: '#ef4444' },
   ];
@@ -1025,11 +1025,11 @@ function ChurchMembershipSystem() {
     return [
       { name: 'CASAIS COM CRISTO', value: activeMembers.filter(m => m.ecc).length, color: '#3b82f6', short: 'ECC' },
       { name: 'BATISMO', value: activeMembers.filter(m => m.bat).length, color: '#10b981', short: 'BAT' },
-      { name: 'INTEGRAÃ‡ÃƒO', value: activeMembers.filter(m => m.integracao).length, color: '#f59e0b', short: 'FCC' },
-      { name: 'CONSOLIDAÃ‡ÃƒO', value: activeMembers.filter(m => m.con).length, color: '#ef4444', short: 'CON' },
+      { name: 'INTEGRAÇÃO', value: activeMembers.filter(m => m.integracao).length, color: '#f59e0b', short: 'FCC' },
+      { name: 'CONSOLIDAÇÃO', value: activeMembers.filter(m => m.con).length, color: '#ef4444', short: 'CON' },
       { name: 'MATURIDADE', value: activeMembers.filter(m => m.maturidade).length, color: '#a855f7', short: 'TMC' },
       { name: 'DISCIPULADO', value: activeMembers.filter(m => m.ctl).length, color: '#64748b', short: 'MSD' },
-      { name: 'POTENCIAL LÃDER', value: activeMembers.filter(m => m.pl).length, color: '#6366f1', short: 'PL' },
+      { name: 'POTENCIAL LÍDER', value: activeMembers.filter(m => m.pl).length, color: '#6366f1', short: 'PL' },
       { name: 'VISITANTE', value: activeMembers.filter(m => m.outros).length, color: '#ec4899', short: 'VS' },
     ].sort((a, b) => b.value - a.value);
   }, [members, isLeaderMode, activeCell]);
@@ -1054,7 +1054,7 @@ function ChurchMembershipSystem() {
       const isSabado = d.getDay() === 6;
 
       const notesStr = String(r.notes || '');
-      const manhaMatch = notesStr.match(/(?:MANH[ÃƒA]):\s*P:(\d+),\s*V:(\d+),\s*C:(\d+)/i);
+      const manhaMatch = notesStr.match(/(?:MANH[ÃA]):\s*P:(\d+),\s*V:(\d+),\s*C:(\d+)/i);
       const noiteMatch = notesStr.match(/(?:NOITE):\s*P:(\d+),\s*V:(\d+),\s*C:(\d+)/i);
 
       const valManha = manhaMatch ? (Number(manhaMatch[1]) + Number(manhaMatch[2]) + Number(manhaMatch[3])) : 0;
@@ -1071,7 +1071,7 @@ function ChurchMembershipSystem() {
     const sorted = Object.values(processedData).sort((a, b) => a.date.localeCompare(b.date));
     let filtered = sorted;
     const now = new Date();
-    if (timeFilter === 'Este MÃªs') filtered = sorted.filter(r => r.date >= new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]);
+    if (timeFilter === 'Este Mês') filtered = sorted.filter(r => r.date >= new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]);
     else if (timeFilter === '12m') filtered = sorted.filter(r => r.date >= new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()).toISOString().split('T')[0]);
     else if (timeFilter === '24m') filtered = sorted.filter(r => r.date >= new Date(now.getFullYear() - 2, now.getMonth(), now.getDate()).toISOString().split('T')[0]);
 
@@ -1088,7 +1088,7 @@ function ChurchMembershipSystem() {
   const leaderChartData = React.useMemo(() => {
     if (!attendance || attendance.length === 0) return [];
     
-    // 1. Identificar quem sÃ£o os membros relevantes para este grÃ¡fico
+    // 1. Identificar quem são os membros relevantes para este gráfico
     const relevantMembers = isLeaderMode && activeCell 
       ? members.filter(m => Number(m.cell_id) === Number(activeCell.id) && !m.outros)
       : members.filter(m => !m.outros);
@@ -1096,7 +1096,7 @@ function ChurchMembershipSystem() {
     const relevantMemberIds = new Set(relevantMembers.map(m => m.id));
     const expected = relevantMembers.length;
 
-    // 2. Filtrar presenÃ§as apenas desses membros
+    // 2. Filtrar presenças apenas desses membros
     const filteredAttendance = attendance.filter(a => relevantMemberIds.has(a.member_id));
 
     const processedData = {};
@@ -1114,7 +1114,7 @@ function ChurchMembershipSystem() {
       else processedData[a.date].celula++;
     });
 
-    // 3. Calcular ausentes com base no esperado daquela cÃ©lula (ou geral)
+    // 3. Calcular ausentes com base no esperado daquela célula (ou geral)
     Object.keys(processedData).forEach(date => {
       const d = new Date(date + 'T12:00:00');
       const isSunday = d.getDay() === 0;
@@ -1128,7 +1128,7 @@ function ChurchMembershipSystem() {
     const sorted = Object.values(processedData).sort((a, b) => a.date.localeCompare(b.date));
     let filtered = sorted;
     const now = new Date();
-    if (timeFilter === 'Este MÃªs') filtered = sorted.filter(r => r.date >= new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]);
+    if (timeFilter === 'Este Mês') filtered = sorted.filter(r => r.date >= new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]);
     else if (timeFilter === '12m') filtered = sorted.filter(r => r.date >= new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()).toISOString().split('T')[0]);
     
     return filtered.map(r => {
@@ -1145,7 +1145,7 @@ function ChurchMembershipSystem() {
     if (!quickEntryForm.total) return alert('Informe o total de pessoas.');
 
     const date = quickEntryForm.date;
-    // Buscar do banco para garantir que nÃ£o temos duplicados por race condition
+    // Buscar do banco para garantir que não temos duplicados por race condition
     const { data: dbExisting } = await supabase.from('reports').select('*').eq('date', date);
     const existing = dbExisting && dbExisting.length > 0 ? dbExisting.find(r => currentBranch ? (r.notes || '').includes(`[${currentBranch}]`) : !(r.notes || '').match(/\[.*?\]/)) : null;
     
@@ -1158,9 +1158,9 @@ function ChurchMembershipSystem() {
     let notes = '';
 
     if (existing) {
-      // Se jÃ¡ existe, vamos atualizar apenas a parte correspondente
+      // Se já existe, vamos atualizar apenas a parte correspondente
       // Tentamos extrair os valores atuais das notas ou colunas
-      const manhaMatch = existing.notes?.match(/MANHÃƒ: P:(\d+), V:(\d+), C:(\d+)/);
+      const manhaMatch = existing.notes?.match(/MANHÃ: P:(\d+), V:(\d+), C:(\d+)/);
       const noiteMatch = existing.notes?.match(/NOITE: P:(\d+), V:(\d+), C:(\d+)/);
 
       let pM = manhaMatch ? Number(manhaMatch[1]) : 0;
@@ -1180,7 +1180,7 @@ function ChurchMembershipSystem() {
       const grandTotal = totalMembers + totalVisitors + totalKids;
       
       const customNote = quickEntryForm.notes && quickEntryForm.notes.trim() !== '' ? quickEntryForm.notes.trim() : (existing.notes?.split('] ').pop()?.replace(`[${currentBranch}] `, '') || '');
-      notes = `[MANHÃƒ: P:${pM}, V:${vM}, C:${kM}] [NOITE: P:${pN}, V:${vN}, C:${kN}] ${customNote}`;
+      notes = `[MANHÃ: P:${pM}, V:${vM}, C:${kM}] [NOITE: P:${pN}, V:${vN}, C:${kN}] ${customNote}`;
       if (currentBranch) notes = `[${currentBranch}] ${notes}`;
 
       payload = {
@@ -1204,7 +1204,7 @@ function ChurchMembershipSystem() {
       const totalKids = kM + kN;
       const grandTotal = totalMembers + totalVisitors + totalKids;
       const customNote = quickEntryForm.notes ? quickEntryForm.notes.trim() : '';
-      notes = `[MANHÃƒ: P:${pM}, V:${vM}, C:${kM}] [NOITE: P:${pN}, V:${vN}, C:${kN}] ${customNote}`;
+      notes = `[MANHÃ: P:${pM}, V:${vM}, C:${kM}] [NOITE: P:${pN}, V:${vN}, C:${kN}] ${customNote}`;
       if (currentBranch) notes = `[${currentBranch}] ${notes}`;
 
       payload = {
@@ -1264,7 +1264,7 @@ function ChurchMembershipSystem() {
     setShowReportForm(true);
   };
 
-  // VerificaÃ§Ã£o de "SeguranÃ§a MÃ¡xima" para garantir que o celular detecte o link
+  // Verificação de "Segurança Máxima" para garantir que o celular detecte o link
   const getRawCellId = () => {
     if (typeof window === 'undefined') return null;
     const url = window.location.href;
@@ -1321,7 +1321,7 @@ function ChurchMembershipSystem() {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  // Se tem cellId na URL, usar essa cÃ©lula diretamente
+                  // Se tem cellId na URL, usar essa célula diretamente
                   if (hasCellParam) {
                     const cell = activeCell || cells.find(c => String(c.id) === String(currentCellId));
                     if (cell) {
@@ -1336,7 +1336,7 @@ function ChurchMembershipSystem() {
                 }}
                 className="w-full mt-4 border border-emerald-600/30 text-emerald-500 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-600/10 transition-all flex flex-col items-center gap-1"
               >
-                <span className="opacity-50 text-[7px]">LÃ­der de CÃ©lula</span>
+                <span className="opacity-50 text-[7px]">Líder de Célula</span>
                 PRIMEIRO ACESSO? CADASTRE SUA SENHA
               </button>
 
@@ -1358,9 +1358,9 @@ function ChurchMembershipSystem() {
             <form onSubmit={handleForgotPassword} className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-md rounded-3xl p-8 border ${t.border} shadow-2xl relative text-left`}>
               <button type="button" onClick={() => setIsRecoveringPassword(false)} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24} /></button>
               <h2 className="text-3xl font-black mb-4 italic uppercase tracking-tighter text-blue-500">Recuperar Senha</h2>
-              <p className="text-[10px] text-slate-500 font-bold uppercase mb-6 leading-relaxed">Enviaremos um link de redefiniÃ§Ã£o para o seu e-mail cadastrado.</p>
+              <p className="text-[10px] text-slate-500 font-bold uppercase mb-6 leading-relaxed">Enviaremos um link de redefinição para o seu e-mail cadastrado.</p>
               <InputCompact label="SEU E-MAIL CADASTRADO" value={recoveryEmail} onChange={val => setRecoveryEmail(val)} dark={darkMode} type="email" autoCapitalize="off" />
-              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-black text-xs uppercase mt-6 transition-all">Enviar E-mail de RecuperaÃ§Ã£o</button>
+              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-black text-xs uppercase mt-6 transition-all">Enviar E-mail de Recuperação</button>
             </form>
           </div>
         )}
@@ -1388,14 +1388,14 @@ function ChurchMembershipSystem() {
               <div className="p-6 space-y-4">
                 <p className="text-[10px] text-slate-500 font-bold uppercase leading-relaxed">
                   {searchParams.get('role') === 'trainee' 
-                    ? 'Defina seus dados como LÃ­der em Treinamento para acessar o painel desta cÃ©lula.' 
-                    : 'Selecione sua cÃ©lula e defina o e-mail e senha que vocÃª usarÃ¡ para acessar o painel.'}
+                    ? 'Defina seus dados como Líder em Treinamento para acessar o painel desta célula.' 
+                    : 'Selecione sua célula e defina o e-mail e senha que você usará para acessar o painel.'}
                 </p>
                 
-                {/* Seletor de cÃ©lula â€” mostra todas as cÃ©lulas sem login configurado */}
+                {/* Seletor de célula — mostra todas as células sem login configurado */}
                 {!activeCell && (
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Selecione sua CÃ©lula</label>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Selecione sua Célula</label>
                     <select
                       value={selectedCellForConfig?.id || ''}
                       onChange={(e) => {
@@ -1405,9 +1405,9 @@ function ChurchMembershipSystem() {
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 appearance-none"
                       required
                     >
-                      <option value="" className="bg-slate-900">-- Escolha sua cÃ©lula --</option>
+                      <option value="" className="bg-slate-900">-- Escolha sua célula --</option>
                       {(() => {
-                        // Agrupar cÃ©lulas por setor
+                        // Agrupar células por setor
                         const grouped = {};
                         cells.forEach(c => {
                           const sectorName = sectors.find(s => s.id === c.sector_id)?.name || 'Sem Setor';
@@ -1418,7 +1418,7 @@ function ChurchMembershipSystem() {
                           <optgroup key={sectorName} label={sectorName}>
                             {sectorCells.sort((a, b) => a.name.localeCompare(b.name)).map(c => (
                               <option key={c.id} value={c.id} className="bg-slate-900">
-                                {c.name} {c.login_email ? 'âœ“' : ''}
+                                {c.name} {c.login_email ? '✓' : ''}
                               </option>
                             ))}
                           </optgroup>
@@ -1427,14 +1427,14 @@ function ChurchMembershipSystem() {
                     </select>
                     {selectedCellForConfig?.login_email && (
                       <p className="text-[9px] text-amber-400 font-bold uppercase mt-2 flex items-center gap-1">
-                        âš  Esta cÃ©lula jÃ¡ tem acesso configurado. Ao salvar, as credenciais serÃ£o substituÃ­das.
+                        ⚠ Esta célula já tem acesso configurado. Ao salvar, as credenciais serão substituídas.
                       </p>
                     )}
                   </div>
                 )}
                 {activeCell && (
                   <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
-                    <p className="text-[10px] text-emerald-400 font-black uppercase">CÃ©lula: {activeCell.name}</p>
+                    <p className="text-[10px] text-emerald-400 font-black uppercase">Célula: {activeCell.name}</p>
                   </div>
                 )}
 
@@ -1485,18 +1485,18 @@ function ChurchMembershipSystem() {
           {isLeaderMode ? (
             <>
               <MenuBtn icon={<LayoutDashboard size={18} />} label="Dashboard" active={activeTab === 'leader-dashboard'} onClick={() => setActiveTab('leader-dashboard')} open={sidebarOpen} dark={darkMode} />
-              <MenuBtn icon={<ClipboardList size={18} />} label="FrequÃªncia CÃ©lula" active={activeTab === 'leader-attendance'} onClick={() => setActiveTab('leader-attendance')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<ClipboardList size={18} />} label="Frequência Célula" active={activeTab === 'leader-attendance'} onClick={() => setActiveTab('leader-attendance')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Users size={18} />} label="Membros" active={activeTab === 'leader-members'} onClick={() => setActiveTab('leader-members')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Sun size={18} />} label="Cultos" active={activeTab === 'leader-culto'} onClick={() => setActiveTab('leader-culto')} open={sidebarOpen} dark={darkMode} />
                <div className="pt-4 mt-4 border-t border-white/5 space-y-1">
-                 <p className="text-[7px] font-black text-slate-500 uppercase px-3 mb-2 tracking-widest">Equipe da CÃ©lula</p>
+                 <p className="text-[7px] font-black text-slate-500 uppercase px-3 mb-2 tracking-widest">Equipe da Célula</p>
                  <MenuBtn 
                    icon={<Plus size={18} />} 
                    label="Convidar Treinee" 
                    onClick={() => {
                      const link = `${window.location.origin}${window.location.pathname}?${currentBranch ? 'branch=leme&' : ''}cellId=${activeCell.id}&role=trainee`;
                      navigator.clipboard.writeText(link);
-                     alert('Link de convite para LÃ­der em Treinamento copiado!\nEnvie para o seu auxiliar.');
+                     alert('Link de convite para Líder em Treinamento copiado!\nEnvie para o seu auxiliar.');
                    }} 
                    open={sidebarOpen} 
                    dark={darkMode} 
@@ -1520,13 +1520,13 @@ function ChurchMembershipSystem() {
           ) : (
             <>
               <MenuBtn icon={<LayoutDashboard size={18} />} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} open={sidebarOpen} dark={darkMode} />
-              <MenuBtn icon={<ClipboardList size={18} />} label="RelatÃ³rios" active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<ClipboardList size={18} />} label="Relatórios" active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Users size={18} />} label="Membros" active={activeTab === 'members'} onClick={() => { setActiveTab('members'); setFilterCellId(null); setSearchTerm(''); }} open={sidebarOpen} dark={darkMode} />
-              <MenuBtn icon={<Home size={18} />} label="CÃ©lulas" active={activeTab === 'cells'} onClick={() => setActiveTab('cells')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<Home size={18} />} label="Células" active={activeTab === 'cells'} onClick={() => setActiveTab('cells')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Sun size={18} />} label="Cultos" active={activeTab === 'cultos' || activeTab === 'leader-culto'} onClick={() => setActiveTab(isLeaderMode ? 'leader-culto' : 'cultos')} open={sidebarOpen} dark={darkMode} />
               <MenuBtn icon={<Map size={18} />} label="Setores" active={activeTab === 'sectors'} onClick={() => setActiveTab('sectors')} open={sidebarOpen} dark={darkMode} />
-              <MenuBtn icon={<ClipboardList size={18} />} label="RelatÃ³rio Pastoral" active={activeTab === 'pastoral-report'} onClick={() => setActiveTab('pastoral-report')} open={sidebarOpen} dark={darkMode} />
-              <MenuBtn icon={<Activity size={18} />} label="RelatÃ³rio PresenÃ§a" active={activeTab === 'attendance-report'} onClick={() => setActiveTab('attendance-report')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<ClipboardList size={18} />} label="Relatório Pastoral" active={activeTab === 'pastoral-report'} onClick={() => setActiveTab('pastoral-report')} open={sidebarOpen} dark={darkMode} />
+              <MenuBtn icon={<Activity size={18} />} label="Relatório Presença" active={activeTab === 'attendance-report'} onClick={() => setActiveTab('attendance-report')} open={sidebarOpen} dark={darkMode} />
               
               <div className="pt-4 mt-4 border-t border-white/5 space-y-1">
                 <p className="text-[7px] font-black text-slate-500 uppercase px-3 mb-2 tracking-widest">Filtros Globais</p>
@@ -1546,7 +1546,7 @@ function ChurchMembershipSystem() {
                     <MenuBtn 
                       key={b.id}
                       icon={<MapPin size={18} className="text-blue-500" />} 
-                      label={`VisÃ£o ${b.name}`} 
+                      label={`Visão ${b.name}`} 
                       active={false} 
                       onClick={() => window.location.href = window.location.origin + '?branch=' + b.name.toLowerCase()} 
                       open={sidebarOpen} 
@@ -1576,7 +1576,7 @@ function ChurchMembershipSystem() {
              <button onClick={() => window.location.href = currentBranch ? '/?branch=leme' : '/'} className="w-full flex items-center gap-3 p-3 text-[10px] text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest mb-1"><LayoutDashboard size={16}/> {sidebarOpen && 'Painel Geral'}</button>
            )}
 
-           <button onClick={handleLogout} className="w-full flex items-center gap-3 p-3 text-[10px] text-red-500/70 hover:text-red-500 hover:bg-red-400/5 rounded-xl transition-all font-black uppercase tracking-widest"><Power size={16}/> {sidebarOpen && 'Encerrar SessÃ£o'}</button>
+           <button onClick={handleLogout} className="w-full flex items-center gap-3 p-3 text-[10px] text-red-500/70 hover:text-red-500 hover:bg-red-400/5 rounded-xl transition-all font-black uppercase tracking-widest"><Power size={16}/> {sidebarOpen && 'Encerrar Sessão'}</button>
            {sidebarOpen && (
               <div className="pt-2 px-3">
                 <p className="text-[7px] font-bold text-slate-600 uppercase tracking-widest text-center">IBM-UP v2026.05.11.0317</p>
@@ -1593,7 +1593,7 @@ function ChurchMembershipSystem() {
               <h1 className={`text-base font-black ${t.text} italic uppercase tracking-tighter`}>IBM-UP</h1>
               <div className="flex items-center gap-2">
                 <p className={`${t.subText} text-[8px] font-bold uppercase tracking-widest whitespace-nowrap`}>
-                  {isLeaderMode ? (leaderCell?.isTraineeLogin ? `Treinamento: ${activeCell?.name || ''}` : `LÃ­der: ${activeCell?.name || ''}`) : 'GestÃ£o EstratÃ©gica'}
+                  {isLeaderMode ? (leaderCell?.isTraineeLogin ? `Treinamento: ${activeCell?.name || ''}` : `Líder: ${activeCell?.name || ''}`) : 'Gestão Estratégica'}
                 </p>
                 {isLeaderMode && session && (
                   <button 
@@ -1606,7 +1606,7 @@ function ChurchMembershipSystem() {
                 )}
               </div>
             </div>
-            {/* TÃ­tulo Mobile */}
+            {/* Título Mobile */}
             <div className="sm:hidden">
               <h1 className={`text-sm font-black ${t.text} italic uppercase tracking-tighter`}>IBM-UP</h1>
             </div>
@@ -1644,7 +1644,7 @@ function ChurchMembershipSystem() {
               <header className="flex justify-between items-center">
                 <div>
                   <h2 className="text-3xl font-black italic uppercase tracking-tighter">Filiais</h2>
-                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-1">ConfiguraÃ§Ã£o de Pastores e Acessos</p>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-1">Configuração de Pastores e Acessos</p>
                 </div>
                 <button 
                   onClick={() => setShowBranchForm(true)}
@@ -1675,7 +1675,7 @@ function ChurchMembershipSystem() {
                   <div className="col-span-full py-12 text-center border-2 border-dashed border-white/10 rounded-3xl">
                     <MapPin size={48} className="mx-auto text-slate-500 mb-4 opacity-50" />
                     <p className="text-lg font-black uppercase tracking-widest text-slate-400">Nenhuma Filial Cadastrada</p>
-                    <p className="text-xs font-bold text-slate-500 mt-2 max-w-md mx-auto">Cadastre filiais para fornecer um painel isolado para os pastores e usar o prefixo dinÃ¢mico no banco de dados.</p>
+                    <p className="text-xs font-bold text-slate-500 mt-2 max-w-md mx-auto">Cadastre filiais para fornecer um painel isolado para os pastores e usar o prefixo dinâmico no banco de dados.</p>
                   </div>
                 )}
               </div>
@@ -1686,9 +1686,9 @@ function ChurchMembershipSystem() {
             <div className="space-y-8">
               <header className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-3xl font-black italic uppercase tracking-tighter">{isLeaderMode ? 'FrequÃªncia da CÃ©lula no Culto' : 'GestÃ£o de Cultos'}</h2>
+                  <h2 className="text-3xl font-black italic uppercase tracking-tighter">{isLeaderMode ? 'Frequência da Célula no Culto' : 'Gestão de Cultos'}</h2>
                   <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-1">
-                    {isLeaderMode ? `AnÃ¡lise de presenÃ§a dos membros da cÃ©lula ${activeCell?.name}` : 'LanÃ§amento RÃ¡pido e AnÃ¡lise de FrequÃªncia'}
+                    {isLeaderMode ? `Análise de presença dos membros da célula ${activeCell?.name}` : 'Lançamento Rápido e Análise de Frequência'}
                   </p>
                 </div>
                 {!isLeaderMode && (
@@ -1696,7 +1696,7 @@ function ChurchMembershipSystem() {
                     onClick={() => setShowQuickEntry(true)} 
                     className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase italic tracking-widest shadow-xl shadow-blue-600/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-3"
                   >
-                    <Activity size={18} /> LANÃ‡AMENTO RÃPIDO
+                    <Activity size={18} /> LANÇAMENTO RÁPIDO
                   </button>
                 )}
               </header>
@@ -1705,10 +1705,10 @@ function ChurchMembershipSystem() {
                 <div className={`${t.card} lg:col-span-12 border rounded-3xl p-8`}>
                   <div className="flex justify-between items-center mb-10">
                     <h3 className="text-[12px] font-black uppercase tracking-widest flex items-center gap-2 text-slate-500">
-                      <LineIcon size={16} /> {isLeaderMode ? 'EvoluÃ§Ã£o de PresenÃ§a (Membros)' : 'EvoluÃ§Ã£o Detalhada por Culto'}
+                      <LineIcon size={16} /> {isLeaderMode ? 'Evolução de Presença (Membros)' : 'Evolução Detalhada por Culto'}
                     </h3>
                     <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/5">
-                      {['Este MÃªs', '12m', '24m', 'Tudo'].map(f => (
+                      {['Este Mês', '12m', '24m', 'Tudo'].map(f => (
                         <button key={f} onClick={() => setTimeFilter(f)} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${timeFilter === f ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>{f}</button>
                       ))}
                     </div>
@@ -1750,9 +1750,9 @@ function ChurchMembershipSystem() {
                               ))}
                             </div>
                           )} />
-                          <Area name="ManhÃ£" type="linear" dataKey="manha" stroke="#fbbf24" strokeWidth={3} fill="url(#colorManha)" fillOpacity={0.1} dot={{ r: 4, fill: '#fbbf24' }} />
+                          <Area name="Manhã" type="linear" dataKey="manha" stroke="#fbbf24" strokeWidth={3} fill="url(#colorManha)" fillOpacity={0.1} dot={{ r: 4, fill: '#fbbf24' }} />
                           <Area name="Noite" type="linear" dataKey="noite" stroke="#8b5cf6" strokeWidth={3} fill="url(#colorNoite)" fillOpacity={0.1} dot={{ r: 4, fill: '#8b5cf6' }} />
-                          <Area name="SÃ¡bado" type="linear" dataKey="sabado" stroke="#10b981" strokeWidth={3} fill="url(#colorSabado)" fillOpacity={0.1} dot={{ r: 4, fill: '#10b981' }} />
+                          <Area name="Sábado" type="linear" dataKey="sabado" stroke="#10b981" strokeWidth={3} fill="url(#colorSabado)" fillOpacity={0.1} dot={{ r: 4, fill: '#10b981' }} />
                           <Area name="Geral" type="linear" dataKey="geral" stroke="#3b82f6" strokeWidth={4} fill="url(#colorTotal)" fillOpacity={0.2} dot={{ r: 5, fill: '#3b82f6', stroke: darkMode ? '#0f172a' : '#fff' }} activeDot={{ r: 7 }} />
                         </AreaChart>
                       </ResponsiveContainer>
@@ -1760,7 +1760,7 @@ function ChurchMembershipSystem() {
                     {isLeaderMode && (
                       <div className="flex flex-col items-center justify-center h-full text-slate-500 italic font-bold">
                         <LineIcon size={48} className="mb-4 opacity-20" />
-                        <p>AnÃ¡lise de frequÃªncia detalhada disponÃ­vel no HistÃ³rico.</p>
+                        <p>Análise de frequência detalhada disponível no Histórico.</p>
                       </div>
                     )}
                   </div>
@@ -1770,7 +1770,7 @@ function ChurchMembershipSystem() {
                   <div className={`${t.card} lg:col-span-12 border rounded-3xl p-8 animate-in fade-in slide-in-from-bottom-4 duration-700`}>
                     <div className="flex justify-between items-center mb-6">
                       <h3 className="text-[12px] font-black uppercase tracking-widest flex items-center gap-2 text-slate-500">
-                        <ClipboardList size={16} /> Resumo NumÃ©rico (Ãšltimos Cultos)
+                        <ClipboardList size={16} /> Resumo Numérico (Últimos Cultos)
                       </h3>
                     </div>
                     <div className="overflow-x-auto">
@@ -1778,9 +1778,9 @@ function ChurchMembershipSystem() {
                         <thead>
                           <tr className="border-b border-white/5">
                             <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-500">Data</th>
-                            <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-amber-500 text-center">ManhÃ£</th>
+                            <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-amber-500 text-center">Manhã</th>
                             <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-purple-500 text-center">Noite</th>
-                            <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-emerald-500 text-center">SÃ¡bado</th>
+                            <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-emerald-500 text-center">Sábado</th>
                             <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-blue-500 text-right">Total Geral</th>
                           </tr>
                         </thead>
@@ -1814,16 +1814,16 @@ function ChurchMembershipSystem() {
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-3">
                 <StatCard label="Membros" value={stats.total} icon={<Users size={16} />} color="blue" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('all'); }} />
                 <StatCard label="Ambos" value={stats.both} icon={<ShieldCheck size={16} />} color="emerald" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('both'); }} />
-                <StatCard label="SÃ³ CÃ©lula" value={stats.onlyCell} icon={<Home size={16} />} color="blue" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('only-cell'); }} />
-                <StatCard label="SÃ³ Culto" value={stats.onlyCulto} icon={<Star size={16} />} color="purple" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('only-culto'); }} />
+                <StatCard label="Só Célula" value={stats.onlyCell} icon={<Home size={16} />} color="blue" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('only-cell'); }} />
+                <StatCard label="Só Culto" value={stats.onlyCulto} icon={<Star size={16} />} color="purple" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('only-culto'); }} />
                 <StatCard label="Faltou Culto" value={stats.absentCulto} icon={<Activity size={16} />} color="red" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-culto'); }} />
-                <StatCard label="Faltou CÃ©lula" value={stats.absentCell} icon={<Clock size={16} />} color="orange" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-cell'); }} />
+                <StatCard label="Faltou Célula" value={stats.absentCell} icon={<Clock size={16} />} color="orange" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-cell'); }} />
                 <StatCard label="Ausente Ambos" value={stats.none} icon={<UserMinus size={16} />} color="red" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('none'); }} />
                 <StatCard label="Visitantes" value={stats.visitors} icon={<Star size={16} />} color="pink" dark={darkMode} onClick={() => { setActiveTab('reports'); setAnalyticsFilter('visitors'); }} />
-                <StatCard label="CÃ©lulas" value={cells.length} icon={<MapPin size={16} />} color="indigo" dark={darkMode} />
+                <StatCard label="Células" value={cells.length} icon={<MapPin size={16} />} color="indigo" dark={darkMode} />
               </div>
 
-              {/* Alerta EstratÃ©gico no Dashboard Principal do Pastor */}
+              {/* Alerta Estratégico no Dashboard Principal do Pastor */}
               {cells.some(c => members.some(m => m.outros && Number(m.cell_id) === Number(c.id))) && (
                 <div className="p-4 rounded-2xl bg-gradient-to-r from-pink-500/10 via-purple-500/5 to-transparent border border-pink-500/20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500 text-left">
                   <div className="flex items-center gap-3">
@@ -1832,10 +1832,10 @@ function ChurchMembershipSystem() {
                     </div>
                     <div>
                       <h4 className="text-xs font-black uppercase tracking-widest text-pink-500 flex items-center gap-2">
-                        AtenÃ§Ã£o Pastoral: CÃ©lulas com Visitantes
+                        Atenção Pastoral: Células com Visitantes
                       </h4>
                       <p className="text-[9px] text-slate-400 font-bold mt-0.5">
-                        As seguintes cÃ©lulas registraram o acompanhamento de novos visitantes recentemente:
+                        As seguintes células registraram o acompanhamento de novos visitantes recentemente:
                       </p>
                     </div>
                   </div>
@@ -1862,8 +1862,8 @@ function ChurchMembershipSystem() {
                   <div className="h-[200px] w-full relative mb-6">
                     <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={[
                       { name: 'Ambos', value: stats.both, color: '#3b82f6' },
-                      { name: 'SÃ³ CÃ©lula', value: stats.onlyCell, color: '#10b981' },
-                      { name: 'SÃ³ Culto', value: stats.onlyCulto, color: '#f59e0b' },
+                      { name: 'Só Célula', value: stats.onlyCell, color: '#10b981' },
+                      { name: 'Só Culto', value: stats.onlyCulto, color: '#f59e0b' },
                       { name: 'Inativos', value: stats.none, color: '#475569' },
                     ].filter(d => d.value > 0)} innerRadius={55} outerRadius={75} paddingAngle={5} dataKey="value">{[
                       { color: '#3b82f6' }, { color: '#10b981' }, { color: '#f59e0b' }, { color: '#475569' }
@@ -1884,9 +1884,9 @@ function ChurchMembershipSystem() {
                 </div>
                 <div className={`${t.card} lg:col-span-8 border rounded-3xl p-6 flex flex-col`}>
                   <div className="flex justify-between items-center mb-10">
-                    <h3 className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-slate-500"><LineIcon size={12} /> FrequÃªncia Cultos (LanÃ§amento Manual)</h3>
+                    <h3 className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-slate-500"><LineIcon size={12} /> Frequência Cultos (Lançamento Manual)</h3>
                     <div className="flex bg-white/5 p-1 rounded-xl border border-white/5">
-                      {['Este MÃªs', '12m', '24m', 'Tudo'].map(f => (
+                      {['Este Mês', '12m', '24m', 'Tudo'].map(f => (
                         <button key={f} onClick={() => setTimeFilter(f)} className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${timeFilter === f ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:text-white'}`}>{f}</button>
                       ))}
                     </div>
@@ -1904,9 +1904,9 @@ function ChurchMembershipSystem() {
                         <XAxis dataKey="displayDate" stroke="#475569" fontSize={9} axisLine={false} tickLine={false} dy={10} interval={Math.ceil(chartData.length / 12)} />
                         <YAxis stroke="#475569" fontSize={9} axisLine={false} tickLine={false} width={30} domain={[0, 'auto']} />
                         <Tooltip content={<CustomTooltip dark={darkMode} />} />
-                        <Area name="ManhÃ£" type="monotone" dataKey="manha" stroke="#f59e0b" strokeWidth={2} fillOpacity={0} dot={{ r: 3, fill: '#f59e0b' }} />
+                        <Area name="Manhã" type="monotone" dataKey="manha" stroke="#f59e0b" strokeWidth={2} fillOpacity={0} dot={{ r: 3, fill: '#f59e0b' }} />
                         <Area name="Noite" type="monotone" dataKey="noite" stroke="#a855f7" strokeWidth={2} fillOpacity={0} dot={{ r: 3, fill: '#a855f7' }} />
-                        <Area name="SÃ¡bado" type="monotone" dataKey="sabado" stroke="#10b981" strokeWidth={2} fillOpacity={0} dot={{ r: 3, fill: '#10b981' }} />
+                        <Area name="Sábado" type="monotone" dataKey="sabado" stroke="#10b981" strokeWidth={2} fillOpacity={0} dot={{ r: 3, fill: '#10b981' }} />
                         <Area name="Geral" type="monotone" dataKey="geral" stroke="#3b82f6" strokeWidth={4} fill="url(#colorTotal)" fillOpacity={0.15} dot={{ r: 4, fill: '#3b82f6', stroke: darkMode ? '#0f172a' : '#fff' }} activeDot={{ r: 6 }} />
                       </AreaChart>
                     </ResponsiveContainer>
@@ -1914,7 +1914,7 @@ function ChurchMembershipSystem() {
 
                   <div className="mt-10 pt-10 border-t border-white/5">
                     <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-slate-500"><Users size={12} /> PresenÃ§a vs AusÃªncia em Cultos (Engajamento de Membros)</h3>
+                      <h3 className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-slate-500"><Users size={12} /> Presença vs Ausência em Cultos (Engajamento de Membros)</h3>
                     </div>
                     <div className="h-[250px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
@@ -1963,12 +1963,12 @@ function ChurchMembershipSystem() {
                 return (
                   <div className={`mt-8 p-6 rounded-3xl border border-blue-500/10 ${darkMode ? 'bg-[#0f172a]' : 'bg-blue-50'}`}>
                     <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-xl font-black italic uppercase tracking-tighter text-blue-500">CongregaÃ§Ã£o LEME</h2>
+                      <h2 className="text-xl font-black italic uppercase tracking-tighter text-blue-500">Congregação LEME</h2>
                       <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Resumo Separado</div>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div className={`p-4 rounded-2xl ${darkMode ? 'bg-[#1e293b]' : 'bg-white'} border border-slate-500/10`}>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">CÃ©lulas Leme</p>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Células Leme</p>
                         <p className="text-3xl font-black italic tracking-tighter">{lemeCells.length}</p>
                       </div>
                       <div className={`p-4 rounded-2xl ${darkMode ? 'bg-[#1e293b]' : 'bg-white'} border border-slate-500/10`}>
@@ -1976,7 +1976,7 @@ function ChurchMembershipSystem() {
                         <p className="text-3xl font-black italic tracking-tighter">{lemeMembers.length}</p>
                       </div>
                       <div className={`p-4 rounded-2xl ${darkMode ? 'bg-[#1e293b]' : 'bg-white'} border border-slate-500/10`}>
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Ãšltimo Culto Leme</p>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Último Culto Leme</p>
                         <p className="text-3xl font-black italic tracking-tighter">{latestLemeReport ? latestLemeReport.total : 0}</p>
                         <p className="text-[8px] uppercase text-slate-500 font-bold mt-1">
                           {latestLemeReport ? formatDate(latestLemeReport.date) : 'Nenhum registro'}
@@ -1992,19 +1992,19 @@ function ChurchMembershipSystem() {
           {activeTab === 'leader-dashboard' && isLeaderMode && activeCell && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
               <header>
-                <h2 className="text-4xl font-black italic uppercase tracking-tighter">SaÃºde da CÃ©lula</h2>
-                <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-1">AnÃ¡lise estratÃ©gica: {activeCell?.name}</p>
+                <h2 className="text-4xl font-black italic uppercase tracking-tighter">Saúde da Célula</h2>
+                <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-1">Análise estratégica: {activeCell?.name}</p>
               </header>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <StatCard label="Total Membros" value={stats.total} icon={<Users size={16}/>} color="blue" dark={darkMode} />
                 <StatCard label="100% Engajados" value={stats.both} icon={<ShieldCheck size={16}/>} color="emerald" dark={darkMode} />
-                <StatCard label="SÃ³ CÃ©lula" value={stats.onlyCell} icon={<Home size={16}/>} color="amber" dark={darkMode} />
-                <StatCard label="SÃ³ Culto" value={stats.onlyCulto} icon={<Star size={16}/>} color="purple" dark={darkMode} />
+                <StatCard label="Só Célula" value={stats.onlyCell} icon={<Home size={16}/>} color="amber" dark={darkMode} />
+                <StatCard label="Só Culto" value={stats.onlyCulto} icon={<Star size={16}/>} color="purple" dark={darkMode} />
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* GrÃ¡fico de SaÃºde (Fidelidade) */}
+                {/* Gráfico de Saúde (Fidelidade) */}
                 <div className={`${t.card} lg:col-span-4 border rounded-3xl p-6 flex flex-col items-center`}>
                   <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest self-start flex items-center gap-2"><PieIcon size={12} /> Engajamento Semanal</h3>
                   <div className="h-[200px] w-full relative mb-6">
@@ -2013,8 +2013,8 @@ function ChurchMembershipSystem() {
                         <Pie
                           data={[
                             { name: 'Ambos', value: stats.both, color: '#3b82f6' },
-                            { name: 'SÃ³ CÃ©lula', value: stats.onlyCell, color: '#10b981' },
-                            { name: 'SÃ³ Culto', value: stats.onlyCulto, color: '#f59e0b' },
+                            { name: 'Só Célula', value: stats.onlyCell, color: '#10b981' },
+                            { name: 'Só Culto', value: stats.onlyCulto, color: '#f59e0b' },
                             { name: 'Inativos', value: stats.none, color: '#475569' },
                           ].filter(d => d.value > 0)}
                           innerRadius={55} outerRadius={75} paddingAngle={5} dataKey="value"
@@ -2032,7 +2032,7 @@ function ChurchMembershipSystem() {
                   <div className="w-full space-y-2">
                     {[
                       { name: 'Engajados', value: stats.both, color: '#3b82f6' },
-                      { name: 'Fiel Ã  CÃ©lula', value: stats.onlyCell, color: '#10b981' },
+                      { name: 'Fiel à Célula', value: stats.onlyCell, color: '#10b981' },
                       { name: 'Fiel ao Culto', value: stats.onlyCulto, color: '#f59e0b' },
                       { name: 'Inativos', value: stats.none, color: '#475569' },
                     ].map((item, i) => (
@@ -2047,7 +2047,7 @@ function ChurchMembershipSystem() {
                   </div>
                 </div>
 
-                {/* GrÃ¡fico de Cursos */}
+                {/* Gráfico de Cursos */}
                 <div className={`${t.card} lg:col-span-8 border rounded-3xl p-6`}>
                   <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest flex items-center gap-2"><Activity size={12} /> Progresso em Cursos e Batismo</h3>
                   <div className="h-[250px] w-full mb-6">
@@ -2077,11 +2077,11 @@ function ChurchMembershipSystem() {
                               <p className="text-xs font-black italic uppercase tracking-tighter">{m.name}</p>
                               <p className="text-[8px] text-slate-500 font-bold uppercase">{m.phone || 'Sem Telefone'}</p>
                             </div>
-                            <span className="text-[8px] font-black bg-red-500 text-white px-2 py-1 rounded-full uppercase tracking-tighter">CrÃ­tico</span>
+                            <span className="text-[8px] font-black bg-red-500 text-white px-2 py-1 rounded-full uppercase tracking-tighter">Crítico</span>
                           </div>
                         ))
                       ) : (
-                        <p className="text-[9px] text-slate-500 font-bold uppercase italic">Nenhum membro em situaÃ§Ã£o crÃ­tica. ParabÃ©ns!</p>
+                        <p className="text-[9px] text-slate-500 font-bold uppercase italic">Nenhum membro em situação crítica. Parabéns!</p>
                       )}
                     </div>
                   </div>
@@ -2098,7 +2098,7 @@ function ChurchMembershipSystem() {
                   {isLeaderMode && activeCell && (
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2 bg-blue-600/10 border border-blue-500/20 px-3 py-1.5 rounded-xl">
-                        <span className="text-[7px] font-black uppercase text-blue-500/50">CÃ©lula</span>
+                        <span className="text-[7px] font-black uppercase text-blue-500/50">Célula</span>
                         <input 
                           type="date"
                           value={selectedMeetingDate || ''} 
@@ -2126,8 +2126,8 @@ function ChurchMembershipSystem() {
                   <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                       <div>
-                        <h2 className="text-3xl font-black italic uppercase tracking-tighter">HistÃ³rico de FrequÃªncia</h2>
-                        <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-1">VisÃ£o 360Âº de presenÃ§a nas Ãºltimas 15 semanas</p>
+                        <h2 className="text-3xl font-black italic uppercase tracking-tighter">Histórico de Frequência</h2>
+                        <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-1">Visão 360º de presença nas últimas 15 semanas</p>
                       </div>
                       <div className="flex items-center gap-2 bg-blue-600/10 border border-blue-500/20 px-4 py-2 rounded-2xl">
                         <Calendar size={14} className="text-blue-500" />
@@ -2149,10 +2149,10 @@ function ChurchMembershipSystem() {
                           >
                             <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                             {isSavingAttendance ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                            <span className="relative z-10">GRAVAR {pendingAttendance.length} ALTERAÃ‡Ã•ES</span>
+                            <span className="relative z-10">GRAVAR {pendingAttendance.length} ALTERAÇÕES</span>
                           </button>
                           <button 
-                            onClick={() => { if(confirm('Descartar alteraÃ§Ãµes nÃ£o salvas?')) setPendingAttendance([]); }}
+                            onClick={() => { if(confirm('Descartar alterações não salvas?')) setPendingAttendance([]); }}
                             className="p-3 rounded-xl border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all"
                             title="Descartar"
                           >
@@ -2170,7 +2170,7 @@ function ChurchMembershipSystem() {
                   </header>
 
                   <div className="space-y-6">
-                    <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center gap-2"><Home size={12} /> HistÃ³rico de ReuniÃµes de CÃ©lula</h3>
+                    <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center gap-2"><Home size={12} /> Histórico de Reuniões de Célula</h3>
                     <div className={`${t.card} border rounded-3xl overflow-hidden`}>
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
@@ -2227,7 +2227,7 @@ function ChurchMembershipSystem() {
                   </div>
 
                   <div className="space-y-6 mt-10">
-                    <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center gap-2"><Sun size={12} /> HistÃ³rico de PresenÃ§a nos Cultos</h3>
+                    <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center gap-2"><Sun size={12} /> Histórico de Presença nos Cultos</h3>
                     <div className={`${t.card} border rounded-3xl overflow-hidden`}>
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
@@ -2290,7 +2290,7 @@ function ChurchMembershipSystem() {
                   <div className={`${t.card} border rounded-xl flex items-center px-4 py-2 gap-3 min-w-[200px]`}>
                     <Users size={16} className="text-blue-500" />
                     <select value={filterCellId || ''} onChange={e => setFilterCellId(e.target.value ? Number(e.target.value) : null)} className="bg-transparent font-black text-[10px] uppercase outline-none w-full italic">
-                      <option value="">Todas as CÃ©lulas</option>
+                      <option value="">Todas as Células</option>
                       {cells.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </div>
@@ -2306,7 +2306,7 @@ function ChurchMembershipSystem() {
                   <thead className={`${t.tableHead} border-b ${t.border}`}>
                     <tr>
                       <th className="px-6 py-4 text-[9px] font-black uppercase">Membro</th>
-                      <th className="px-6 py-4 text-right text-[9px] font-black uppercase">AÃ§Ãµes</th>
+                      <th className="px-6 py-4 text-right text-[9px] font-black uppercase">Ações</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y ${t.border}`}>
@@ -2356,7 +2356,7 @@ function ChurchMembershipSystem() {
 
           {isLeaderMode && activeTab === 'leader-attendance' && (
             <div className="space-y-6">
-              <header className="flex justify-between items-center"><h2 className="text-2xl font-black italic uppercase tracking-tighter">HistÃ³rico de FrequÃªncia</h2></header>
+              <header className="flex justify-between items-center"><h2 className="text-2xl font-black italic uppercase tracking-tighter">Histórico de Frequência</h2></header>
               <div className={`${t.card} border rounded-2xl overflow-x-auto`}>
                 <table className="w-full text-left">
                   <thead className={`${t.tableHead} border-b ${t.border}`}>
@@ -2400,7 +2400,7 @@ function ChurchMembershipSystem() {
               <header className="flex flex-col gap-1">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                       <div>
-                        <h2 className="text-2xl font-black italic uppercase tracking-tighter">FrequÃªncia nos Cultos</h2>
+                        <h2 className="text-2xl font-black italic uppercase tracking-tighter">Frequência nos Cultos</h2>
                         <p className="text-blue-500 text-[10px] font-black uppercase tracking-widest">Monitoramento do Domingo</p>
                       </div>
                       <div className="flex items-center gap-2 bg-blue-600/10 border border-blue-500/20 px-4 py-2 rounded-2xl">
@@ -2455,7 +2455,7 @@ function ChurchMembershipSystem() {
                           GRAVAR {pendingAttendance.length}
                         </button>
                         <button 
-                          onClick={() => { if(confirm('Descartar alteraÃ§Ãµes nÃ£o salvas?')) setPendingAttendance([]); }}
+                          onClick={() => { if(confirm('Descartar alterações não salvas?')) setPendingAttendance([]); }}
                           className="p-1.5 rounded-lg border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all"
                         >
                           <X size={12} />
@@ -2474,7 +2474,7 @@ function ChurchMembershipSystem() {
                       }
                     }} className="text-[8px] font-black uppercase bg-blue-600/10 text-blue-500 px-3 py-1.5 rounded-lg border border-blue-500/20">Marcar Todos</button>
                     <button onClick={() => {
-                      if (confirm('Limpar TODA a frequÃªncia de culto?')) {
+                      if (confirm('Limpar TODA a frequência de culto?')) {
                         const sunday = getMeetingDates('domingo', historyRefDate).pop();
                         members.forEach(m => {
                           if (isLeaderMode ? m.cell_id === activeCell.id : true) {
@@ -2551,7 +2551,7 @@ function ChurchMembershipSystem() {
             <div className="space-y-8">
               <header className="flex justify-between items-center">
                 <div className="flex flex-col">
-                  <h2 className="text-2xl font-black italic uppercase tracking-tighter">InteligÃªncia de Dados</h2>
+                  <h2 className="text-2xl font-black italic uppercase tracking-tighter">Inteligência de Dados</h2>
                   <p className="text-blue-500 text-[10px] font-black uppercase tracking-widest">Resumo Geral de Engajamento</p>
                 </div>
                 <div className="flex gap-3">
@@ -2572,13 +2572,13 @@ function ChurchMembershipSystem() {
                 {[
                   { label: 'Membros', value: stats.total, color: 'text-white', filter: 'all' },
                   { label: 'Ambos', value: stats.both, color: 'text-emerald-500', filter: 'both' },
-                  { label: 'SÃ³ CÃ©lula', value: stats.onlyCell, color: 'text-blue-400', filter: 'only-cell' },
-                  { label: 'SÃ³ Culto', value: stats.onlyCult, color: 'text-purple-400', filter: 'only-culto' },
+                  { label: 'Só Célula', value: stats.onlyCell, color: 'text-blue-400', filter: 'only-cell' },
+                  { label: 'Só Culto', value: stats.onlyCult, color: 'text-purple-400', filter: 'only-culto' },
                   { label: 'Faltou Culto', value: stats.absentCult, color: 'text-red-400', filter: 'absent-culto' },
-                  { label: 'Faltou CÃ©lula', value: stats.absentCell, color: 'text-orange-400', filter: 'absent-cell' },
+                  { label: 'Faltou Célula', value: stats.absentCell, color: 'text-orange-400', filter: 'absent-cell' },
                   { label: 'Ausente Ambos', value: stats.none, color: 'text-red-600', filter: 'none' },
                   { label: 'Visitantes', value: stats.visitors, color: 'text-pink-400', filter: 'visitors' },
-                  { label: 'CÃ©lulas', value: cells.length, color: 'text-indigo-400', filter: null },
+                  { label: 'Células', value: cells.length, color: 'text-indigo-400', filter: null },
                 ].map(kpi => (
                   <button
                     key={kpi.label}
@@ -2591,22 +2591,22 @@ function ChurchMembershipSystem() {
                 ))}
               </div>
 
-              {/* Lista DinÃ¢mica de Membros Filtrada */}
+              {/* Lista Dinâmica de Membros Filtrada */}
               {analyticsFilter && analyticsFilter !== 'visitors' && (
                 <div className={`${t.card} border rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300`}>
                   <div className="p-4 border-b border-white/5 bg-blue-600/5 flex justify-between items-center">
                     <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-500 italic">
                       Lista: {
                         analyticsFilter === 'all' ? 'Todos os Membros' :
-                          analyticsFilter === 'both' ? 'Comprometidos (CÃ©lula + Culto)' :
-                            analyticsFilter === 'only-cell' ? 'Frequentes apenas na CÃ©lula' :
+                          analyticsFilter === 'both' ? 'Comprometidos (Célula + Culto)' :
+                            analyticsFilter === 'only-cell' ? 'Frequentes apenas na Célula' :
                               analyticsFilter === 'only-culto' ? 'Frequentes apenas no Culto' :
                                 analyticsFilter === 'absent-culto' ? 'Ausentes no Culto' :
-                                  analyticsFilter === 'absent-cell' ? 'Ausentes na CÃ©lula' :
+                                  analyticsFilter === 'absent-cell' ? 'Ausentes na Célula' :
                                       'Inativos (Ausentes em Ambos)'
                       }
                     </h3>
-                    <button onClick={() => setAnalyticsFilter(null)} className="text-[8px] font-black uppercase text-slate-500 hover:text-white">Fechar Ã—</button>
+                    <button onClick={() => setAnalyticsFilter(null)} className="text-[8px] font-black uppercase text-slate-500 hover:text-white">Fechar ×</button>
                   </div>
                   <div className="max-h-[300px] overflow-y-auto custom-scrollbar-fine">
                     <table className="w-full text-left">
@@ -2630,7 +2630,7 @@ function ChurchMembershipSystem() {
                             <tr key={m.id} className="hover:bg-white/5">
                               <td className="px-6 py-3">
                                 <p className="text-xs font-black uppercase italic">{m.name}</p>
-                                <p className="text-[8px] font-black text-slate-500 uppercase">{cells.find(c => c.id === m.cell_id)?.name || 'Sem CÃ©lula'}</p>
+                                <p className="text-[8px] font-black text-slate-500 uppercase">{cells.find(c => c.id === m.cell_id)?.name || 'Sem Célula'}</p>
                               </td>
                               <td className="px-6 py-3 text-right">
                                 <button onClick={() => { setEditingId(m.id); setMemberForm(m); setShowMemberForm(true); }} className="text-blue-500 hover:text-blue-400 font-black text-[8px] uppercase tracking-widest">Ver Ficha</button>
@@ -2643,7 +2643,7 @@ function ChurchMembershipSystem() {
                 </div>
               )}
 
-              {/* Painel Segmentado de Visitantes (ManhÃ£, Noite, SÃ¡bado e CÃ©lulas) */}
+              {/* Painel Segmentado de Visitantes (Manhã, Noite, Sábado e Células) */}
               {analyticsFilter === 'visitors' && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
                   <div className={`${t.card} p-4 border rounded-2xl flex justify-between items-center bg-gradient-to-r from-pink-500/10 via-purple-500/5 to-transparent border-pink-500/20 text-left`}>
@@ -2651,17 +2651,17 @@ function ChurchMembershipSystem() {
                       <h3 className="text-xs font-black uppercase tracking-widest text-pink-500 italic flex items-center gap-2">
                         <Star size={16} /> Painel de Visitantes Segmentados
                       </h3>
-                      <p className="text-[9px] text-slate-400 font-bold mt-0.5">SeparaÃ§Ã£o de visitantes por culto de origem e acompanhamento nas cÃ©lulas</p>
+                      <p className="text-[9px] text-slate-400 font-bold mt-0.5">Separação de visitantes por culto de origem e acompanhamento nas células</p>
                     </div>
-                    <button onClick={() => setAnalyticsFilter(null)} className="text-[8px] font-black uppercase text-slate-500 hover:text-white px-2.5 py-1 bg-white/5 rounded-lg border border-white/5 transition-all">Fechar Ã—</button>
+                    <button onClick={() => setAnalyticsFilter(null)} className="text-[8px] font-black uppercase text-slate-500 hover:text-white px-2.5 py-1 bg-white/5 rounded-lg border border-white/5 transition-all">Fechar ×</button>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
-                      { id: 'manha', title: 'Culto da ManhÃ£', color: 'border-amber-500/20 bg-amber-500/5 text-amber-400', badgeBg: 'bg-amber-500/20 text-amber-300' },
+                      { id: 'manha', title: 'Culto da Manhã', color: 'border-amber-500/20 bg-amber-500/5 text-amber-400', badgeBg: 'bg-amber-500/20 text-amber-300' },
                       { id: 'noite', title: 'Culto da Noite', color: 'border-purple-500/20 bg-purple-500/5 text-purple-400', badgeBg: 'bg-purple-500/20 text-purple-300' },
-                      { id: 'sabado', title: 'Culto de SÃ¡bado', color: 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400', badgeBg: 'bg-emerald-500/20 text-emerald-300' },
-                      { id: 'celula', title: 'CÃ©lulas', color: 'border-blue-500/20 bg-blue-500/5 text-blue-400', badgeBg: 'bg-blue-500/20 text-blue-300' }
+                      { id: 'sabado', title: 'Culto de Sábado', color: 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400', badgeBg: 'bg-emerald-500/20 text-emerald-300' },
+                      { id: 'celula', title: 'Células', color: 'border-blue-500/20 bg-blue-500/5 text-blue-400', badgeBg: 'bg-blue-500/20 text-blue-300' }
                     ].map(cat => {
                       const catVisitors = members.filter(m => {
                         if (!m.outros) return false;
@@ -2679,10 +2679,10 @@ function ChurchMembershipSystem() {
                             {catVisitors.length === 0 ? (
                               <p className="text-[9px] text-slate-500 italic text-center py-4 uppercase font-bold">Nenhum visitante</p>
                             ) : cat.id === 'celula' ? (
-                              // Sub-agrupado por CÃ©lula com Alerta de Visitante
+                              // Sub-agrupado por Célula com Alerta de Visitante
                               Object.entries(
                                 catVisitors.reduce((acc, m) => {
-                                  const cName = cells.find(c => c.id === m.cell_id)?.name || 'Sem CÃ©lula Vinculada';
+                                  const cName = cells.find(c => c.id === m.cell_id)?.name || 'Sem Célula Vinculada';
                                   if (!acc[cName]) acc[cName] = [];
                                   acc[cName].push(m);
                                   return acc;
@@ -2691,10 +2691,10 @@ function ChurchMembershipSystem() {
                                 <div key={cName} className="p-2 rounded-xl bg-white/5 border border-white/5 space-y-1.5">
                                   <div className="flex items-center justify-between gap-1 pb-1 border-b border-white/5">
                                     <span className="text-[9px] font-black uppercase tracking-wider text-pink-400 flex items-center gap-1">
-                                      {cName !== 'Sem CÃ©lula Vinculada' && <span className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-pulse shrink-0" />}
+                                      {cName !== 'Sem Célula Vinculada' && <span className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-pulse shrink-0" />}
                                       {cName}
                                     </span>
-                                    {cName !== 'Sem CÃ©lula Vinculada' && (
+                                    {cName !== 'Sem Célula Vinculada' && (
                                       <span className="text-[7px] font-black uppercase bg-pink-500/20 text-pink-300 px-1.5 py-0.5 rounded border border-pink-500/30">
                                         Alerta Visitante
                                       </span>
@@ -2721,7 +2721,7 @@ function ChurchMembershipSystem() {
                                     <div className="min-w-0 flex-1 pr-2">
                                       <p className="text-[11px] font-black uppercase italic truncate text-white">{m.name}</p>
                                       <p className="text-[8px] text-slate-400 font-bold uppercase truncate">
-                                        {mCell?.name || 'Sem CÃ©lula'}
+                                        {mCell?.name || 'Sem Célula'}
                                       </p>
                                     </div>
                                     <button 
@@ -2737,7 +2737,7 @@ function ChurchMembershipSystem() {
                           </div>
                           {cat.id === 'celula' && cells.some(c => members.some(m => m.outros && Number(m.cell_id) === Number(c.id))) && (
                             <div className="p-2 bg-pink-500/10 border-t border-pink-500/20 text-[8px] font-black uppercase text-pink-400 text-center animate-pulse flex items-center justify-center gap-1">
-                              <Star size={10} /> Alerta: CÃ©lula(s) com Visitante(s) Ativa(s)
+                              <Star size={10} /> Alerta: Célula(s) com Visitante(s) Ativa(s)
                             </div>
                           )}
                         </div>
@@ -2748,17 +2748,17 @@ function ChurchMembershipSystem() {
               )}
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* GrÃ¡fico de DistribuiÃ§Ã£o */}
+                {/* Gráfico de Distribuição */}
                 <div className={`${t.card} p-6 border rounded-2xl flex flex-col items-center`}>
-                  <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest self-start">DistribuiÃ§Ã£o de FrequÃªncia</h3>
+                  <h3 className="text-[10px] font-black uppercase text-slate-500 mb-6 tracking-widest self-start">Distribuição de Frequência</h3>
                   <div className="w-full h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={[
                             { name: 'Ambos', value: stats.both, color: '#10b981' },
-                            { name: 'SÃ³ CÃ©lula', value: stats.onlyCell, color: '#f59e0b' },
-                            { name: 'SÃ³ Culto', value: stats.onlyCult, color: '#a855f7' },
+                            { name: 'Só Célula', value: stats.onlyCell, color: '#f59e0b' },
+                            { name: 'Só Culto', value: stats.onlyCult, color: '#a855f7' },
                             { name: 'Inativos', value: stats.none, color: '#ef4444' },
                           ].filter(d => d.value > 0)}
                           cx="50%"
@@ -2779,7 +2779,7 @@ function ChurchMembershipSystem() {
                   </div>
                 </div>
 
-                {/* HistÃ³rico de RelatÃ³rios Manuais */}
+                {/* Histórico de Relatórios Manuais */}
                 <div className="lg:col-span-2 space-y-4">
                   <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Registros de Culto</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2821,14 +2821,14 @@ function ChurchMembershipSystem() {
             <div className="space-y-6">
               <header className="flex justify-between items-center">
                 <div className="flex flex-col">
-                  <h2 className="text-2xl font-black italic uppercase tracking-tighter">CÃ©lulas</h2>
+                  <h2 className="text-2xl font-black italic uppercase tracking-tighter">Células</h2>
                   {filterSectorId && (
                     <button onClick={() => setFilterSectorId(null)} className="text-[9px] font-black uppercase text-blue-500 hover:text-blue-400 flex items-center gap-1 mt-1">
-                      Setor: {sectors.find(s => s.id === filterSectorId)?.name} (Limpar Ã—)
+                      Setor: {sectors.find(s => s.id === filterSectorId)?.name} (Limpar ×)
                     </button>
                   )}
                 </div>
-                <button onClick={() => setShowCellForm(true)} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVA CÃ‰LULA</button>
+                <button onClick={() => setShowCellForm(true)} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVA CÉLULA</button>
               </header>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {cells.filter(cell => !filterSectorId || Number(cell.sector_id) === filterSectorId).map(cell => {
@@ -2864,7 +2864,7 @@ function ChurchMembershipSystem() {
                   } else if (lastUpdateDate >= previousSunday) {
                     statusColor = "bg-amber-500/5 border-amber-500/10 text-amber-400";
                     dotColor = "bg-amber-500";
-                    badgeText = "AtenÃ§Ã£o";
+                    badgeText = "Atenção";
                   } else if (lastUpdateDate) {
                     statusColor = "bg-red-500/5 border-red-500/10 text-red-400";
                     dotColor = "bg-red-500";
@@ -2896,7 +2896,7 @@ function ChurchMembershipSystem() {
                         </div>
                       </div>
                       <h3 className="text-lg font-black uppercase italic mb-1 truncate">{cell.name}</h3>
-                      <p className="text-blue-500 text-[9px] font-black uppercase mb-2">{cell.leader || 'Sem LÃ­der'}</p>
+                      <p className="text-blue-500 text-[9px] font-black uppercase mb-2">{cell.leader || 'Sem Líder'}</p>
 
                       <div className="grid grid-cols-2 gap-2 mb-3 border-t border-white/5 pt-4">
                         <div className="flex items-center justify-center gap-2 text-[11px] font-black uppercase text-blue-400 italic notranslate" translate="no">
@@ -2907,32 +2907,32 @@ function ChurchMembershipSystem() {
                         </div>
                       </div>
 
-                      {/* Bloco da Ãšltima AtualizaÃ§Ã£o Efetuada pelo LÃ­der */}
+                      {/* Bloco da Última Atualização Efetuada pelo Líder */}
                       <div className="bg-white/5 rounded-xl p-2.5 border border-white/5 flex justify-between items-center mb-4 mt-auto">
-                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Ãšltima AtualizaÃ§Ã£o:</span>
+                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Última Atualização:</span>
                         <span className={`text-[10px] font-black italic ${lastUpdateDate ? 'text-white' : 'text-slate-600'}`}>{formattedDate}</span>
                       </div>
 
                       <div className="flex gap-2">
-                        <button onClick={() => { const link = `${window.location.origin}${window.location.pathname}?${currentBranch ? 'branch=leme&' : ''}cellId=${cell.id}`; navigator.clipboard.writeText(link); setCopiedId(cell.id); setTimeout(() => setCopiedId(null), 2000); }} className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 font-black text-[8px] uppercase tracking-widest transition-all ${copiedId === cell.id ? 'bg-emerald-600 text-white' : 'bg-blue-600/10 text-blue-500'}`}>{copiedId === cell.id ? 'Copiado!' : 'Link LÃ­der'}</button>
+                        <button onClick={() => { const link = `${window.location.origin}${window.location.pathname}?${currentBranch ? 'branch=leme&' : ''}cellId=${cell.id}`; navigator.clipboard.writeText(link); setCopiedId(cell.id); setTimeout(() => setCopiedId(null), 2000); }} className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 font-black text-[8px] uppercase tracking-widest transition-all ${copiedId === cell.id ? 'bg-emerald-600 text-white' : 'bg-blue-600/10 text-blue-500'}`}>{copiedId === cell.id ? 'Copiado!' : 'Link Líder'}</button>
                         <button 
                           onClick={() => { setEditingCellId(cell.id); setCellForm(cell); setShowCellForm(true); }} 
                           className={`p-2.5 rounded-lg border ${darkMode ? 'border-white/10 text-white/50' : 'border-slate-200 text-slate-400'} hover:bg-blue-600/10 hover:text-blue-500 transition-all`}
-                          title="Editar CÃ©lula"
+                          title="Editar Célula"
                         >
                           <Edit2 size={12} />
                         </button>
                         <button 
                           onClick={() => { setActiveCell(cell); setIsLeaderMode(true); setActiveTab('leader-members'); }} 
                           className={`p-2.5 rounded-lg border ${darkMode ? 'border-white/10 text-white/50' : 'border-slate-200 text-slate-400'} hover:bg-blue-600/10 hover:text-blue-500 transition-all`}
-                          title="Ver Dashboard do LÃ­der"
+                          title="Ver Dashboard do Líder"
                         >
                           <Eye size={12} />
                         </button>
                         <button 
                           onClick={() => deleteItem('cells', cell.id)} 
                           className={`p-2.5 rounded-lg ${darkMode ? 'text-red-500/30' : 'text-red-400'} hover:text-red-600 transition-all`}
-                          title="Excluir CÃ©lula"
+                          title="Excluir Célula"
                         >
                           <Trash2 size={12} />
                         </button>
@@ -2947,12 +2947,12 @@ function ChurchMembershipSystem() {
           {activeTab === 'sectors' && (
             <div className="space-y-6">
               <header className="flex justify-between items-center"><h2 className="text-2xl font-black italic uppercase tracking-tighter">Setores</h2><button onClick={() => setShowSectorForm(true)} className="bg-slate-700 text-white px-6 py-3 rounded-xl font-black text-xs">+ NOVO SETOR</button></header>
-              <div className={`${t.card} border rounded-2xl overflow-hidden`}><table className="w-full text-left"><thead className={`${t.tableHead} border-b ${t.border}`}><tr><th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest">Nome do Setor</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase tracking-widest">CÃ©lulas</th><th className="px-6 py-4 text-right text-[9px] font-black uppercase tracking-widest">AÃ§Ã£o</th></tr></thead><tbody className={`divide-y ${t.border}`}>{sectors.map(s => (<tr key={s.id} className={t.hover}><td className="px-6 py-4 text-lg font-black italic">{s.name}</td><td className="px-6 py-4 text-center">
+              <div className={`${t.card} border rounded-2xl overflow-hidden`}><table className="w-full text-left"><thead className={`${t.tableHead} border-b ${t.border}`}><tr><th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest">Nome do Setor</th><th className="px-6 py-4 text-center text-[9px] font-black uppercase tracking-widest">Células</th><th className="px-6 py-4 text-right text-[9px] font-black uppercase tracking-widest">Ação</th></tr></thead><tbody className={`divide-y ${t.border}`}>{sectors.map(s => (<tr key={s.id} className={t.hover}><td className="px-6 py-4 text-lg font-black italic">{s.name}</td><td className="px-6 py-4 text-center">
                 <button
                   onClick={() => { setFilterSectorId(s.id); setActiveTab('cells'); }}
                   className="bg-blue-600/10 text-blue-500 hover:bg-blue-600 hover:text-white px-4 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all cursor-pointer border border-blue-600/20 shadow-lg shadow-blue-600/5"
                 >
-                  {cells.filter(c => Number(c.sector_id) === s.id).length} CÃ©lulas
+                  {cells.filter(c => Number(c.sector_id) === s.id).length} Células
                 </button>
               </td><td className="px-6 py-4 text-right"><button onClick={() => deleteItem('sectors', s.id)} className={`${darkMode ? 'text-red-500/20' : 'text-red-400'} hover:text-red-600 p-1 transition-all`} title="Excluir Setor"><Trash2 size={16} /></button></td></tr>))}</tbody></table></div></div>)}
           {activeTab === 'attendance-report' && <AttendanceReport members={members} cells={cells} getMemberEngagement={getMemberEngagement} darkMode={darkMode} />}
@@ -2970,7 +2970,7 @@ function ChurchMembershipSystem() {
           )}
         </div>
 
-        {/* BotÃ£o Flutuante de Salvar FrequÃªncia */}
+        {/* Botão Flutuante de Salvar Frequência */}
         {isLeaderMode && pendingAttendance.length > 0 && (
           <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end gap-3 animate-in slide-in-from-right-10 duration-500">
             <div className="bg-emerald-600 text-white p-4 rounded-2xl shadow-2xl shadow-emerald-900/40 border border-emerald-400/30 flex items-center gap-4 group hover:scale-105 transition-all cursor-pointer" onClick={saveHistoryAttendance}>
@@ -2985,7 +2985,7 @@ function ChurchMembershipSystem() {
                 {isSavingAttendance ? <Loader2 size={24} className="animate-spin" /> : <Check size={24} />}
               </button>
             </div>
-            <p className="bg-slate-900/80 backdrop-blur-md text-[8px] font-black uppercase text-emerald-500 px-3 py-1 rounded-full border border-emerald-500/20">Clique para salvar as alteraÃ§Ãµes agora</p>
+            <p className="bg-slate-900/80 backdrop-blur-md text-[8px] font-black uppercase text-emerald-500 px-3 py-1 rounded-full border border-emerald-500/20">Clique para salvar as alterações agora</p>
           </div>
         )}
       </main>
@@ -3005,14 +3005,14 @@ function ChurchMembershipSystem() {
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-xl flex flex-col items-center justify-center font-black leading-tight ${getVisitorConsecutiveAttendances(memberForm) >= 6 ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-pink-500/20 text-pink-400'}`}>
                       <span className="text-sm">{getVisitorConsecutiveAttendances(memberForm)}</span>
-                      <span className="text-[6px] uppercase tracking-tighter">CÃ©lulas</span>
+                      <span className="text-[6px] uppercase tracking-tighter">Células</span>
                     </div>
                     <div>
-                      <p className="text-xs font-black uppercase tracking-tighter">Trilha de ConsolidaÃ§Ã£o do Visitante</p>
+                      <p className="text-xs font-black uppercase tracking-tighter">Trilha de Consolidação do Visitante</p>
                       <p className="text-[9px] text-slate-400 font-bold">
                         {getVisitorConsecutiveAttendances(memberForm) >= 6 
-                          ? 'âœ¨ Atingiu a meta de 6+ presenÃ§as! Clique para convertÃª-lo em membro.' 
-                          : `Faltam ${Math.max(0, 6 - getVisitorConsecutiveAttendances(memberForm))} presenÃ§as seguidas na cÃ©lula para se tornar membro.`}
+                          ? '✨ Atingiu a meta de 6+ presenças! Clique para convertê-lo em membro.' 
+                          : `Faltam ${Math.max(0, 6 - getVisitorConsecutiveAttendances(memberForm))} presenças seguidas na célula para se tornar membro.`}
                       </p>
                     </div>
                   </div>
@@ -3032,8 +3032,8 @@ function ChurchMembershipSystem() {
                   <InputCompact label="NOME COMPLETO" value={memberForm.name} onChange={val => setMemberForm({ ...memberForm, name: val })} dark={darkMode} />
                   <InputCompact label="TELEFONE" value={memberForm.phone} onChange={val => setMemberForm({ ...memberForm, phone: val })} dark={darkMode} />
                   <div className="relative"><InputCompact label="CEP" value={memberForm.cep} onChange={val => { setMemberForm({ ...memberForm, cep: val }); handleCepSearch(val, 'member'); }} dark={darkMode} />{searchingCep && <Loader2 className="absolute right-3 top-7 text-blue-500 animate-spin" size={14} />}</div>
-                  <InputCompact label="ENDEREÃ‡O" value={memberForm.address} onChange={val => setMemberForm({ ...memberForm, address: val })} dark={darkMode} />
-                  <div className="grid grid-cols-2 gap-4"><InputCompact label="NÂº" value={memberForm.number} onChange={val => setMemberForm({ ...memberForm, number: val })} dark={darkMode} /><InputCompact label="BAIRRO" value={memberForm.neighborhood} onChange={val => setMemberForm({ ...memberForm, neighborhood: val })} dark={darkMode} /></div>
+                  <InputCompact label="ENDEREÇO" value={memberForm.address} onChange={val => setMemberForm({ ...memberForm, address: val })} dark={darkMode} />
+                  <div className="grid grid-cols-2 gap-4"><InputCompact label="Nº" value={memberForm.number} onChange={val => setMemberForm({ ...memberForm, number: val })} dark={darkMode} /><InputCompact label="BAIRRO" value={memberForm.neighborhood} onChange={val => setMemberForm({ ...memberForm, neighborhood: val })} dark={darkMode} /></div>
                   <InputCompact label="CIDADE" value={memberForm.city} onChange={val => setMemberForm({ ...memberForm, city: val })} dark={darkMode} />
                   <CourseCheckCompact label="TEM DISCIPULADOR" checked={memberForm.ministerios} onChange={val => setMemberForm({ ...memberForm, ministerios: val })} dark={darkMode} />
                   {memberForm.outros && (
@@ -3041,10 +3041,10 @@ function ChurchMembershipSystem() {
                       <p className="text-[8px] font-black uppercase text-pink-500 tracking-[0.2em] mb-2">Onde nos visitou?</p>
                       <div className="grid grid-cols-2 gap-2">
                         {[
-                          { id: 'manha', label: 'Culto ManhÃ£', color: 'border-amber-500/30 text-amber-400 bg-amber-500/5' },
+                          { id: 'manha', label: 'Culto Manhã', color: 'border-amber-500/30 text-amber-400 bg-amber-500/5' },
                           { id: 'noite', label: 'Culto Noite', color: 'border-purple-500/30 text-purple-400 bg-purple-500/5' },
-                          { id: 'sabado', label: 'Culto SÃ¡bado', color: 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5' },
-                          { id: 'celula', label: 'CÃ©lula', color: 'border-blue-500/30 text-blue-400 bg-blue-500/5' }
+                          { id: 'sabado', label: 'Culto Sábado', color: 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5' },
+                          { id: 'celula', label: 'Célula', color: 'border-blue-500/30 text-blue-400 bg-blue-500/5' }
                         ].map(item => {
                           const isActive = memberForm.status === item.id || (item.id === 'manha' && (!memberForm.status || memberForm.status === 'active'));
                           return (
@@ -3065,18 +3065,18 @@ function ChurchMembershipSystem() {
                 </div>
                 <div className="space-y-6">
 
-                  {!isLeaderMode && (<div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}><p className="text-[8px] font-black text-slate-500 uppercase mb-2">CÃ‰LULA</p><select value={memberForm.cell_id} onChange={e => setMemberForm({ ...memberForm, cell_id: e.target.value })} className="w-full bg-transparent font-black text-sm outline-none"><option value="">Selecionar...</option>{cells.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>)}
+                  {!isLeaderMode && (<div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}><p className="text-[8px] font-black text-slate-500 uppercase mb-2">CÉLULA</p><select value={memberForm.cell_id} onChange={e => setMemberForm({ ...memberForm, cell_id: e.target.value })} className="w-full bg-transparent font-black text-sm outline-none"><option value="">Selecionar...</option>{cells.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>)}
                   <div className="space-y-2">
                     <p className="text-[8px] font-black text-slate-500 uppercase">Cursos</p>
                     <div className="grid grid-cols-1 gap-2">
                       <CourseCheckCompact label="ECC - CASAIS COM CRISTO" checked={memberForm.ecc} onChange={val => setMemberForm({ ...memberForm, ecc: val })} dark={darkMode} />
                       <CourseCheckCompact label="BAT - MEMBROS PARA CLASSE DO BATISMO" checked={memberForm.bat} onChange={val => setMemberForm({ ...memberForm, bat: val })} dark={darkMode} />
-                      <CourseCheckCompact label="FCC - FREQUENTE CULTOS/CÃ‰LULAS" checked={memberForm.integracao} onChange={val => setMemberForm({ ...memberForm, integracao: val })} dark={darkMode} />
-                      <CourseCheckCompact label="CON - CONSOLIDAÃ‡ÃƒO PENDENTE" checked={memberForm.con} onChange={val => setMemberForm({ ...memberForm, con: val })} dark={darkMode} />
+                      <CourseCheckCompact label="FCC - FREQUENTE CULTOS/CÉLULAS" checked={memberForm.integracao} onChange={val => setMemberForm({ ...memberForm, integracao: val })} dark={darkMode} />
+                      <CourseCheckCompact label="CON - CONSOLIDAÇÃO PENDENTE" checked={memberForm.con} onChange={val => setMemberForm({ ...memberForm, con: val })} dark={darkMode} />
                       <CourseCheckCompact label="VS - VISITANTE DA SEMANA" checked={memberForm.outros} onChange={val => setMemberForm({ ...memberForm, outros: val })} dark={darkMode} />
                       <CourseCheckCompact label="TMC - MEMBRO COMPROMETIDO" checked={memberForm.maturidade} onChange={val => setMemberForm({ ...memberForm, maturidade: val })} dark={darkMode} />
                       <CourseCheckCompact label="MSD - SEM DISCIPULADOR" checked={memberForm.ctl} onChange={val => setMemberForm({ ...memberForm, ctl: val })} dark={darkMode} />
-                      <CourseCheckCompact label="PL - POTENCIAL LÃDER" checked={memberForm.pl} onChange={val => setMemberForm({ ...memberForm, pl: val })} dark={darkMode} />
+                      <CourseCheckCompact label="PL - POTENCIAL LÍDER" checked={memberForm.pl} onChange={val => setMemberForm({ ...memberForm, pl: val })} dark={darkMode} />
                     </div>
                   </div>
                 </div>
@@ -3086,7 +3086,7 @@ function ChurchMembershipSystem() {
             {/* Footer */}
             <div className="p-6 border-t border-white/5 flex gap-4 shrink-0 bg-inherit rounded-b-2xl">
               <button onClick={() => setShowMemberForm(false)} className="flex-1 py-4 text-slate-500 font-black uppercase text-[10px] hover:bg-white/5 rounded-xl transition-all">Cancelar</button>
-              <button onClick={addMember} className="flex-[2] bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-black text-sm uppercase shadow-lg shadow-blue-600/20 active:scale-95 transition-all">Salvar {activeCell?.id ? 'na CÃ©lula' : ''}</button>
+              <button onClick={addMember} className="flex-[2] bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-black text-sm uppercase shadow-lg shadow-blue-600/20 active:scale-95 transition-all">Salvar {activeCell?.id ? 'na Célula' : ''}</button>
             </div>
           </div>
         </div>
@@ -3097,23 +3097,23 @@ function ChurchMembershipSystem() {
           <div className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-xl max-h-[95vh] rounded-2xl border ${t.border} shadow-2xl flex flex-col relative`}>
             {/* Header */}
             <div className="p-6 border-b border-white/5 flex justify-between items-center shrink-0">
-              <h2 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter">{editingCellId ? 'Editar' : 'Nova'} CÃ©lula</h2>
+              <h2 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter">{editingCellId ? 'Editar' : 'Nova'} Célula</h2>
               <button onClick={() => { setShowCellForm(false); setEditingCellId(null); setCellForm({ name: '', sector_id: '', leader: '', leader_phone: '', cep: '', address: '', number: '', neighborhood: '', city: '', day_of_week: 'quarta', meeting_time: '19:30', login_email: '', login_password: '' }); }} className="p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24} /></button>
             </div>
 
             {/* Body */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar-fine text-left">
-              <InputCompact label="NOME DA CÃ‰LULA" value={cellForm.name} onChange={val => setCellForm({ ...cellForm, name: val })} dark={darkMode} />
+              <InputCompact label="NOME DA CÉLULA" value={cellForm.name} onChange={val => setCellForm({ ...cellForm, name: val })} dark={darkMode} />
               <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}><p className="text-[8px] font-black text-slate-500 uppercase mb-2">SETOR</p><select value={cellForm.sector_id} onChange={e => setCellForm({ ...cellForm, sector_id: e.target.value })} className="w-full bg-transparent font-black text-sm outline-none"><option value="">Selecionar...</option>{sectors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-              <InputCompact label="LÃDER" value={cellForm.leader} onChange={val => setCellForm({ ...cellForm, leader: val })} dark={darkMode} />
+              <InputCompact label="LÍDER" value={cellForm.leader} onChange={val => setCellForm({ ...cellForm, leader: val })} dark={darkMode} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}><p className="text-[8px] font-black text-slate-500 uppercase mb-2">DIA DA SEMANA</p><select value={cellForm.day_of_week} onChange={e => setCellForm({ ...cellForm, day_of_week: e.target.value })} className="w-full bg-transparent font-black text-sm outline-none"><option value="segunda">Segunda</option><option value="terÃ§a">TerÃ§a</option><option value="quarta">Quarta</option><option value="quinta">Quinta</option><option value="sexta">Sexta</option><option value="sÃ¡bado">SÃ¡bado</option><option value="domingo">Domingo</option></select></div>
-                <InputCompact label="HORÃRIO" value={cellForm.meeting_time} onChange={val => setCellForm({ ...cellForm, meeting_time: val })} dark={darkMode} />
+                <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}><p className="text-[8px] font-black text-slate-500 uppercase mb-2">DIA DA SEMANA</p><select value={cellForm.day_of_week} onChange={e => setCellForm({ ...cellForm, day_of_week: e.target.value })} className="w-full bg-transparent font-black text-sm outline-none"><option value="segunda">Segunda</option><option value="terça">Terça</option><option value="quarta">Quarta</option><option value="quinta">Quinta</option><option value="sexta">Sexta</option><option value="sábado">Sábado</option><option value="domingo">Domingo</option></select></div>
+                <InputCompact label="HORÁRIO" value={cellForm.meeting_time} onChange={val => setCellForm({ ...cellForm, meeting_time: val })} dark={darkMode} />
               </div>
               <div className="relative"><InputCompact label="CEP LOCAL" value={cellForm.cep} onChange={val => { setCellForm({ ...cellForm, cep: val }); handleCepSearch(val, 'cell'); }} dark={darkMode} />{searchingCep && <Loader2 className="absolute right-3 top-7 text-blue-500 animate-spin" size={14} />}</div>
-              <InputCompact label="ENDEREÃ‡O" value={cellForm.address} onChange={val => setCellForm({ ...cellForm, address: val })} dark={darkMode} />
+              <InputCompact label="ENDEREÇO" value={cellForm.address} onChange={val => setCellForm({ ...cellForm, address: val })} dark={darkMode} />
               <div className="grid grid-cols-2 gap-4">
-                <InputCompact label="NÂº" value={cellForm.number} onChange={val => setCellForm({ ...cellForm, number: val })} dark={darkMode} />
+                <InputCompact label="Nº" value={cellForm.number} onChange={val => setCellForm({ ...cellForm, number: val })} dark={darkMode} />
                 <InputCompact label="BAIRRO" value={cellForm.neighborhood} onChange={val => setCellForm({ ...cellForm, neighborhood: val })} dark={darkMode} />
               </div>
 
@@ -3122,7 +3122,7 @@ function ChurchMembershipSystem() {
             {/* Footer */}
             <div className="p-6 border-t border-white/5 flex gap-4 shrink-0 bg-inherit rounded-b-2xl">
               <button onClick={() => setShowCellForm(false)} className="flex-1 py-4 text-slate-500 font-black uppercase text-xs hover:bg-white/5 rounded-xl transition-all">Cancelar</button>
-              <button onClick={addCell} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-xl font-black text-sm uppercase italic transition-all shadow-lg shadow-indigo-600/20 active:scale-95">Salvar CÃ©lula</button>
+              <button onClick={addCell} className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-xl font-black text-sm uppercase italic transition-all shadow-lg shadow-indigo-600/20 active:scale-95">Salvar Célula</button>
             </div>
           </div>
         </div>
@@ -3140,7 +3140,7 @@ function ChurchMembershipSystem() {
               <InputCompact label="E-MAIL DO PASTOR (LOGIN)" value={branchForm.pastor_email} onChange={val => setBranchForm({ ...branchForm, pastor_email: val })} dark={darkMode} type="email" autoCapitalize="none" />
               <div className="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
                 <p className="text-[10px] text-emerald-500 font-bold leading-relaxed">
-                  Ao criar, o pastor logado com este e-mail serÃ¡ forÃ§ado para o painel desta filial. O sistema usarÃ¡ o prefixo <strong>[{branchForm.name ? branchForm.name.toUpperCase() : 'FILIAL'}]</strong> para filtrar setores e cÃ©lulas.
+                  Ao criar, o pastor logado com este e-mail será forçado para o painel desta filial. O sistema usará o prefixo <strong>[{branchForm.name ? branchForm.name.toUpperCase() : 'FILIAL'}]</strong> para filtrar setores e células.
                 </p>
               </div>
             </div>
@@ -3175,7 +3175,7 @@ function ChurchMembershipSystem() {
           <div className={`${darkMode ? 'bg-[#0f172a]' : 'bg-white'} w-full max-w-md max-h-[95vh] rounded-2xl border ${t.border} shadow-2xl flex flex-col relative text-left`}>
             {/* Header */}
             <div className="p-6 border-b border-white/5 flex justify-between items-center shrink-0">
-              <h2 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter">RelatÃ³rio</h2>
+              <h2 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter">Relatório</h2>
               <button onClick={() => setShowReportForm(false)} className="p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={24} /></button>
             </div>
 
@@ -3206,7 +3206,7 @@ function ChurchMembershipSystem() {
               </div>
               <div className="space-y-4">
                 <div className="p-4 bg-blue-600/5 rounded-2xl border border-blue-500/10">
-                  <p className="text-[9px] font-black uppercase text-blue-500 mb-3 tracking-[0.2em]">Culto da ManhÃ£</p>
+                  <p className="text-[9px] font-black uppercase text-blue-500 mb-3 tracking-[0.2em]">Culto da Manhã</p>
                   <div className="grid grid-cols-3 gap-2">
                     <InputCompact label="PESSOAS" value={reportForm.morning_people} onChange={val => setReportForm({ ...reportForm, morning_people: val })} dark={darkMode} />
                     <InputCompact label="VISIT." value={reportForm.morning_visitors} onChange={val => setReportForm({ ...reportForm, morning_visitors: val })} dark={darkMode} />
@@ -3224,14 +3224,14 @@ function ChurchMembershipSystem() {
                 </div>
               </div>
               <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}>
-                <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">OBSERVAÃ‡Ã•ES</p>
+                <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">OBSERVAÇÕES</p>
                 <textarea value={reportForm.notes} onChange={e => setReportForm({ ...reportForm, notes: e.target.value })} className="w-full bg-transparent font-bold text-xs outline-none h-20 resize-none" />
               </div>
             </div>
 
             {/* Footer */}
             <div className="p-6 border-t border-white/5 shrink-0 bg-inherit rounded-b-2xl">
-              <button onClick={addReport} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl font-black text-sm uppercase shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">Gravar RelatÃ³rio</button>
+              <button onClick={addReport} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl font-black text-sm uppercase shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">Gravar Relatório</button>
             </div>
           </div>
         </div>
@@ -3260,29 +3260,29 @@ function ChurchMembershipSystem() {
               <button type="button" onClick={() => setShowLeaderConfig(false)} className="p-2 text-slate-500 hover:text-white rounded-full transition-all"><X size={20}/></button>
             </div>
             <div className="p-6 space-y-4">
-              <p className="text-[10px] text-slate-500 font-bold uppercase leading-relaxed">Defina o e-mail e a senha que vocÃª usarÃ¡ para acessar o painel da sua cÃ©lula sem precisar de links.</p>
+              <p className="text-[10px] text-slate-500 font-bold uppercase leading-relaxed">Defina o e-mail e a senha que você usará para acessar o painel da sua célula sem precisar de links.</p>
               <InputCompact label="E-MAIL DE ACESSO" value={leaderConfigForm.email} onChange={val => setLeaderConfigForm({...leaderConfigForm, email: val})} dark={darkMode} />
               <InputCompact label="SENHA DE ACESSO" value={leaderConfigForm.password} onChange={val => setLeaderConfigForm({...leaderConfigForm, password: val})} dark={darkMode} />
               
               {!searchParams.get('role') && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-4 border-t border-white/5">
                   <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}>
-                    <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">Dia da ReuniÃ£o</p>
+                    <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">Dia da Reunião</p>
                     <select 
                       value={leaderConfigForm.day_of_week} 
                       onChange={e => setLeaderConfigForm({...leaderConfigForm, day_of_week: e.target.value})} 
                       className="w-full bg-transparent font-black text-sm outline-none text-white italic"
                     >
                       <option value="segunda" className="bg-slate-900">Segunda</option>
-                      <option value="terÃ§a" className="bg-slate-900">TerÃ§a</option>
+                      <option value="terça" className="bg-slate-900">Terça</option>
                       <option value="quarta" className="bg-slate-900">Quarta</option>
                       <option value="quinta" className="bg-slate-900">Quinta</option>
                       <option value="sexta" className="bg-slate-900">Sexta</option>
-                      <option value="sÃ¡bado" className="bg-slate-900">SÃ¡bado</option>
+                      <option value="sábado" className="bg-slate-900">Sábado</option>
                       <option value="domingo" className="bg-slate-900">Domingo</option>
                     </select>
                   </div>
-                  <InputCompact label="HorÃ¡rio" value={leaderConfigForm.meeting_time} onChange={val => setLeaderConfigForm({...leaderConfigForm, meeting_time: val})} dark={darkMode} />
+                  <InputCompact label="Horário" value={leaderConfigForm.meeting_time} onChange={val => setLeaderConfigForm({...leaderConfigForm, meeting_time: val})} dark={darkMode} />
                 </div>
               )}
             </div>
@@ -3294,13 +3294,13 @@ function ChurchMembershipSystem() {
         </div>
       )}
 
-      {/* Modal de LanÃ§amento RÃ¡pido de Cultos */}
+      {/* Modal de Lançamento Rápido de Cultos */}
       {showQuickEntry && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-black/60">
           <div className={`${darkMode ? 'bg-[#0f172a] border-white/10' : 'bg-white border-slate-200'} w-full max-w-md rounded-[2.5rem] border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200`}>
             <header className="p-8 border-b border-white/5 flex justify-between items-center bg-gradient-to-r from-blue-600/10 to-transparent text-left">
               <div>
-                <h3 className="text-2xl font-black italic uppercase tracking-tighter">LanÃ§amento RÃ¡pido</h3>
+                <h3 className="text-2xl font-black italic uppercase tracking-tighter">Lançamento Rápido</h3>
                 <p className="text-[9px] text-blue-500 font-black uppercase tracking-widest mt-1">Contagem Direta de Culto</p>
               </div>
               <button onClick={() => setShowQuickEntry(false)} className="p-2 hover:bg-white/5 rounded-full text-slate-500 transition-all"><X size={24} /></button>
@@ -3316,7 +3316,7 @@ function ChurchMembershipSystem() {
                     onClick={() => setQuickEntryForm({...quickEntryForm, type})}
                     className={`py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border ${quickEntryForm.type === type ? 'bg-blue-600 text-white border-blue-500 shadow-xl shadow-blue-600/20 scale-105' : 'bg-white/5 text-slate-500 border-white/5 hover:bg-white/10'}`}
                   >
-                    {type === 'manha' ? 'ManhÃ£' : type === 'noite' ? 'Noite' : 'SÃ¡bado'}
+                    {type === 'manha' ? 'Manhã' : type === 'noite' ? 'Noite' : 'Sábado'}
                   </button>
                 ))}
               </div>
@@ -3325,9 +3325,9 @@ function ChurchMembershipSystem() {
                 <InputCompact label="Total de Pessoas" value={quickEntryForm.total} onChange={val => setQuickEntryForm({...quickEntryForm, total: val})} dark={darkMode} placeholder="Ex: 150" />
                 <div className="grid grid-cols-2 gap-4">
                   <InputCompact label="Visitantes" value={quickEntryForm.visitors} onChange={val => setQuickEntryForm({...quickEntryForm, visitors: val})} dark={darkMode} />
-                  <InputCompact label="CrianÃ§as" value={quickEntryForm.kids} onChange={val => setQuickEntryForm({...quickEntryForm, kids: val})} dark={darkMode} />
+                  <InputCompact label="Crianças" value={quickEntryForm.kids} onChange={val => setQuickEntryForm({...quickEntryForm, kids: val})} dark={darkMode} />
                 </div>
-                <InputCompact label="ObservaÃ§Ã£o / Data Especial" value={quickEntryForm.notes} onChange={val => setQuickEntryForm({...quickEntryForm, notes: val})} dark={darkMode} placeholder="Ex: Santa Ceia, AniversÃ¡rio da Igreja, MissÃµes..." />
+                <InputCompact label="Observação / Data Especial" value={quickEntryForm.notes} onChange={val => setQuickEntryForm({...quickEntryForm, notes: val})} dark={darkMode} placeholder="Ex: Santa Ceia, Aniversário da Igreja, Missões..." />
               </div>
             </div>
 
@@ -3367,10 +3367,10 @@ function ChurchMembershipSystem() {
                     <p className="text-[9px] font-black uppercase text-pink-500 tracking-[0.2em] mb-2.5">Onde nos visitou?</p>
                     <div className="grid grid-cols-2 gap-2">
                       {[
-                        { id: 'manha', label: 'Culto ManhÃ£', color: 'border-amber-500/30 text-amber-400 bg-amber-500/5' },
+                        { id: 'manha', label: 'Culto Manhã', color: 'border-amber-500/30 text-amber-400 bg-amber-500/5' },
                         { id: 'noite', label: 'Culto Noite', color: 'border-purple-500/30 text-purple-400 bg-purple-500/5' },
-                        { id: 'sabado', label: 'Culto SÃ¡bado', color: 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5' },
-                        { id: 'celula', label: 'CÃ©lula', color: 'border-blue-500/30 text-blue-400 bg-blue-500/5' }
+                        { id: 'sabado', label: 'Culto Sábado', color: 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5' },
+                        { id: 'celula', label: 'Célula', color: 'border-blue-500/30 text-blue-400 bg-blue-500/5' }
                       ].map(item => (
                         <button
                           key={item.id}
@@ -3387,13 +3387,13 @@ function ChurchMembershipSystem() {
                 </div>
 
                 <div className="space-y-4">
-                  <p className="text-[10px] font-black uppercase text-blue-500 tracking-[0.2em] mb-2">LocalizaÃ§Ã£o e CÃ©lula</p>
+                  <p className="text-[10px] font-black uppercase text-blue-500 tracking-[0.2em] mb-2">Localização e Célula</p>
                   <div className={`${darkMode ? 'bg-white/5' : 'bg-slate-50'} p-3 rounded-xl border ${t.border}`}>
                     <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">CEP (AUTO-PREENCHE)</p>
                     <input 
                       type="text" 
                       maxLength={8}
-                      placeholder="Apenas nÃºmeros"
+                      placeholder="Apenas números"
                       value={visitorForm.cep}
                       onChange={e => {
                         const val = e.target.value.replace(/\D/g, '');
@@ -3404,8 +3404,8 @@ function ChurchMembershipSystem() {
                     />
                   </div>
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="col-span-2"><InputCompact label="ENDEREÃ‡O" value={visitorForm.address} onChange={val => setVisitorForm({...visitorForm, address: val})} dark={darkMode} /></div>
-                    <InputCompact label="NÂº" value={visitorForm.number} onChange={val => setVisitorForm({...visitorForm, number: val})} dark={darkMode} />
+                    <div className="col-span-2"><InputCompact label="ENDEREÇO" value={visitorForm.address} onChange={val => setVisitorForm({...visitorForm, address: val})} dark={darkMode} /></div>
+                    <InputCompact label="Nº" value={visitorForm.number} onChange={val => setVisitorForm({...visitorForm, number: val})} dark={darkMode} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <InputCompact label="BAIRRO" value={visitorForm.neighborhood} onChange={val => setVisitorForm({...visitorForm, neighborhood: val})} dark={darkMode} />
@@ -3416,7 +3416,7 @@ function ChurchMembershipSystem() {
                     <div className="p-4 bg-emerald-600/10 border border-emerald-500/20 rounded-xl animate-in slide-in-from-right-4 duration-500">
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                        <p className="text-[8px] font-black uppercase text-emerald-500 tracking-widest">CÃ©lula Recomendada</p>
+                        <p className="text-[8px] font-black uppercase text-emerald-500 tracking-widest">Célula Recomendada</p>
                       </div>
                       <p className="text-base font-black italic uppercase text-white leading-tight">{visitorForm.suggested_cell.name}</p>
                       <select 
@@ -3427,7 +3427,7 @@ function ChurchMembershipSystem() {
                         }}
                         className="w-full bg-transparent text-[9px] font-black uppercase text-slate-400 mt-2 outline-none cursor-pointer"
                       >
-                        {cells.map(c => <option key={c.id} value={c.id} className="bg-slate-900">{c.name} (LÃ­der: {c.leader})</option>)}
+                        {cells.map(c => <option key={c.id} value={c.id} className="bg-slate-900">{c.name} (Líder: {c.leader})</option>)}
                       </select>
                     </div>
                   )}
@@ -3522,26 +3522,26 @@ function AttendanceReport({ members, cells, getMemberEngagement, darkMode }) {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 text-left">
         <div>
-          <h1 className={`text-4xl font-black ${t.text} tracking-tight italic uppercase`}>RelatÃ³rio de PresenÃ§a</h1>
-          <p className={t.subText}>AuditÃ³ria detalhada de frequÃªncia da semana</p>
+          <h1 className={`text-4xl font-black ${t.text} tracking-tight italic uppercase`}>Relatório de Presença</h1>
+          <p className={t.subText}>Auditória detalhada de frequência da semana</p>
         </div>
         <select 
           value={selectedCell} 
           onChange={(e) => setSelectedCell(e.target.value)}
           className="bg-blue-600 text-white border-none p-3 px-6 rounded-2xl font-black text-[10px] uppercase italic outline-none shadow-xl shadow-blue-600/20 cursor-pointer hover:bg-blue-500 transition-all"
         >
-          <option value="all" className="bg-slate-900">TODAS AS CÃ‰LULAS</option>
+          <option value="all" className="bg-slate-900">TODAS AS CÉLULAS</option>
           {cells.map(c => <option key={c.id} value={c.id} className="bg-slate-900">{c.name}</option>)}
         </select>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-3xl">
-          <p className="text-emerald-600 font-black text-[10px] uppercase mb-1">PRESENÃ‡A TOTAL</p>
-          <p className="text-3xl font-black text-emerald-500 italic">{members.filter(m => m.attended_cell).length} <span className="text-sm opacity-50">Membros na CÃ©lula</span></p>
+          <p className="text-emerald-600 font-black text-[10px] uppercase mb-1">PRESENÇA TOTAL</p>
+          <p className="text-3xl font-black text-emerald-500 italic">{members.filter(m => m.attended_cell).length} <span className="text-sm opacity-50">Membros na Célula</span></p>
         </div>
         <div className="bg-blue-500/10 border border-blue-500/20 p-6 rounded-3xl">
-          <p className="text-blue-600 font-black text-[10px] uppercase mb-1">PRESENÃ‡A NO CULTO</p>
+          <p className="text-blue-600 font-black text-[10px] uppercase mb-1">PRESENÇA NO CULTO</p>
           <p className="text-3xl font-black text-blue-500 italic">{members.filter(m => m.attended_cult).length} <span className="text-sm opacity-50">Membros no Culto</span></p>
         </div>
       </div>
@@ -3551,8 +3551,8 @@ function AttendanceReport({ members, cells, getMemberEngagement, darkMode }) {
           <table className="w-full text-left">
             <thead>
               <tr className={`${t.header} border-b ${darkMode ? 'border-white/5' : 'border-slate-200'}`}>
-                <th className={`px-6 py-4 text-[10px] font-black ${t.subText} uppercase tracking-widest`}>Membro / CÃ©lula</th>
-                <th className={`px-6 py-4 text-[10px] font-black ${t.subText} uppercase tracking-widest text-center`}>CÃ©lula</th>
+                <th className={`px-6 py-4 text-[10px] font-black ${t.subText} uppercase tracking-widest`}>Membro / Célula</th>
+                <th className={`px-6 py-4 text-[10px] font-black ${t.subText} uppercase tracking-widest text-center`}>Célula</th>
                 <th className={`px-6 py-4 text-[10px] font-black ${t.subText} uppercase tracking-widest text-center`}>Culto</th>
                 <th className={`px-6 py-4 text-[10px] font-black ${t.subText} uppercase tracking-widest`}>Status</th>
               </tr>
@@ -3564,7 +3564,7 @@ function AttendanceReport({ members, cells, getMemberEngagement, darkMode }) {
                 <tr key={m.id} className={`${t.row} transition-colors`}>
                   <td className="px-6 py-4">
                     <p className={`font-black ${t.text} text-sm uppercase italic`}>{m.name}</p>
-                    <p className={`text-[8px] font-black ${t.subText} uppercase`}>{cells.find(c => Number(c.id) === Number(m.cell_id))?.name || 'Sem CÃ©lula'}</p>
+                    <p className={`text-[8px] font-black ${t.subText} uppercase`}>{cells.find(c => Number(c.id) === Number(m.cell_id))?.name || 'Sem Célula'}</p>
                   </td>
                   <td className="px-6 py-4 text-center">
                     {isPresentCell ? 
@@ -3654,17 +3654,17 @@ function PastoralReport({ members, cells, sectors, attendance, getMemberEngageme
         'NOME': m.name,
         'TELEFONE': m.phone || '',
         'SETOR': sector?.name || 'Sem Setor',
-        'CÃ‰LULA': cell?.name || 'Sem CÃ©lula',
-        'LÃDER': cell?.leader || '',
-        'PRESENÃ‡A CÃ‰LULA': isPresentCell ? 'SIM' : 'NÃƒO',
-        'PRESENÃ‡A CULTO': isPresentCult ? 'SIM' : 'NÃƒO',
+        'CÉLULA': cell?.name || 'Sem Célula',
+        'LÍDER': cell?.leader || '',
+        'PRESENÇA CÉLULA': isPresentCell ? 'SIM' : 'NÃO',
+        'PRESENÇA CULTO': isPresentCult ? 'SIM' : 'NÃO',
         'STATUS': isPresentCell && isPresentCult ? 'ENGAJADO' : (isPresentCell || isPresentCult ? 'PARCIAL' : 'AUSENTE')
       };
     });
 
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "RelatÃ³rio");
+    XLSX.utils.book_append_sheet(wb, ws, "Relatório");
     
     // Auto-size columns
     const max_width = data.reduce((w, r) => Math.max(w, r.NOME.length), 10);
@@ -3677,8 +3677,8 @@ function PastoralReport({ members, cells, sectors, attendance, getMemberEngageme
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 text-left">
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className={`text-4xl font-black ${t.text} italic uppercase tracking-tighter`}>RelatÃ³rio Pastoral</h2>
-          <p className={t.subText}>VisÃ£o semanal estratÃ©gica por setor</p>
+          <h2 className={`text-4xl font-black ${t.text} italic uppercase tracking-tighter`}>Relatório Pastoral</h2>
+          <p className={t.subText}>Visão semanal estratégica por setor</p>
         </div>
         <button 
           onClick={exportExcel}
@@ -3713,22 +3713,22 @@ function PastoralReport({ members, cells, sectors, attendance, getMemberEngageme
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard label="Total de Membros" value={stats.total} icon={<Users size={16}/>} color="blue" dark={darkMode} />
-        <StatCard label="PresenÃ§a CÃ©lula" value={stats.cellPresent} icon={<Home size={16}/>} color="emerald" dark={darkMode} />
-        <StatCard label="PresenÃ§a Culto" value={stats.cultPresent} icon={<Star size={16}/>} color="purple" dark={darkMode} />
+        <StatCard label="Presença Célula" value={stats.cellPresent} icon={<Home size={16}/>} color="emerald" dark={darkMode} />
+        <StatCard label="Presença Culto" value={stats.cultPresent} icon={<Star size={16}/>} color="purple" dark={darkMode} />
         <StatCard label="Engajamento 100%" value={`${Math.round((stats.both / stats.total) * 100 || 0)}%`} icon={<Activity size={16}/>} color="blue" dark={darkMode} />
       </div>
 
-      {/* Resumo por CÃ©lula */}
+      {/* Resumo por Célula */}
       <div className="space-y-4">
-        <h3 className="text-sm font-black italic uppercase tracking-tight text-blue-500">Resumo por CÃ©lula</h3>
+        <h3 className="text-sm font-black italic uppercase tracking-tight text-blue-500">Resumo por Célula</h3>
         <div className={`${t.card} border rounded-3xl overflow-hidden`}>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead className={`${t.tableHead} border-b ${t.border}`}>
                 <tr>
-                  <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest">CÃ©lula / LÃ­der</th>
+                  <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest">Célula / Líder</th>
                   <th className="px-6 py-4 text-center text-[9px] font-black uppercase tracking-widest">Total</th>
-                  <th className="px-6 py-4 text-center text-[9px] font-black uppercase tracking-widest">CÃ©lula</th>
+                  <th className="px-6 py-4 text-center text-[9px] font-black uppercase tracking-widest">Célula</th>
                   <th className="px-6 py-4 text-center text-[9px] font-black uppercase tracking-widest">Culto</th>
                   <th className="px-6 py-4 text-right text-[9px] font-black uppercase tracking-widest">Engajamento %</th>
                 </tr>
@@ -3779,7 +3779,7 @@ function PastoralReport({ members, cells, sectors, attendance, getMemberEngageme
                   } else if (lastUpdateDate >= previousSunday) {
                     statusColor = "bg-amber-500/10 text-amber-400 border-amber-500/20";
                     dotColor = "bg-amber-500";
-                    badgeText = "AtenÃ§Ã£o";
+                    badgeText = "Atenção";
                   } else if (lastUpdateDate) {
                     statusColor = "bg-red-500/10 text-red-400 border-red-500/20";
                     dotColor = "bg-red-500";
@@ -3796,7 +3796,7 @@ function PastoralReport({ members, cells, sectors, attendance, getMemberEngageme
                     <tr key={cell.id} className={t.hover}>
                       <td className="px-6 py-4">
                         <p className="text-sm font-black italic uppercase tracking-tighter">{cell.name}</p>
-                        <p className="text-[9px] text-slate-500 font-bold mb-1.5">LÃ­der: {cell.leader}</p>
+                        <p className="text-[9px] text-slate-500 font-bold mb-1.5">Líder: {cell.leader}</p>
                         <div className="flex flex-wrap gap-1.5 items-center">
                           <span className={`inline-flex items-center gap-1.5 text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${statusColor}`}>
                             <span className={`w-1 h-1 rounded-full ${dotColor} ${badgeText === 'Atualizada' ? '' : 'animate-pulse'}`} />
