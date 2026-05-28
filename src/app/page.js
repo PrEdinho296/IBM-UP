@@ -239,6 +239,37 @@ function ChurchMembershipSystem() {
   const [selectedSectors, setSelectedSectors] = useState([]);
   const [historyRefDate, setHistoryRefDate] = useState(getLocalDate());
 
+  // Floating button drag state
+  const [fabPos, setFabPos] = useState({ x: 0, y: 0 });
+  const [isDraggingFab, setIsDraggingFab] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0, posX: 0, posY: 0, dragged: false });
+
+  const onPointerDownFab = (e) => {
+    dragStart.current = { x: e.clientX, y: e.clientY, posX: fabPos.x, posY: fabPos.y, dragged: false };
+    setIsDraggingFab(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onPointerMoveFab = (e) => {
+    if (isDraggingFab) {
+      const dx = e.clientX - dragStart.current.x;
+      const dy = e.clientY - dragStart.current.y;
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) dragStart.current.dragged = true;
+      setFabPos({ x: dragStart.current.posX + dx, y: dragStart.current.posY + dy });
+    }
+  };
+  const onPointerUpFab = (e) => {
+    setIsDraggingFab(false);
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  };
+  const onClickFab = (e) => {
+    if (dragStart.current.dragged) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    saveHistoryAttendance();
+  };
+
   const [showMemberForm, setShowMemberForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [showCellForm, setShowCellForm] = useState(false);
@@ -2989,8 +3020,15 @@ function ChurchMembershipSystem() {
 
         {/* Botão Flutuante de Salvar Frequência */}
         {isLeaderMode && pendingAttendance.length > 0 && (
-          <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end gap-3 animate-in slide-in-from-right-10 duration-500">
-            <div className="bg-emerald-600 text-white p-4 rounded-2xl shadow-2xl shadow-emerald-900/40 border border-emerald-400/30 flex items-center gap-4 group hover:scale-105 transition-all cursor-pointer" onClick={saveHistoryAttendance}>
+          <div 
+            className={`fixed z-[100] flex flex-col items-end gap-3 animate-in slide-in-from-right-10 duration-500 ${isDraggingFab ? 'opacity-90 scale-95 cursor-grabbing' : 'cursor-grab'}`}
+            style={{ bottom: '2rem', right: '2rem', transform: `translate(${fabPos.x}px, ${fabPos.y}px)`, touchAction: 'none' }}
+            onPointerDown={onPointerDownFab}
+            onPointerMove={onPointerMoveFab}
+            onPointerUp={onPointerUpFab}
+            onPointerCancel={onPointerUpFab}
+          >
+            <div className="bg-emerald-600 text-white p-4 rounded-2xl shadow-2xl shadow-emerald-900/40 border border-emerald-400/30 flex items-center gap-4 transition-all" onClick={onClickFab}>
               <div className="flex flex-col">
                 <span className="text-[10px] font-black uppercase tracking-widest opacity-70">Pendentes</span>
                 <span className="text-xl font-black italic">{pendingAttendance.length} Registros</span>
