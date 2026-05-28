@@ -42,6 +42,23 @@ function ChurchMembershipSystem() {
   useEffect(() => {
     localStorage.setItem('ibm_up_dark_mode', darkMode);
   }, [darkMode]);
+
+  useEffect(() => {
+    // Close sidebar by default on smaller screens
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+    
+    // Suppress ResizeObserver errors that crash Next.js with Recharts
+    const handleResizeObserverError = (e) => {
+      if (e.message === 'ResizeObserver loop limit exceeded' || e.message === 'ResizeObserver loop completed with undelivered notifications.') {
+        e.stopImmediatePropagation();
+      }
+    };
+    window.addEventListener('error', handleResizeObserverError);
+    return () => window.removeEventListener('error', handleResizeObserverError);
+  }, []);
+  
   const [rawMembers, setMembers] = useState([]);
   const [rawCells, setCells] = useState([]);
   const [rawSectors, setSectors] = useState([]);
