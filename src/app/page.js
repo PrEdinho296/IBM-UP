@@ -576,6 +576,25 @@ function ChurchMembershipSystem() {
       const cellId = urlParams.get('cellId') || cellIdParam;
       
       const fetchedData = await fetchData();
+
+      // Sincronizar célula do localStorage com dados mais recentes
+      if (fetchedData?.cells) {
+        const savedLeader = localStorage.getItem('ibm_up_leader_cell');
+        if (savedLeader && !cellId) {
+          try {
+            const parsedSaved = JSON.parse(savedLeader);
+            const freshCell = fetchedData.cells.find(c => String(c.id) === String(parsedSaved.id));
+            if (freshCell) {
+              const updatedLeader = { ...freshCell, isTraineeLogin: parsedSaved.isTraineeLogin };
+              setLeaderCell(updatedLeader);
+              setActiveCell(updatedLeader);
+              localStorage.setItem('ibm_up_leader_cell', JSON.stringify(updatedLeader));
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
       
       if (cellId && fetchedData?.cells) {
         const cell = fetchedData.cells.find(c => String(c.id) === String(cellId));
@@ -2169,170 +2188,6 @@ function ChurchMembershipSystem() {
                 {isLeaderMode && <button onClick={() => setShowMemberForm(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVO MEMBRO</button>}
               </header>
 
-              {activeTab === 'leader-attendance' && isLeaderMode && activeCell && (
-                <div className="space-y-8 animate-in fade-in duration-500">
-                  <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                      <div>
-                        <h2 className="text-3xl font-black italic uppercase tracking-tighter">Histórico de Frequência</h2>
-                        <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-1">Visão 360º de presença nas últimas 15 semanas</p>
-                      </div>
-                      <div className="flex items-center gap-2 bg-blue-600/10 border border-blue-500/20 px-4 py-2 rounded-2xl">
-                        <Calendar size={14} className="text-blue-500" />
-                        <input 
-                          type="date" 
-                          value={historyRefDate} 
-                          onChange={(e) => setHistoryRefDate(e.target.value)}
-                          className="bg-transparent text-[10px] font-black uppercase italic text-blue-400 outline-none cursor-pointer"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {pendingAttendance.length > 0 && (
-                        <div className="flex items-center gap-3 animate-in fade-in zoom-in duration-300">
-                          <button 
-                            onClick={saveHistoryAttendance} 
-                            disabled={isSavingAttendance}
-                            className="bg-emerald-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase italic tracking-widest shadow-xl shadow-emerald-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 border border-emerald-500/50 relative overflow-hidden group"
-                          >
-                            <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                            {isSavingAttendance ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                            <span className="relative z-10">GRAVAR {pendingAttendance.length} ALTERAÇÕES</span>
-                          </button>
-                          <button 
-                            onClick={() => { if(confirm('Descartar alterações não salvas?')) setPendingAttendance([]); }}
-                            className="p-3 rounded-xl border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all"
-                            title="Descartar"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                      )}
-                      <button 
-                        onClick={() => setActiveTab('leader-dashboard')} 
-                        className="bg-slate-800 border border-white/5 text-slate-300 px-6 py-3 rounded-2xl font-black text-[10px] uppercase italic tracking-widest hover:bg-slate-700 transition-all flex items-center gap-2"
-                      >
-                        <ArrowLeft size={14} /> VOLTAR AO PAINEL
-                      </button>
-                    </div>
-                  </header>
-
-                  <div className="space-y-6">
-                    <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center gap-2"><Home size={12} /> Histórico de Reuniões de Célula</h3>
-                    <div className={`${t.card} border rounded-3xl overflow-hidden`}>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                          <thead className={`${t.tableHead} border-b ${t.border} sticky top-0 z-20`}>
-                            <tr>
-                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[150px] sticky left-0 z-30 bg-slate-900 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">Nome do Membro</th>
-                              {getMeetingDates(activeCell.day_of_week || 'quarta', historyRefDate).slice(-15).map(d => (
-                                <th key={d} className="px-1 py-5 text-center text-[8px] font-black uppercase text-slate-500 italic border-x border-white/5 min-w-[60px]">
-                                  <div className="text-blue-500 mb-1">{new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
-                                  {activeCell.day_of_week?.substring(0, 3) || 'Qua'}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className={`divide-y ${t.border}`}>
-                            {members.filter(m => Number(m.cell_id) === Number(activeCell.id)).map(m => {
-                              const cellDates = getMeetingDates(activeCell.day_of_week || 'quarta', historyRefDate).slice(-15);
-                              return (
-                                <tr key={m.id} className={t.hover}>
-                                  <td className="px-6 py-4 sticky left-0 z-10 bg-slate-950 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
-                                    <p className="font-black italic uppercase text-xs tracking-tighter truncate w-32">{m.name}</p>
-                                    <div className="flex flex-wrap gap-1 mt-1">
-                                      {m.ecc && <span className="text-[6px] border border-blue-500/30 text-blue-500 px-1 rounded font-black">ECC</span>}
-                                      {m.bat && <span className="text-[6px] border border-emerald-500/30 text-emerald-500 px-1 rounded font-black">BAT</span>}
-                                      {m.integracao && <span className="text-[6px] border border-amber-500/30 text-amber-500 px-1 rounded font-black">FCC</span>}
-                                      {m.con && <span className="text-[6px] border border-red-500/30 text-red-500 px-1 rounded font-black">CON</span>}
-                                      {m.maturidade && <span className="text-[6px] border border-purple-500/30 text-purple-500 px-1 rounded font-black">TMC</span>}
-                                    </div>
-                                  </td>
-                                  {cellDates.map(d => {
-                                    const att = attendance.find(a => a.member_id === m.id && a.date === d);
-                                    const status = att?.status;
-                                    return (
-                                      <td key={d} className="px-1 py-4 text-center border-x border-white/5">
-                                        <button 
-                                          onClick={() => toggleHistoryAttendance(m.id, activeCell.id, d)}
-                                          className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 relative ${status === 'P' ? 'bg-emerald-600 text-white shadow-lg' : status === 'F' ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
-                                        >
-                                          {status || '-'}
-                                          {pendingAttendance.some(p => p.member_id === m.id && p.date === d) && (
-                                            <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full border border-white animate-pulse" />
-                                          )}
-                                        </button>
-                                      </td>
-                                    );
-                                  })}
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-6 mt-10">
-                    <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center gap-2"><Sun size={12} /> Histórico de Presença nos Cultos</h3>
-                    <div className={`${t.card} border rounded-3xl overflow-hidden`}>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                          <thead className={`${t.tableHead} border-b ${t.border} sticky top-0 z-20`}>
-                            <tr>
-                              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[150px] sticky left-0 z-30 bg-slate-900 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">Nome do Membro</th>
-                              {getMeetingDates('domingo', historyRefDate).slice(-15).map(d => (
-                                <th key={d} className="px-1 py-5 text-center text-[8px] font-black uppercase text-slate-500 italic border-x border-white/5 min-w-[60px]">
-                                  <div className="text-emerald-500 mb-1">{new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
-                                  Dom
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className={`divide-y ${t.border}`}>
-                            {members.filter(m => Number(m.cell_id) === Number(activeCell.id)).map(m => {
-                              const sundayDates = getMeetingDates('domingo', historyRefDate).slice(-15);
-                              return (
-                                <tr key={m.id} className={t.hover}>
-                                  <td className="px-6 py-4 sticky left-0 z-10 bg-slate-950 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
-                                    <p className="font-black italic uppercase text-xs tracking-tighter truncate w-32">{m.name}</p>
-                                    <div className="flex flex-wrap gap-1 mt-1">
-                                      {m.ecc && <span className="text-[6px] border border-blue-500/30 text-blue-500 px-1 rounded font-black">ECC</span>}
-                                      {m.bat && <span className="text-[6px] border border-emerald-500/30 text-emerald-500 px-1 rounded font-black">BAT</span>}
-                                      {m.integracao && <span className="text-[6px] border border-amber-500/30 text-amber-500 px-1 rounded font-black">FCC</span>}
-                                      {m.con && <span className="text-[6px] border border-red-500/30 text-red-500 px-1 rounded font-black">CON</span>}
-                                      {m.maturidade && <span className="text-[6px] border border-purple-500/30 text-purple-500 px-1 rounded font-black">TMC</span>}
-                                    </div>
-                                  </td>
-                                  {sundayDates.map(d => {
-                                    const att = attendance.find(a => a.member_id === m.id && a.date === d);
-                                    const status = att?.status;
-                                    return (
-                                      <td key={d} className="px-1 py-4 text-center border-x border-white/5">
-                                        <button 
-                                          onClick={() => toggleHistoryAttendance(m.id, activeCell.id, d)}
-                                          className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 relative ${status === 'P' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : status === 'F' ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
-                                        >
-                                          {status || '-'}
-                                          {pendingAttendance.some(p => p.member_id === m.id && p.date === d) && (
-                                            <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full border border-white animate-pulse" />
-                                          )}
-                                        </button>
-                                      </td>
-                                    );
-                                  })}
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {!isLeaderMode && (
                 <div className="flex flex-wrap gap-4 mb-6">
                   <div className={`${t.card} border rounded-xl flex items-center px-4 py-2 gap-3 min-w-[200px]`}>
@@ -2402,43 +2257,166 @@ function ChurchMembershipSystem() {
             </div>
           )}
 
-          {isLeaderMode && activeTab === 'leader-attendance' && (
-            <div className="space-y-6">
-              <header className="flex justify-between items-center"><h2 className="text-2xl font-black italic uppercase tracking-tighter">Histórico de Frequência</h2></header>
-              <div className={`${t.card} border rounded-2xl overflow-x-auto`}>
-                <table className="w-full text-left">
-                  <thead className={`${t.tableHead} border-b ${t.border}`}>
-                    <tr>
-                      <th className="px-6 py-4 text-[9px] font-black uppercase sticky left-0 z-10 bg-inherit border-r border-white/5">Nome do Membro</th>
-                      {getMeetingDates(activeCell?.day_of_week).map(date => (
-                        <th key={date} className="px-2 py-3 text-center text-[8px] font-black uppercase text-slate-300 border-x border-white/5 italic">
-                          <div className="text-blue-400 mb-0.5">{new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short' })}</div>
-                          {new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className={`divide-y ${t.border}`}>
-                    {filteredMembers.map(m => (
-                      <tr key={m.id} className={t.hover}>
-                        <td className="px-6 py-4 text-sm font-black italic sticky left-0 z-10 bg-inherit border-r border-white/5">{m.name}</td>
-                        {getMeetingDates(activeCell?.day_of_week).map(d => {
-                          const att = attendance.find(a => a.member_id === m.id && a.date === d);
+          {activeTab === 'leader-attendance' && isLeaderMode && activeCell && (
+            <div className="space-y-8 animate-in fade-in duration-500">
+              <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div>
+                    <h2 className="text-3xl font-black italic uppercase tracking-tighter">Histórico de Frequência</h2>
+                    <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-1">Visão 360º de presença nas últimas 15 semanas</p>
+                  </div>
+                  <div className="flex items-center gap-2 bg-blue-600/10 border border-blue-500/20 px-4 py-2 rounded-2xl">
+                    <Calendar size={14} className="text-blue-500" />
+                    <input 
+                      type="date" 
+                      value={historyRefDate} 
+                      onChange={(e) => setHistoryRefDate(e.target.value)}
+                      className="bg-transparent text-[10px] font-black uppercase italic text-blue-400 outline-none cursor-pointer"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {pendingAttendance.length > 0 && (
+                    <div className="flex items-center gap-3 animate-in fade-in zoom-in duration-300">
+                      <button 
+                        onClick={saveHistoryAttendance} 
+                        disabled={isSavingAttendance}
+                        className="bg-emerald-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase italic tracking-widest shadow-xl shadow-emerald-600/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 border border-emerald-500/50 relative overflow-hidden group"
+                      >
+                        <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                        {isSavingAttendance ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                        <span className="relative z-10">GRAVAR {pendingAttendance.length} ALTERAÇÕES</span>
+                      </button>
+                      <button 
+                        onClick={() => { if(confirm('Descartar alterações não salvas?')) setPendingAttendance([]); }}
+                        className="p-3 rounded-xl border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                        title="Descartar"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  )}
+                  <button 
+                    onClick={() => setActiveTab('leader-dashboard')} 
+                    className="bg-slate-800 border border-white/5 text-slate-300 px-6 py-3 rounded-2xl font-black text-[10px] uppercase italic tracking-widest hover:bg-slate-700 transition-all flex items-center gap-2"
+                  >
+                    <ArrowLeft size={14} /> VOLTAR AO PAINEL
+                  </button>
+                </div>
+              </header>
+
+              <div className="space-y-6">
+                <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center gap-2"><Home size={12} /> Histórico de Reuniões de Célula</h3>
+                <div className={`${t.card} border rounded-3xl overflow-hidden`}>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead className={`${t.tableHead} border-b ${t.border} sticky top-0 z-20`}>
+                        <tr>
+                          <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[150px] sticky left-0 z-30 bg-slate-900 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">Nome do Membro</th>
+                          {getMeetingDates(activeCell.day_of_week || 'quarta', historyRefDate).slice(-15).map(d => (
+                            <th key={d} className="px-1 py-5 text-center text-[8px] font-black uppercase text-slate-500 italic border-x border-white/5 min-w-[60px]">
+                              <div className="text-blue-500 mb-1">{new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
+                              {activeCell.day_of_week?.substring(0, 3) || 'Qua'}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className={`divide-y ${t.border}`}>
+                        {members.filter(m => Number(m.cell_id) === Number(activeCell.id)).map(m => {
+                          const cellDates = getMeetingDates(activeCell.day_of_week || 'quarta', historyRefDate).slice(-15);
                           return (
-                            <td key={d} className="px-4 py-4 text-center">
-                              <button
-                                onClick={() => toggleHistoryAttendance(m.id, activeCell.id, d)}
-                                className={`w-8 h-8 rounded-lg font-black text-xs transition-all ${att?.status === 'P' ? 'bg-emerald-600 text-white shadow-lg' : att?.status === 'F' ? 'bg-red-600 text-white shadow-lg' : 'bg-white/5 text-slate-500 border border-white/5'}`}
-                              >
-                                {att?.status || '-'}
-                              </button>
-                            </td>
+                            <tr key={m.id} className={t.hover}>
+                              <td className="px-6 py-4 sticky left-0 z-10 bg-slate-950 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+                                <p className="font-black italic uppercase text-xs tracking-tighter truncate w-32">{m.name}</p>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {m.ecc && <span className="text-[6px] border border-blue-500/30 text-blue-500 px-1 rounded font-black">ECC</span>}
+                                  {m.bat && <span className="text-[6px] border border-emerald-500/30 text-emerald-500 px-1 rounded font-black">BAT</span>}
+                                  {m.integracao && <span className="text-[6px] border border-amber-500/30 text-amber-500 px-1 rounded font-black">FCC</span>}
+                                  {m.con && <span className="text-[6px] border border-red-500/30 text-red-500 px-1 rounded font-black">CON</span>}
+                                  {m.maturidade && <span className="text-[6px] border border-purple-500/30 text-purple-500 px-1 rounded font-black">TMC</span>}
+                                </div>
+                              </td>
+                              {cellDates.map(d => {
+                                const att = attendance.find(a => a.member_id === m.id && a.date === d);
+                                const status = att?.status;
+                                return (
+                                  <td key={d} className="px-1 py-4 text-center border-x border-white/5">
+                                    <button 
+                                      onClick={() => toggleHistoryAttendance(m.id, activeCell.id, d)}
+                                      className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 relative ${status === 'P' ? 'bg-emerald-600 text-white shadow-lg' : status === 'F' ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
+                                    >
+                                      {status || '-'}
+                                      {pendingAttendance.some(p => p.member_id === m.id && p.date === d) && (
+                                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full border border-white animate-pulse" />
+                                      )}
+                                    </button>
+                                  </td>
+                                );
+                              })}
+                            </tr>
                           );
                         })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6 mt-10">
+                <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center gap-2"><Sun size={12} /> Histórico de Presença nos Cultos</h3>
+                <div className={`${t.card} border rounded-3xl overflow-hidden`}>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead className={`${t.tableHead} border-b ${t.border} sticky top-0 z-20`}>
+                        <tr>
+                          <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[150px] sticky left-0 z-30 bg-slate-900 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">Nome do Membro</th>
+                          {getMeetingDates('domingo', historyRefDate).slice(-15).map(d => (
+                            <th key={d} className="px-1 py-5 text-center text-[8px] font-black uppercase text-slate-500 italic border-x border-white/5 min-w-[60px]">
+                              <div className="text-emerald-500 mb-1">{new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
+                              Dom
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className={`divide-y ${t.border}`}>
+                        {members.filter(m => Number(m.cell_id) === Number(activeCell.id)).map(m => {
+                          const sundayDates = getMeetingDates('domingo', historyRefDate).slice(-15);
+                          return (
+                            <tr key={m.id} className={t.hover}>
+                              <td className="px-6 py-4 sticky left-0 z-10 bg-slate-950 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+                                <p className="font-black italic uppercase text-xs tracking-tighter truncate w-32">{m.name}</p>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {m.ecc && <span className="text-[6px] border border-blue-500/30 text-blue-500 px-1 rounded font-black">ECC</span>}
+                                  {m.bat && <span className="text-[6px] border border-emerald-500/30 text-emerald-500 px-1 rounded font-black">BAT</span>}
+                                  {m.integracao && <span className="text-[6px] border border-amber-500/30 text-amber-500 px-1 rounded font-black">FCC</span>}
+                                  {m.con && <span className="text-[6px] border border-red-500/30 text-red-500 px-1 rounded font-black">CON</span>}
+                                  {m.maturidade && <span className="text-[6px] border border-purple-500/30 text-purple-500 px-1 rounded font-black">TMC</span>}
+                                </div>
+                              </td>
+                              {sundayDates.map(d => {
+                                const att = attendance.find(a => a.member_id === m.id && a.date === d);
+                                const status = att?.status;
+                                return (
+                                  <td key={d} className="px-1 py-4 text-center border-x border-white/5">
+                                    <button 
+                                      onClick={() => toggleHistoryAttendance(m.id, activeCell.id, d)}
+                                      className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 relative ${status === 'P' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : status === 'F' ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
+                                    >
+                                      {status || '-'}
+                                      {pendingAttendance.some(p => p.member_id === m.id && p.date === d) && (
+                                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full border border-white animate-pulse" />
+                                      )}
+                                    </button>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -2681,7 +2659,10 @@ function ChurchMembershipSystem() {
                                 <p className="text-[8px] font-black text-slate-500 uppercase">{cells.find(c => c.id === m.cell_id)?.name || 'Sem Célula'}</p>
                               </td>
                               <td className="px-6 py-3 text-right">
-                                <button onClick={() => { setEditingId(m.id); setMemberForm(m); setShowMemberForm(true); }} className="text-blue-500 hover:text-blue-400 font-black text-[8px] uppercase tracking-widest">Ver Ficha</button>
+                                <div className="flex justify-end items-center gap-3">
+                                  <button onClick={() => { setEditingId(m.id); setMemberForm(m); setShowMemberForm(true); }} className="text-blue-500 hover:text-blue-400 font-black text-[8px] uppercase tracking-widest">Ver Ficha</button>
+                                  <button onClick={() => deleteItem('members', m.id)} className="text-red-500/50 hover:text-red-500 p-1" title="Deletar Membro"><Trash2 size={14} /></button>
+                                </div>
                               </td>
                             </tr>
                           ))}
