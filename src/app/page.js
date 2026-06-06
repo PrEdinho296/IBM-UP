@@ -2312,7 +2312,7 @@ function ChurchMembershipSystem() {
                     <table className="w-full text-left border-collapse">
                       <thead className={`${t.tableHead} border-b ${t.border} sticky top-0 z-20`}>
                         <tr>
-                          <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[150px] sticky left-0 z-30 bg-slate-900 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">Nome do Membro</th>
+                          <th className={`px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[150px] sticky left-0 z-30 ${darkMode ? 'bg-slate-900 border-white/5' : 'bg-slate-50 border-slate-200'} border-r shadow-[2px_0_5px_rgba(0,0,0,0.3)]`}>Nome do Membro</th>
                           {getMeetingDates(activeCell.day_of_week || 'quarta', historyRefDate).slice(-15).map(d => (
                             <th key={d} className="px-1 py-5 text-center text-[8px] font-black uppercase text-slate-500 italic border-x border-white/5 min-w-[60px]">
                               <div className="text-blue-500 mb-1">{new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
@@ -2326,7 +2326,7 @@ function ChurchMembershipSystem() {
                           const cellDates = getMeetingDates(activeCell.day_of_week || 'quarta', historyRefDate).slice(-15);
                           return (
                             <tr key={m.id} className={t.hover}>
-                              <td className="px-6 py-4 sticky left-0 z-10 bg-slate-950 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+                              <td className={`px-6 py-4 sticky left-0 z-10 ${darkMode ? 'bg-slate-950' : 'bg-white'} border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]`}>
                                 <p className="font-black italic uppercase text-xs tracking-tighter truncate w-32">{m.name}</p>
                                 <div className="flex flex-wrap gap-1 mt-1">
                                   {m.ecc && <span className="text-[6px] border border-blue-500/30 text-blue-500 px-1 rounded font-black">ECC</span>}
@@ -2369,7 +2369,7 @@ function ChurchMembershipSystem() {
                     <table className="w-full text-left border-collapse">
                       <thead className={`${t.tableHead} border-b ${t.border} sticky top-0 z-20`}>
                         <tr>
-                          <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[150px] sticky left-0 z-30 bg-slate-900 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">Nome do Membro</th>
+                          <th className={`px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[150px] sticky left-0 z-30 ${darkMode ? 'bg-slate-900 border-white/5' : 'bg-slate-50 border-slate-200'} border-r shadow-[2px_0_5px_rgba(0,0,0,0.3)]`}>Nome do Membro</th>
                           {getMeetingDates('domingo', historyRefDate).slice(-15).map(d => (
                             <th key={d} className="px-1 py-5 text-center text-[8px] font-black uppercase text-slate-500 italic border-x border-white/5 min-w-[60px]">
                               <div className="text-emerald-500 mb-1">{new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
@@ -2383,7 +2383,7 @@ function ChurchMembershipSystem() {
                           const sundayDates = getMeetingDates('domingo', historyRefDate).slice(-15);
                           return (
                             <tr key={m.id} className={t.hover}>
-                              <td className="px-6 py-4 sticky left-0 z-10 bg-slate-950 border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]">
+                              <td className={`px-6 py-4 sticky left-0 z-10 ${darkMode ? 'bg-slate-950' : 'bg-white'} border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]`}>
                                 <p className="font-black italic uppercase text-xs tracking-tighter truncate w-32">{m.name}</p>
                                 <div className="flex flex-wrap gap-1 mt-1">
                                   {m.ecc && <span className="text-[6px] border border-blue-500/30 text-blue-500 px-1 rounded font-black">ECC</span>}
