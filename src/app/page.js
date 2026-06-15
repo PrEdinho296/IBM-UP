@@ -102,8 +102,8 @@ function ChurchMembershipSystem() {
   const getMeetingDates = (dayOfWeek, refDate = null) => {
     const daysMap = { 'domingo': 0, 'segunda': 1, 'terça': 2, 'quarta': 3, 'quinta': 4, 'sexta': 5, 'sábado': 6 };
     const targetDay = daysMap[dayOfWeek?.toLowerCase()] ?? 3;
-    const datesList = [];
-    const base = refDate ? new Date(refDate + 'T12:00:00') : new Date();
+    const datesList = [];    let base = refDate ? new Date(refDate + 'T12:00:00') : new Date();
+    if (isNaN(base.getTime())) base = new Date();
     
     // Se estivermos em um sábado e procurando domingo, ou similar, podemos querer olhar pra frente
     let current = new Date(base);
@@ -113,8 +113,12 @@ function ChurchMembershipSystem() {
     if (!refDate && base.getDay() === 6 && targetDay === 0) {
       current.setDate(base.getDate() + 1);
     } else {
-      while (current.getDay() !== targetDay) current.setDate(current.getDate() - 1);
-    }
+      let loops = 0;
+      while (current.getDay() !== targetDay && loops < 7) {
+        current.setDate(current.getDate() - 1);
+        loops++;
+      }
+    };
 
     for (let i = 0; i < 15; i++) {
       const year = current.getFullYear();
@@ -1058,7 +1062,7 @@ function ChurchMembershipSystem() {
 
   const stats = React.useMemo(() => {
     return members.reduce((acc, m) => {
-      if (isLeaderMode && activeCell && m.cell_id !== activeCell.id) return acc;
+      if (isLeaderMode && activeCell && m.cell_id !== activeCell?.id) return acc;
       const { isPresentCell, isPresentCult } = getMemberEngagement(m, !isLeaderMode);
       acc.total++;
       if (m.outros) acc.visitors++;
@@ -1088,7 +1092,7 @@ function ChurchMembershipSystem() {
   ];
 
   const courseStats = React.useMemo(() => {
-    const activeMembers = members.filter(m => isLeaderMode && activeCell ? Number(m.cell_id) === Number(activeCell.id) : true);
+    const activeMembers = members.filter(m => isLeaderMode && activeCell ? Number(m.cell_id) === Number(activeCell?.id) : true);
     return [
       { name: 'CASAIS COM CRISTO', value: activeMembers.filter(m => m.ecc).length, color: '#3b82f6', short: 'ECC' },
       { name: 'BATISMO', value: activeMembers.filter(m => m.bat).length, color: '#10b981', short: 'BAT' },
@@ -1103,7 +1107,7 @@ function ChurchMembershipSystem() {
 
   const filteredMembers = members.filter(m => {
     const matchesSearch = m.name.toLowerCase().includes(searchTerm.toLowerCase());
-    if (isLeaderMode && activeCell) return Number(m.cell_id) === Number(activeCell.id) && matchesSearch;
+    if (isLeaderMode && activeCell) return Number(m.cell_id) === Number(activeCell?.id) && matchesSearch;
     if (filterCellId) return Number(m.cell_id) === Number(filterCellId) && matchesSearch;
     return matchesSearch;
   });
@@ -1157,7 +1161,7 @@ function ChurchMembershipSystem() {
     
     // 1. Identificar quem são os membros relevantes para este gráfico
     const relevantMembers = isLeaderMode && activeCell 
-      ? members.filter(m => Number(m.cell_id) === Number(activeCell.id) && !m.outros)
+      ? members.filter(m => Number(m.cell_id) === Number(activeCell?.id) && !m.outros)
       : members.filter(m => !m.outros);
     
     const relevantMemberIds = new Set(relevantMembers.map(m => m.id));
@@ -1306,7 +1310,7 @@ function ChurchMembershipSystem() {
 
   const openReportForm = () => {
     const targetMembers = (isLeaderMode && activeCell) 
-      ? members.filter(m => Number(m.cell_id) === Number(activeCell.id))
+      ? members.filter(m => Number(m.cell_id) === Number(activeCell?.id))
       : members;
     
     const churchStats = targetMembers.reduce((acc, m) => {
@@ -1561,7 +1565,7 @@ function ChurchMembershipSystem() {
                    icon={<Plus size={18} />} 
                    label="Convidar Treinee" 
                    onClick={() => {
-                     const link = `${window.location.origin}${window.location.pathname}?${currentBranch ? 'branch=leme&' : ''}cellId=${activeCell.id}&role=trainee`;
+                     const link = `${window.location.origin}${window.location.pathname}?${currentBranch ? 'branch=leme&' : ''}cellId=${activeCell?.id}&role=trainee`;
                      navigator.clipboard.writeText(link);
                      alert('Link de convite para Líder em Treinamento copiado!\nEnvie para o seu auxiliar.');
                    }} 
@@ -2322,7 +2326,7 @@ function ChurchMembershipSystem() {
                         </tr>
                       </thead>
                       <tbody className={`divide-y ${t.border}`}>
-                        {members.filter(m => Number(m.cell_id) === Number(activeCell.id)).map(m => {
+                        {members.filter(m => Number(m.cell_id) === Number(activeCell?.id)).map(m => {
                           const cellDates = getMeetingDates(activeCell.day_of_week || 'quarta', historyRefDate).slice(-15);
                           return (
                             <tr key={m.id} className={t.hover}>
@@ -2342,7 +2346,7 @@ function ChurchMembershipSystem() {
                                 return (
                                   <td key={d} className="px-1 py-4 text-center border-x border-white/5">
                                     <button 
-                                      onClick={() => toggleHistoryAttendance(m.id, activeCell.id, d)}
+                                      onClick={() => toggleHistoryAttendance(m.id, activeCell?.id, d)}
                                       className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 relative ${status === 'P' ? 'bg-emerald-600 text-white shadow-lg' : status === 'F' ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
                                     >
                                       {status || '-'}
@@ -2379,7 +2383,7 @@ function ChurchMembershipSystem() {
                         </tr>
                       </thead>
                       <tbody className={`divide-y ${t.border}`}>
-                        {members.filter(m => Number(m.cell_id) === Number(activeCell.id)).map(m => {
+                        {members.filter(m => Number(m.cell_id) === Number(activeCell?.id)).map(m => {
                           const sundayDates = getMeetingDates('domingo', historyRefDate).slice(-15);
                           return (
                             <tr key={m.id} className={t.hover}>
@@ -2399,7 +2403,7 @@ function ChurchMembershipSystem() {
                                 return (
                                   <td key={d} className="px-1 py-4 text-center border-x border-white/5">
                                     <button 
-                                      onClick={() => toggleHistoryAttendance(m.id, activeCell.id, d)}
+                                      onClick={() => toggleHistoryAttendance(m.id, activeCell?.id, d)}
                                       className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 relative ${status === 'P' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : status === 'F' ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
                                     >
                                       {status || '-'}
@@ -2445,14 +2449,14 @@ function ChurchMembershipSystem() {
                 <div className={`${t.card} p-6 border rounded-2xl`}>
                   <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2">Total no Culto</p>
                   <div className="flex items-baseline gap-2">
-                    <p className="text-4xl font-black italic text-blue-500">{members.filter(m => !m.attended_cult && (isLeaderMode ? m.cell_id === activeCell.id : true)).length}</p>
+                    <p className="text-4xl font-black italic text-blue-500">{members.filter(m => !m.attended_cult && (isLeaderMode ? m.cell_id === activeCell?.id : true)).length}</p>
                     <p className="text-slate-500 text-xs font-black uppercase italic">Pessoas</p>
                   </div>
                 </div>
                 <div className={`${t.card} p-6 border rounded-2xl`}>
                   <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2">Faltaram</p>
                   <div className="flex items-baseline gap-2">
-                    <p className="text-4xl font-black italic text-red-500">{members.filter(m => m.attended_cult && (isLeaderMode ? m.cell_id === activeCell.id : true)).length}</p>
+                    <p className="text-4xl font-black italic text-red-500">{members.filter(m => m.attended_cult && (isLeaderMode ? m.cell_id === activeCell?.id : true)).length}</p>
                     <p className="text-slate-500 text-xs font-black uppercase italic">Pessoas</p>
                   </div>
                 </div>
@@ -2460,7 +2464,7 @@ function ChurchMembershipSystem() {
                   <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2">% de Engajamento</p>
                   <div className="flex items-baseline gap-2">
                     <p className="text-4xl font-black italic text-emerald-500">
-                      {Math.round((members.filter(m => !m.attended_cult && (isLeaderMode ? m.cell_id === activeCell.id : true)).length / (members.filter(m => isLeaderMode ? m.cell_id === activeCell.id : true).length || 1)) * 100)}%
+                      {Math.round((members.filter(m => !m.attended_cult && (isLeaderMode ? m.cell_id === activeCell?.id : true)).length / (members.filter(m => isLeaderMode ? m.cell_id === activeCell?.id : true).length || 1)) * 100)}%
                     </p>
                   </div>
                 </div>
@@ -2493,8 +2497,8 @@ function ChurchMembershipSystem() {
                       if (confirm('Marcar TODOS como presentes no culto?')) {
                         const sunday = getMeetingDates('domingo', historyRefDate).pop();
                         members.forEach(m => {
-                          if (isLeaderMode ? m.cell_id === activeCell.id : true) {
-                            toggleHistoryAttendance(m.id, activeCell.id, sunday);
+                          if (isLeaderMode ? m.cell_id === activeCell?.id : true) {
+                            toggleHistoryAttendance(m.id, activeCell?.id, sunday);
                           }
                         });
                       }
@@ -2503,11 +2507,11 @@ function ChurchMembershipSystem() {
                       if (confirm('Limpar TODA a frequência de culto?')) {
                         const sunday = getMeetingDates('domingo', historyRefDate).pop();
                         members.forEach(m => {
-                          if (isLeaderMode ? m.cell_id === activeCell.id : true) {
+                          if (isLeaderMode ? m.cell_id === activeCell?.id : true) {
                             setAttendance(prev => prev.filter(a => !(a.member_id === m.id && a.date === sunday)));
                             setPendingAttendance(prev => {
                               const other = prev.filter(p => !(p.member_id === m.id && p.date === sunday));
-                              return [...other, { member_id: m.id, cell_id: activeCell.id, date: sunday, status: null }];
+                              return [...other, { member_id: m.id, cell_id: activeCell?.id, date: sunday, status: null }];
                             });
                           }
                         });
@@ -2530,7 +2534,7 @@ function ChurchMembershipSystem() {
                     </thead>
                     <tbody className="divide-y divide-white/5">
                       {members
-                        .filter(m => isLeaderMode ? m.cell_id === activeCell.id : true)
+                        .filter(m => isLeaderMode ? m.cell_id === activeCell?.id : true)
                         .sort((a, b) => a.name.localeCompare(b.name))
                         .map(m => {
                           const sundayDates = getMeetingDates('domingo', historyRefDate).slice(-10);
@@ -2552,7 +2556,7 @@ function ChurchMembershipSystem() {
                                 return (
                                   <td key={d} className="px-1 py-4 text-center border-x border-white/5">
                                     <button 
-                                      onClick={() => toggleHistoryAttendance(m.id, activeCell.id, d)}
+                                      onClick={() => toggleHistoryAttendance(m.id, activeCell?.id, d)}
                                       className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 relative ${status === 'P' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : status === 'F' ? 'bg-red-600 text-white shadow-lg' : 'bg-slate-800 text-slate-600'}`}
                                     >
                                       {status || '-'}
@@ -2639,7 +2643,7 @@ function ChurchMembershipSystem() {
                       <tbody className="divide-y divide-white/5">
                         {members
                           .filter(m => {
-                            if (isLeaderMode && activeCell && m.cell_id !== activeCell.id) return false;
+                            if (isLeaderMode && activeCell && m.cell_id !== activeCell?.id) return false;
                             const { isPresentCell, isPresentCult } = getMemberEngagement(m);
 
                             if (analyticsFilter === 'all') return true;
@@ -2694,7 +2698,7 @@ function ChurchMembershipSystem() {
                     ].map(cat => {
                       const catVisitors = members.filter(m => {
                         if (!m.outros) return false;
-                        if (isLeaderMode && activeCell && m.cell_id !== activeCell.id) return false;
+                        if (isLeaderMode && activeCell && m.cell_id !== activeCell?.id) return false;
                         return getVisitorType(m) === cat.id;
                       }).sort((a, b) => a.name.localeCompare(b.name));
 
