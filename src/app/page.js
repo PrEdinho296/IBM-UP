@@ -3635,7 +3635,7 @@ function CustomTooltip({ active, payload, label, dark }) {
       <div className={`${dark ? 'bg-slate-900 border-white/10 shadow-2xl' : 'bg-white shadow-xl border-slate-100'} p-4 rounded-2xl border backdrop-blur-md min-w-[140px]`}>
         <p className="text-[9px] font-black mb-3 uppercase tracking-widest text-slate-500 pb-2 border-b border-white/5">{payload[0].payload.fullDate || label}</p>
         <div className="space-y-2">
-          {payload.sort((a, b) => b.value - a.value).map((p, i) => (
+          {[...payload].sort((a, b) => b.value - a.value).map((p, i) => (
             <div key={i} className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: p.color || p.fill }} />
