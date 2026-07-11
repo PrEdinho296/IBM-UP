@@ -910,6 +910,8 @@ function ChurchMembershipSystem() {
     e.preventDefault();
     if (!visitorForm.name) return;
     
+    const finalCellId = visitorForm.suggested_cell?.id || (isLeaderMode && activeCell ? activeCell.id : null);
+
     const payload = {
       name: visitorForm.name,
       phone: visitorForm.phone || null,
@@ -920,7 +922,7 @@ function ChurchMembershipSystem() {
       neighborhood: visitorForm.neighborhood || null,
       city: visitorForm.city || null,
       ministerios: !!visitorForm.ministerios,
-      cell_id: visitorForm.suggested_cell?.id || null,
+      cell_id: finalCellId,
       status: visitorForm.visit_type || 'manha',
       outros: true,
       attended_cult: true 
@@ -936,7 +938,8 @@ function ChurchMembershipSystem() {
         name: '', phone: '', email: '', cep: '', address: '', number: '', neighborhood: '', city: '', 
         ministerios: '', suggested_cell: null, visit_type: 'manha'
       });
-      alert('Visitante registrado com sucesso! O formulário foi limpo para o próximo.');
+      setShowVisitorModal(false);
+      alert('Visitante registrado com sucesso e conectado à célula!');
     }
   };
 
