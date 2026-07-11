@@ -108,17 +108,12 @@ function ChurchMembershipSystem() {
     // Se estivermos em um sábado e procurando domingo, ou similar, podemos querer olhar pra frente
     let current = new Date(base);
     
-    // Ajustar para o dia da semana alvo mais próximo (pode ser futuro se for amanhã)
-    // Se hoje é Sábado (6) e alvo é Domingo (0), e queremos ver o futuro:
-    if (!refDate && base.getDay() === 6 && targetDay === 0) {
-      current.setDate(base.getDate() + 1);
-    } else {
-      let loops = 0;
-      while (current.getDay() !== targetDay && loops < 7) {
-        current.setDate(current.getDate() - 1);
-        loops++;
-      }
-    };
+    // Ajustar para o dia da semana alvo mais próximo no passado
+    let loops = 0;
+    while (current.getDay() !== targetDay && loops < 7) {
+      current.setDate(current.getDate() - 1);
+      loops++;
+    }
 
     for (let i = 0; i < 15; i++) {
       const year = current.getFullYear();
