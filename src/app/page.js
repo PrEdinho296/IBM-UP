@@ -1062,21 +1062,25 @@ function ChurchMembershipSystem() {
     return members.reduce((acc, m) => {
       if (isLeaderMode && activeCell && m.cell_id !== activeCell?.id) return acc;
       const { isPresentCell, isPresentCult } = getMemberEngagement(m, !isLeaderMode);
-      acc.total++;
-      if (m.outros) acc.visitors++;
-      if (isPresentCell && isPresentCult) acc.both++;
-      else if (isPresentCell && !isPresentCult) acc.onlyCell++;
-      else if (!isPresentCell && isPresentCult) {
-        acc.onlyCulto++;
-        acc.onlyCult++;
-      }
-      else acc.none++;
+      
+      if (m.outros) {
+        acc.visitors++;
+      } else {
+        acc.total++;
+        if (isPresentCell && isPresentCult) acc.both++;
+        else if (isPresentCell && !isPresentCult) acc.onlyCell++;
+        else if (!isPresentCell && isPresentCult) {
+          acc.onlyCulto++;
+          acc.onlyCult++;
+        }
+        else acc.none++;
 
-      if (!isPresentCult) {
-        acc.absentCulto++;
-        acc.absentCult++;
+        if (!isPresentCult) {
+          acc.absentCulto++;
+          acc.absentCult++;
+        }
+        if (!isPresentCell) acc.absentCell++;
       }
-      if (!isPresentCell) acc.absentCell++;
 
       return acc;
     }, { total: 0, both: 0, onlyCell: 0, onlyCulto: 0, onlyCult: 0, none: 0, absentCulto: 0, absentCult: 0, absentCell: 0, visitors: 0 });
