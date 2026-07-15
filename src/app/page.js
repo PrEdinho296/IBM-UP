@@ -125,6 +125,32 @@ function ChurchMembershipSystem() {
     return datesList;
   };
 
+  const getCurrentMonthMeetingDates = (dayOfWeek, refDate = null) => {
+    const daysMap = { 'domingo': 0, 'segunda': 1, 'terça': 2, 'quarta': 3, 'quinta': 4, 'sexta': 5, 'sábado': 6 };
+    const targetDay = daysMap[dayOfWeek?.toLowerCase()] ?? 3;
+    const datesList = [];    
+    let base = refDate ? new Date(refDate + 'T12:00:00') : new Date();
+    if (isNaN(base.getTime())) base = new Date();
+    
+    const targetMonth = base.getMonth();
+    const targetYear = base.getFullYear();
+    
+    let current = new Date(targetYear, targetMonth, 1);
+    while (current.getDay() !== targetDay) {
+      current.setDate(current.getDate() + 1);
+    }
+    
+    while (current.getMonth() === targetMonth) {
+      const year = current.getFullYear();
+      const month = String(current.getMonth() + 1).padStart(2, '0');
+      const day = String(current.getDate()).padStart(2, '0');
+      datesList.push(`${year}-${month}-${day}`);
+      current.setDate(current.getDate() + 7);
+    }
+    
+    return datesList;
+  };
+
   const getMemberEngagement = (m, forceLatest = false) => {
     const cell = cells.find(c => c.id === m.cell_id);
     const cellDay = cell?.day_of_week || 'quarta';
@@ -2319,7 +2345,7 @@ function ChurchMembershipSystem() {
                       <thead className={`${t.tableHead} border-b ${t.border} sticky top-0 z-20`}>
                         <tr>
                           <th className={`px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[150px] sticky left-0 z-30 ${darkMode ? 'bg-slate-900 border-white/5' : 'bg-slate-50 border-slate-200'} border-r shadow-[2px_0_5px_rgba(0,0,0,0.3)]`}>Nome do Membro</th>
-                          {getMeetingDates(activeCell.day_of_week || 'quarta', historyRefDate).slice(-15).map(d => (
+                          {getCurrentMonthMeetingDates(activeCell.day_of_week || 'quarta', historyRefDate).map(d => (
                             <th key={d} className="px-1 py-5 text-center text-[8px] font-black uppercase text-slate-500 italic border-x border-white/5 min-w-[60px]">
                               <div className="text-blue-500 mb-1">{new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
                               {activeCell.day_of_week?.substring(0, 3) || 'Qua'}
@@ -2329,7 +2355,7 @@ function ChurchMembershipSystem() {
                       </thead>
                       <tbody className={`divide-y ${t.border}`}>
                         {members.filter(m => Number(m.cell_id) === Number(activeCell?.id)).map(m => {
-                          const cellDates = getMeetingDates(activeCell.day_of_week || 'quarta', historyRefDate).slice(-15);
+                          const cellDates = getCurrentMonthMeetingDates(activeCell.day_of_week || 'quarta', historyRefDate);
                           return (
                             <tr key={m.id} className={t.hover}>
                               <td className={`px-6 py-4 sticky left-0 z-10 ${darkMode ? 'bg-slate-950' : 'bg-white'} border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]`}>
@@ -2376,7 +2402,7 @@ function ChurchMembershipSystem() {
                       <thead className={`${t.tableHead} border-b ${t.border} sticky top-0 z-20`}>
                         <tr>
                           <th className={`px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[150px] sticky left-0 z-30 ${darkMode ? 'bg-slate-900 border-white/5' : 'bg-slate-50 border-slate-200'} border-r shadow-[2px_0_5px_rgba(0,0,0,0.3)]`}>Nome do Membro</th>
-                          {getMeetingDates('domingo', historyRefDate).slice(-15).map(d => (
+                          {getCurrentMonthMeetingDates('domingo', historyRefDate).map(d => (
                             <th key={d} className="px-1 py-5 text-center text-[8px] font-black uppercase text-slate-500 italic border-x border-white/5 min-w-[60px]">
                               <div className="text-emerald-500 mb-1">{new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
                               Dom
@@ -2386,7 +2412,7 @@ function ChurchMembershipSystem() {
                       </thead>
                       <tbody className={`divide-y ${t.border}`}>
                         {members.filter(m => Number(m.cell_id) === Number(activeCell?.id)).map(m => {
-                          const sundayDates = getMeetingDates('domingo', historyRefDate).slice(-15);
+                          const sundayDates = getCurrentMonthMeetingDates('domingo', historyRefDate);
                           return (
                             <tr key={m.id} className={t.hover}>
                               <td className={`px-6 py-4 sticky left-0 z-10 ${darkMode ? 'bg-slate-950' : 'bg-white'} border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]`}>
@@ -2526,7 +2552,7 @@ function ChurchMembershipSystem() {
                     <thead className="bg-slate-900/50 sticky top-0 z-10 border-b border-white/5">
                       <tr>
                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest min-w-[200px]">Membro</th>
-                        {getMeetingDates('domingo', historyRefDate).slice(-10).map(d => (
+                        {getCurrentMonthMeetingDates('domingo', historyRefDate).map(d => (
                           <th key={d} className="px-1 py-5 text-center text-[8px] font-black uppercase text-slate-500 italic">
                             <div className="text-blue-500 mb-1">{new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</div>
                             Dom
@@ -2539,7 +2565,7 @@ function ChurchMembershipSystem() {
                         .filter(m => isLeaderMode ? m.cell_id === activeCell?.id : true)
                         .sort((a, b) => a.name.localeCompare(b.name))
                         .map(m => {
-                          const sundayDates = getMeetingDates('domingo', historyRefDate).slice(-10);
+                          const sundayDates = getCurrentMonthMeetingDates('domingo', historyRefDate);
                           return (
                             <tr key={m.id} className="hover:bg-white/5 transition-all">
                               <td className="px-6 py-4">
