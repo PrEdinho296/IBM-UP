@@ -1955,6 +1955,39 @@ function ChurchMembershipSystem() {
                 </div>
               )}
 
+              {/* Alerta Estratégico de Ausências no Dashboard Principal do Pastor */}
+              {cells.some(c => members.some(m => !m.outros && !m.attended_cell && Number(m.cell_id) === Number(c.id))) && (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-orange-500/10 via-red-500/5 to-transparent border border-orange-500/20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500 text-left mt-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500 shrink-0">
+                      <UserMinus size={20} />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black uppercase tracking-widest text-orange-500 flex items-center gap-2">
+                        Atenção Pastoral: Alertas de Ausência
+                      </h4>
+                      <p className="text-[9px] text-slate-400 font-bold mt-0.5">
+                        Células com membros que faltaram na reunião (ordenadas por quantidade de faltas):
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 self-stretch sm:self-auto items-center">
+                    {cells.map(c => {
+                      const count = members.filter(m => !m.outros && !m.attended_cell && Number(m.cell_id) === Number(c.id)).length;
+                      return { ...c, count };
+                    }).filter(c => c.count > 0).sort((a, b) => b.count - a.count).map(c => (
+                        <button
+                          key={c.id}
+                          onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-cell'); }}
+                          className="px-2.5 py-1 rounded-lg bg-orange-500/20 text-orange-300 border border-orange-500/30 text-[9px] font-black uppercase tracking-wider hover:bg-orange-500 hover:text-white transition-all flex items-center gap-1"
+                        >
+                          {c.name} <span className="bg-black/20 px-1.5 py-0.5 rounded-full text-[8px]">{c.count}</span>
+                        </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <div className={`${t.card} lg:col-span-4 border rounded-3xl p-6 flex flex-col items-center`}>
                   <h3 className="text-[9px] font-black uppercase mb-6 self-start tracking-widest flex items-center gap-2 text-slate-500"><PieIcon size={12} /> Fidelidade Global</h3>
