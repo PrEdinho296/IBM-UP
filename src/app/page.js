@@ -2,7 +2,7 @@
 // VERSION v2026.05.11.0317 - floating save and topbar sync fix
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Plus, Trash2, Users, Menu, X, Activity, LayoutDashboard, Map, Home, ClipboardList, Star, Calendar, Clock, Copy, Check, MapPin, Loader2, Sun, Moon, ShieldCheck, UserMinus, Eye, Download, Upload, Power, Edit2, FileDown, ArrowLeft, LineChart as LineIcon, PieChart as PieIcon, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Users, Menu, X, Activity, LayoutDashboard, Map, Home, ClipboardList, Star, Calendar, Clock, Copy, Check, MapPin, Loader2, Sun, Moon, ShieldCheck, UserMinus, Eye, Download, Upload, Power, Edit2, FileDown, ArrowLeft, LineChart as LineIcon, PieChart as PieIcon, AlertTriangle, Mail } from 'lucide-react';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, BarChart, Bar, Legend } from 'recharts';
 import { supabase } from '../lib/supabase';
 import * as XLSX from 'xlsx';
@@ -2047,13 +2047,21 @@ function ChurchMembershipSystem() {
                         const isVeryOutdated = !lastUpdateDate || lastUpdateDate < previousSunday;
 
                         return (
-                          <button
-                            key={c.id}
-                            onClick={() => { setActiveCell(c); setIsLeaderMode(true); setActiveTab('leader-dashboard'); }}
-                            className={`px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 ${isVeryOutdated ? 'bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500 hover:text-white' : 'bg-rose-500/20 text-rose-300 border-rose-500/30 hover:bg-rose-500 hover:text-white'}`}
-                          >
-                            {c.name} {isVeryOutdated && <span className="bg-red-500 w-1.5 h-1.5 rounded-full animate-pulse ml-1" title="Mais de 1 semana atrasada" />}
-                          </button>
+                          <div key={c.id} className="flex items-center">
+                            <button
+                              onClick={() => { setActiveCell(c); setIsLeaderMode(true); setActiveTab('leader-dashboard'); }}
+                              className={`px-2.5 py-1 rounded-l-lg border-y border-l text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 ${isVeryOutdated ? 'bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500 hover:text-white' : 'bg-rose-500/20 text-rose-300 border-rose-500/30 hover:bg-rose-500 hover:text-white'}`}
+                            >
+                              {c.name} {isVeryOutdated && <span className="bg-red-500 w-1.5 h-1.5 rounded-full animate-pulse ml-1" title="Mais de 1 semana atrasada" />}
+                            </button>
+                            <a
+                              href={`mailto:${c.login_email || ''}?subject=Relatório%20Semanal%20Pendente%20-%20Célula%20${encodeURIComponent(c.name)}&body=Olá%20${encodeURIComponent(c.leader || 'Líder')},%20a%20paz%20do%20Senhor.%0A%0ANotamos%20que%20o%20relatório%20da%20célula%20${encodeURIComponent(c.name)}%20ainda%20não%20foi%20inserido%20no%20sistema.%20Por%20favor,%20atualize%20assim%20que%20possível!`}
+                              className={`px-2 py-1 rounded-r-lg border-y border-r border-l border-l-black/20 text-[9px] font-black uppercase tracking-wider transition-all flex items-center justify-center ${isVeryOutdated ? 'bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500 hover:text-white' : 'bg-rose-500/20 text-rose-300 border-rose-500/30 hover:bg-rose-500 hover:text-white'}`}
+                              title="Cobrar por E-mail"
+                            >
+                              <Mail size={12} />
+                            </a>
+                          </div>
                         );
                       })}
                     </div>
