@@ -261,7 +261,7 @@ function ChurchMembershipSystem() {
   const [analyticsFilter, setAnalyticsFilter] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [timeFilter, setTimeFilter] = useState('Tudo');
-  const [memberTypeFilter, setMemberTypeFilter] = useState('todos'); // 'todos', 'oficiais', 'visitantes', 'consolidacao'
+  const [memberTypeFilter, setMemberTypeFilter] = useState('membros'); // 'membros', 'todos', 'oficiais', 'visitantes', 'consolidacao'
   const [selectedSectors, setSelectedSectors] = useState([]);
   const [historyRefDate, setHistoryRefDate] = useState(getLocalDate());
 
@@ -1138,7 +1138,8 @@ function ChurchMembershipSystem() {
     const matchesSearch = m.name.toLowerCase().includes(searchTerm.toLowerCase());
     
     let matchesType = true;
-    if (memberTypeFilter === 'oficiais') matchesType = m.membro_igreja;
+    if (memberTypeFilter === 'membros') matchesType = !m.outros;
+    else if (memberTypeFilter === 'oficiais') matchesType = m.membro_igreja;
     else if (memberTypeFilter === 'visitantes') matchesType = m.outros;
     else if (memberTypeFilter === 'consolidacao') matchesType = (!m.membro_igreja && !m.outros);
 
@@ -2260,13 +2261,13 @@ function ChurchMembershipSystem() {
                 {isLeaderMode && <button onClick={() => setShowMemberForm(true)} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg">+ NOVO MEMBRO</button>}
               </header>
               <div className="flex bg-white/5 p-1 rounded-xl border border-white/5 self-start mb-6 inline-flex flex-wrap gap-1">
-                {['todos', 'oficiais', 'visitantes', 'consolidacao'].map(f => (
+                {['membros', 'oficiais', 'visitantes', 'consolidacao', 'todos'].map(f => (
                   <button 
                     key={f} 
                     onClick={() => setMemberTypeFilter(f)} 
                     className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${memberTypeFilter === f ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:text-white'}`}
                   >
-                    {f === 'todos' ? 'Todos' : f === 'oficiais' ? 'Membros Oficiais' : f === 'visitantes' ? 'Visitantes' : 'Em Consolidação'}
+                    {f === 'membros' ? 'Membros da Igreja' : f === 'todos' ? 'Ver Todos' : f === 'oficiais' ? 'Membros Oficiais' : f === 'visitantes' ? 'Visitantes' : 'Em Consolidação'}
                   </button>
                 ))}
               </div>
