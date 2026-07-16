@@ -1996,6 +1996,71 @@ function ChurchMembershipSystem() {
                 </div>
               )}
 
+              {/* Alerta Estratégico de Células Desatualizadas no Dashboard Principal do Pastor */}
+              {(() => {
+                const getSundayStr = (offsetDays = 0) => {
+                  const d = new Date();
+                  d.setDate(d.getDate() - d.getDay() + offsetDays);
+                  const y = d.getFullYear();
+                  const m = String(d.getMonth() + 1).padStart(2, '0');
+                  const day = String(d.getDate()).padStart(2, '0');
+                  return `${y}-${m}-${day}`;
+                };
+                const currentSunday = getSundayStr(0);
+
+                const outdatedCells = cells.filter(c => {
+                  let lastUpdateDate = null;
+                  attendance.forEach(a => {
+                    if (String(a.cell_id) === String(c.id)) {
+                      if (!lastUpdateDate || a.date > lastUpdateDate) lastUpdateDate = a.date;
+                    }
+                  });
+                  return !lastUpdateDate || lastUpdateDate < currentSunday;
+                });
+
+                if (outdatedCells.length === 0) return null;
+
+                return (
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-500/10 via-red-500/5 to-transparent border border-rose-500/20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500 text-left mt-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500 shrink-0">
+                        <AlertTriangle size={20} />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black uppercase tracking-widest text-rose-500 flex items-center gap-2">
+                          Atenção Pastoral: Células Desatualizadas
+                        </h4>
+                        <p className="text-[9px] text-slate-400 font-bold mt-0.5">
+                          Células que não registraram dados na semana atual (desde o último domingo):
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 self-stretch sm:self-auto items-center">
+                      {outdatedCells.map(c => {
+                        let lastUpdateDate = null;
+                        attendance.forEach(a => {
+                          if (String(a.cell_id) === String(c.id)) {
+                            if (!lastUpdateDate || a.date > lastUpdateDate) lastUpdateDate = a.date;
+                          }
+                        });
+                        const previousSunday = getSundayStr(-7);
+                        const isVeryOutdated = !lastUpdateDate || lastUpdateDate < previousSunday;
+
+                        return (
+                          <button
+                            key={c.id}
+                            onClick={() => { setActiveCell(c); setIsLeaderMode(true); setActiveTab('leader-dashboard'); }}
+                            className={`px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 ${isVeryOutdated ? 'bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500 hover:text-white' : 'bg-rose-500/20 text-rose-300 border-rose-500/30 hover:bg-rose-500 hover:text-white'}`}
+                          >
+                            {c.name} {isVeryOutdated && <span className="bg-red-500 w-1.5 h-1.5 rounded-full animate-pulse ml-1" title="Mais de 1 semana atrasada" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 <div className={`${t.card} lg:col-span-4 border rounded-3xl p-6 flex flex-col items-center`}>
                   <h3 className="text-[9px] font-black uppercase mb-6 self-start tracking-widest flex items-center gap-2 text-slate-500"><PieIcon size={12} /> Fidelidade Global</h3>
