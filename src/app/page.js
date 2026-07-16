@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 // VERSION v2026.05.11.0317 - floating save and topbar sync fix
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -1593,7 +1593,7 @@ function ChurchMembershipSystem() {
                    icon={<Plus size={18} />} 
                    label="Convidar Treinee" 
                    onClick={() => {
-                     const link = `${window.location.origin}${window.location.pathname}?${currentBranch ? 'branch=leme&' : ''}cellId=${activeCell?.id}&role=trainee`;
+                     const link = `${window.location.origin}${window.location.pathname}?${currentBranch ? 'branch=' + currentBranch.toLowerCase() + '&' : ''}cellId=${activeCell?.id}&role=trainee`;
                      navigator.clipboard.writeText(link);
                      alert('Link de convite para LÃ­der em Treinamento copiado!\nEnvie para o seu auxiliar.');
                    }} 
@@ -1672,7 +1672,7 @@ function ChurchMembershipSystem() {
            </button>
 
            {isLeaderMode && (
-             <button onClick={() => window.location.href = currentBranch ? '/?branch=leme' : '/'} className="w-full flex items-center gap-3 p-3 text-[10px] text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest mb-1"><LayoutDashboard size={16}/> {sidebarOpen && 'Painel Geral'}</button>
+             <button onClick={() => window.location.href = currentBranch ? '/?branch=' + currentBranch.toLowerCase() : '/'} className="w-full flex items-center gap-3 p-3 text-[10px] text-blue-500 hover:bg-blue-500/10 rounded-xl transition-all font-black uppercase tracking-widest mb-1"><LayoutDashboard size={16}/> {sidebarOpen && 'Painel Geral'}</button>
            )}
 
            <button onClick={handleLogout} className="w-full flex items-center gap-3 p-3 text-[10px] text-red-500/70 hover:text-red-500 hover:bg-red-400/5 rounded-xl transition-all font-black uppercase tracking-widest"><Power size={16}/> {sidebarOpen && 'Encerrar SessÃ£o'}</button>
@@ -1696,7 +1696,7 @@ function ChurchMembershipSystem() {
                 </p>
                 {isLeaderMode && session && (
                   <button 
-                    onClick={() => window.location.href = currentBranch ? '/?branch=leme' : '/'} 
+                    onClick={() => window.location.href = currentBranch ? '/?branch=' + currentBranch.toLowerCase() : '/'} 
                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-full font-black text-[8px] uppercase italic tracking-tighter transition-all shadow-lg shadow-blue-600/40"
                   >
                     <ArrowLeft size={12} />
@@ -2262,7 +2262,8 @@ function ChurchMembershipSystem() {
                             {m.ministerios && <span className="text-[8px] bg-blue-600/20 text-blue-400 px-1.5 py-0.5 rounded font-black uppercase">DISC</span>}
                           </div>
                           <div className="flex flex-wrap gap-1 mt-1.5">
-                            {m.ecc && <span className="text-[7px] bg-blue-600/10 border border-blue-500/30 text-blue-400 px-1.5 py-0.5 rounded font-black uppercase">ECC</span>}
+                            {m.membro_igreja && <span className="text-[6px] bg-emerald-500 text-white px-1 rounded font-black">OFICIAL</span>}
+  {m.ecc && <span className="text-[7px] bg-blue-600/10 border border-blue-500/30 text-blue-400 px-1.5 py-0.5 rounded font-black uppercase">ECC</span>}
                             {m.bat && <span className="text-[7px] bg-emerald-600/10 border border-emerald-500/30 text-emerald-400 px-1.5 py-0.5 rounded font-black uppercase">BAT</span>}
                             {m.integracao && <span className="text-[7px] bg-amber-600/10 border border-amber-500/30 text-amber-400 px-1.5 py-0.5 rounded font-black uppercase">FCC</span>}
                             {m.con && <span className="text-[7px] bg-red-600/10 border border-red-500/30 text-red-400 px-1.5 py-0.5 rounded font-black uppercase">CON</span>}
@@ -2361,7 +2362,8 @@ function ChurchMembershipSystem() {
                               <td className={`px-6 py-4 sticky left-0 z-10 ${darkMode ? 'bg-slate-950' : 'bg-white'} border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]`}>
                                 <p className="font-black italic uppercase text-xs tracking-tighter truncate w-32">{m.name}</p>
                                 <div className="flex flex-wrap gap-1 mt-1">
-                                  {m.ecc && <span className="text-[6px] border border-blue-500/30 text-blue-500 px-1 rounded font-black">ECC</span>}
+                                  {m.membro_igreja && <span className="text-[6px] bg-emerald-500 text-white px-1 rounded font-black">OFICIAL</span>}
+  {m.ecc && <span className="text-[6px] border border-blue-500/30 text-blue-500 px-1 rounded font-black">ECC</span>}
                                   {m.bat && <span className="text-[6px] border border-emerald-500/30 text-emerald-500 px-1 rounded font-black">BAT</span>}
                                   {m.integracao && <span className="text-[6px] border border-amber-500/30 text-amber-500 px-1 rounded font-black">FCC</span>}
                                   {m.con && <span className="text-[6px] border border-red-500/30 text-red-500 px-1 rounded font-black">CON</span>}
@@ -2418,7 +2420,8 @@ function ChurchMembershipSystem() {
                               <td className={`px-6 py-4 sticky left-0 z-10 ${darkMode ? 'bg-slate-950' : 'bg-white'} border-r border-white/5 shadow-[2px_0_5px_rgba(0,0,0,0.3)]`}>
                                 <p className="font-black italic uppercase text-xs tracking-tighter truncate w-32">{m.name}</p>
                                 <div className="flex flex-wrap gap-1 mt-1">
-                                  {m.ecc && <span className="text-[6px] border border-blue-500/30 text-blue-500 px-1 rounded font-black">ECC</span>}
+                                  {m.membro_igreja && <span className="text-[6px] bg-emerald-500 text-white px-1 rounded font-black">OFICIAL</span>}
+  {m.ecc && <span className="text-[6px] border border-blue-500/30 text-blue-500 px-1 rounded font-black">ECC</span>}
                                   {m.bat && <span className="text-[6px] border border-emerald-500/30 text-emerald-500 px-1 rounded font-black">BAT</span>}
                                   {m.integracao && <span className="text-[6px] border border-amber-500/30 text-amber-500 px-1 rounded font-black">FCC</span>}
                                   {m.con && <span className="text-[6px] border border-red-500/30 text-red-500 px-1 rounded font-black">CON</span>}
@@ -2571,7 +2574,8 @@ function ChurchMembershipSystem() {
                               <td className="px-6 py-4">
                                 <p className="text-sm font-black italic uppercase tracking-tighter">{m.name}</p>
                                 <div className="flex flex-wrap gap-1 mt-1">
-                                  {m.ecc && <span className="text-[6px] border border-blue-500/30 text-blue-500 px-1 rounded font-black">ECC</span>}
+                                  {m.membro_igreja && <span className="text-[6px] bg-emerald-500 text-white px-1 rounded font-black">OFICIAL</span>}
+  {m.ecc && <span className="text-[6px] border border-blue-500/30 text-blue-500 px-1 rounded font-black">ECC</span>}
                                   {m.bat && <span className="text-[6px] border border-emerald-500/30 text-emerald-500 px-1 rounded font-black">BAT</span>}
                                   {m.integracao && <span className="text-[6px] border border-amber-500/30 text-amber-500 px-1 rounded font-black">FCC</span>}
                                   {m.con && <span className="text-[6px] border border-red-500/30 text-red-500 px-1 rounded font-black">CON</span>}
@@ -2976,7 +2980,7 @@ function ChurchMembershipSystem() {
                       </div>
 
                       <div className="flex gap-2">
-                        <button onClick={() => { const link = `${window.location.origin}${window.location.pathname}?${currentBranch ? 'branch=leme&' : ''}cellId=${cell.id}`; navigator.clipboard.writeText(link); setCopiedId(cell.id); setTimeout(() => setCopiedId(null), 2000); }} className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 font-black text-[8px] uppercase tracking-widest transition-all ${copiedId === cell.id ? 'bg-emerald-600 text-white' : 'bg-blue-600/10 text-blue-500'}`}>{copiedId === cell.id ? 'Copiado!' : 'Link LÃ­der'}</button>
+                        <button onClick={() => { const link = `${window.location.origin}${window.location.pathname}?${currentBranch ? 'branch=' + currentBranch.toLowerCase() + '&' : ''}cellId=${cell.id}`; navigator.clipboard.writeText(link); setCopiedId(cell.id); setTimeout(() => setCopiedId(null), 2000); }} className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 font-black text-[8px] uppercase tracking-widest transition-all ${copiedId === cell.id ? 'bg-emerald-600 text-white' : 'bg-blue-600/10 text-blue-500'}`}>{copiedId === cell.id ? 'Copiado!' : 'Link LÃ­der'}</button>
                         <button 
                           onClick={() => { setEditingCellId(cell.id); setCellForm(cell); setShowCellForm(true); }} 
                           className={`p-2.5 rounded-lg border ${darkMode ? 'border-white/10 text-white/50' : 'border-slate-200 text-slate-400'} hover:bg-blue-600/10 hover:text-blue-500 transition-all`}
@@ -3089,7 +3093,6 @@ function ChurchMembershipSystem() {
                     >
                       Promover a Membro da CÃ©lula
                     </button>
-                  )}
                 </div>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -3134,7 +3137,18 @@ function ChurchMembershipSystem() {
                   <div className="space-y-2">
                     <p className="text-[8px] font-black text-slate-500 uppercase">Cursos</p>
                     <div className="grid grid-cols-1 gap-2">
-                      <CourseCheckCompact label="ECC - CASAIS COM CRISTO" checked={memberForm.ecc} onChange={val => setMemberForm({ ...memberForm, ecc: val })} dark={darkMode} />
+                      {!isLeaderMode && (
+    <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
+      <CourseCheckCompact 
+        label="✅ MEMBRO OFICIAL DA IGREJA" 
+        checked={memberForm.membro_igreja} 
+        onChange={val => setMemberForm({ ...memberForm, membro_igreja: val })} 
+        dark={darkMode} 
+      />
+      <p className="text-[8px] text-emerald-600/70 mt-1 ml-6 font-bold">Marque apenas após os cursos, quando for recebido no rol.</p>
+    </div>
+  )}
+  <CourseCheckCompact label="ECC - CASAIS COM CRISTO" checked={memberForm.ecc} onChange={val => setMemberForm({ ...memberForm, ecc: val })} dark={darkMode} />
                       <CourseCheckCompact label="BAT - MEMBROS PARA CLASSE DO BATISMO" checked={memberForm.bat} onChange={val => setMemberForm({ ...memberForm, bat: val })} dark={darkMode} />
                       <CourseCheckCompact label="FCC - FREQUENTE CULTOS/CÃ‰LULAS" checked={memberForm.integracao} onChange={val => setMemberForm({ ...memberForm, integracao: val })} dark={darkMode} />
                       <CourseCheckCompact label="CON - CONSOLIDAÃ‡ÃƒO PENDENTE" checked={memberForm.con} onChange={val => setMemberForm({ ...memberForm, con: val })} dark={darkMode} />
@@ -3702,7 +3716,7 @@ function PastoralReport({ members, cells, sectors, attendance, getMemberEngageme
 
   const stats = filteredMembers.reduce((acc, m) => {
     const { isPresentCell, isPresentCult } = getMemberEngagement(m);
-    if (!m.outros) acc.total++; // Exclui visitantes do Total de Membros
+    if (m.membro_igreja) acc.total++; // Conta apenas membros da igreja
     if (isPresentCell) acc.cellPresent++;
     if (isPresentCult) acc.cultPresent++;
     if (isPresentCell && isPresentCult) acc.both++;
