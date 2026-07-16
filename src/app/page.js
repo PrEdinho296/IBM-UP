@@ -1944,7 +1944,7 @@ function ChurchMembershipSystem() {
                       return (
                         <button
                           key={c.id}
-                          onClick={() => { setActiveTab('cells'); }}
+                          onClick={() => { setActiveTab('members'); setFilterCellId(c.id); }}
                           className="px-2.5 py-1 rounded-lg bg-pink-500/20 text-pink-300 border border-pink-500/30 text-[9px] font-black uppercase tracking-wider hover:bg-pink-500 hover:text-white transition-all flex items-center gap-1"
                         >
                           {c.name} <span className="bg-black/20 px-1.5 py-0.5 rounded-full text-[8px]">{count}</span>
@@ -1978,7 +1978,7 @@ function ChurchMembershipSystem() {
                     }).filter(c => c.count > 0).sort((a, b) => b.count - a.count).map(c => (
                         <button
                           key={c.id}
-                          onClick={() => { setActiveTab('reports'); setAnalyticsFilter('absent-cell'); }}
+                          onClick={() => { setActiveTab('members'); setFilterCellId(c.id); }}
                           className="px-2.5 py-1 rounded-lg bg-orange-500/20 text-orange-300 border border-orange-500/30 text-[9px] font-black uppercase tracking-wider hover:bg-orange-500 hover:text-white transition-all flex items-center gap-1"
                         >
                           {c.name} <span className="bg-black/20 px-1.5 py-0.5 rounded-full text-[8px]">{c.count}</span>
